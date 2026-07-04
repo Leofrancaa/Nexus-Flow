@@ -207,7 +207,12 @@ export class ImportService {
   static async updateTransaction(
     txId: number,
     userId: number,
-    data: { type?: TxType; category_id?: number | null; status?: 'pending' | 'skipped' }
+    data: {
+      type?: TxType
+      category_id?: number | null
+      status?: 'pending' | 'skipped'
+      description?: string
+    }
   ) {
     const [existing] = await db
       .select()
@@ -224,10 +229,18 @@ export class ImportService {
       throw createErrorResponse('Status inválido.', 400)
     }
 
+    // Descrição editável na revisão: é ela que vira o nome da despesa/receita
+    // ao confirmar. Limite de 120 caracteres, o mesmo aplicado no confirmImport.
+    const description = data.description !== undefined ? data.description.trim().slice(0, 120) : undefined
+    if (description !== undefined && description === '') {
+      throw createErrorResponse('A descrição não pode ficar vazia.', 400)
+    }
+
     const setData = {
       ...(data.type !== undefined ? { type: data.type } : {}),
       ...(data.category_id !== undefined ? { category_id: data.category_id } : {}),
       ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(description !== undefined ? { description } : {}),
     }
 
     if (Object.keys(setData).length === 0) return { ...existing, amount: Number(existing.amount) }

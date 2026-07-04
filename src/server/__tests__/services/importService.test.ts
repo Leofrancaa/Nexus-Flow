@@ -204,4 +204,38 @@ describe('ImportService.updateTransaction', () => {
       ImportService.updateTransaction(999, USER_ID, { status: 'skipped' })
     ).rejects.toMatchObject({ status: 404 })
   })
+
+  it('edita a descrição (nome da despesa/receita após confirmar)', async () => {
+    const { transactions } = await ImportService.createImport({
+      userId: USER_ID,
+      source: 'e.ofx',
+      format: 'ofx',
+      ofxText: OFX,
+    })
+    const tx = transactions[0]
+
+    const updated = await ImportService.updateTransaction(tx.id, USER_ID, {
+      description: '  Mercado do mês  ',
+    })
+    expect(updated.description).toBe('Mercado do mês')
+  })
+
+  it('rejeita descrição vazia e trunca descrições acima de 120 caracteres', async () => {
+    const { transactions } = await ImportService.createImport({
+      userId: USER_ID,
+      source: 'e.ofx',
+      format: 'ofx',
+      ofxText: OFX,
+    })
+    const tx = transactions[0]
+
+    await expect(
+      ImportService.updateTransaction(tx.id, USER_ID, { description: '   ' })
+    ).rejects.toMatchObject({ status: 400 })
+
+    const updated = await ImportService.updateTransaction(tx.id, USER_ID, {
+      description: 'x'.repeat(200),
+    })
+    expect(updated.description).toHaveLength(120)
+  })
 })

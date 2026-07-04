@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, CheckCircle2, FileText, Plus } from "lucide-react";
+import { Upload, CheckCircle2, FileText, Plus, Pencil } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import PageTitle from "@/components/pageTitle";
 import {
@@ -42,6 +42,9 @@ export default function ImportPage() {
   const [confirming, setConfirming] = useState(false);
   // Id da transação cuja criação de categoria está aberta (modal inline)
   const [categoryModalFor, setCategoryModalFor] = useState<number | null>(null);
+  // Edição inline da descrição (que vira o nome da despesa/receita ao confirmar)
+  const [editingTxId, setEditingTxId] = useState<number | null>(null);
+  const [editingDesc, setEditingDesc] = useState("");
 
   useEffect(() => {
     if (!isAuthenticated()) router.push("/login");
@@ -124,6 +127,21 @@ export default function ImportPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
+  };
+
+  const startEditDesc = (t: ImportedTx) => {
+    setEditingTxId(t.id);
+    setEditingDesc(t.description);
+  };
+
+  const saveDesc = async () => {
+    if (editingTxId === null) return;
+    const id = editingTxId;
+    const value = editingDesc.trim().slice(0, 120);
+    const current = txs.find((t) => t.id === id);
+    setEditingTxId(null);
+    if (!value || !current || value === current.description) return;
+    await patchTx(id, { description: value });
   };
 
   const confirmImport = async () => {
@@ -244,8 +262,37 @@ export default function ImportPage() {
                 >
                   {/* Descrição + valor */}
                   <div className="flex justify-between items-start gap-3">
-                    <div className="min-w-0">
-                      <p className="font-medium break-words">{t.description}</p>
+                    <div className="min-w-0 flex-1">
+                      {editingTxId === t.id ? (
+                        <input
+                          value={editingDesc}
+                          onChange={(e) => setEditingDesc(e.target.value)}
+                          onBlur={saveDesc}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveDesc();
+                            if (e.key === "Escape") setEditingTxId(null);
+                          }}
+                          maxLength={120}
+                          autoFocus
+                          className="w-full font-medium bg-transparent border rounded-md px-2 py-1 outline-none focus:border-[#00D4D4]"
+                          style={{
+                            borderColor: "var(--card-border)",
+                            color: "var(--card-text)",
+                          }}
+                        />
+                      ) : (
+                        <p className="font-medium break-words">
+                          {t.description}
+                          <button
+                            type="button"
+                            onClick={() => startEditDesc(t)}
+                            title="Editar descrição"
+                            className="ml-2 inline-flex align-middle opacity-50 hover:opacity-100 transition-opacity"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        </p>
+                      )}
                       <p className="text-xs text-[var(--plan-card-text)] mt-0.5">
                         {new Date(`${t.date.slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR")}
                         {isDup && (
