@@ -3,6 +3,7 @@ import db from '@/server/db/drizzle'
 import { chatMessages, expenses, plans } from '@/server/db/schema'
 import { createErrorResponse, formatCurrency } from '@/server/utils/helper'
 import { chatText, isLlmConfigured, ChatMessage } from '@/server/services/llmService'
+import { tryHandleChatAction } from '@/server/services/chatActionService'
 import { getSaldoAtual } from '@/server/utils/finance/getSaldoAtual'
 import { getGastosPorCategoria } from '@/server/utils/finance/getGastosPorCategoria'
 
@@ -190,6 +191,29 @@ export class ChatService {
       )
     }
 
+    // Comandos de lançamento ("gastei 50 no mercado") são executados de
+    // verdade e respondidos com confirmação — sem passar pelo chat livre.
+    const actionReply = await tryHandleChatAction(userId, text)
+    const reply = actionReply ?? (await this.conversationalReply(userId, text))
+
+    // Persiste a mensagem do usuário e a resposta.
+    await db.insert(chatMessages).values([
+      { user_id: userId, role: 'user', content: text },
+      { user_id: userId, role: 'assistant', content: reply },
+    ])
+
+    return {
+      reply,
+      status: {
+        used: used + 1,
+        remaining: Math.max(0, DAILY_MESSAGE_LIMIT - (used + 1)),
+        limit: DAILY_MESSAGE_LIMIT,
+      },
+    }
+  }
+
+  // Fluxo conversacional (perguntas/análises) — responde com base no resumo financeiro.
+  private static async conversationalReply(userId: number, text: string): Promise<string> {
     const context = await this.buildFinancialContext(userId)
     const recent = await db
       .select()
@@ -206,25 +230,14 @@ export class ChatService {
       'Você é o assistente financeiro do app Nexus. Responda em português do Brasil, ' +
       'de forma curta, clara e amigável. Use SOMENTE os dados financeiros fornecidos abaixo ' +
       'para responder. Se a informação não estiver nos dados, diga que não tem esse dado. ' +
-      'Não invente valores. Dê respostas objetivas e, quando fizer sentido, uma dica prática.\n\n' +
+      'Não invente valores. Dê respostas objetivas e, quando fizer sentido, uma dica prática.\n' +
+      'Você TAMBÉM consegue registrar despesas e receitas simples quando o usuário pedir ' +
+      '(ex.: "adiciona uma despesa de 50 reais de mercado"). Se o usuário quiser registrar algo, ' +
+      'oriente-o a repetir o pedido informando o valor (ex.: "gastei 50 no mercado"). ' +
+      'Lançamentos no cartão de crédito devem ser feitos na tela de Despesas.\n\n' +
       'DADOS FINANCEIROS DO USUÁRIO:\n' +
       context
 
-    const reply = await chatText(system, [...history, { role: 'user', content: text }])
-
-    // Persiste a mensagem do usuário e a resposta.
-    await db.insert(chatMessages).values([
-      { user_id: userId, role: 'user', content: text },
-      { user_id: userId, role: 'assistant', content: reply },
-    ])
-
-    return {
-      reply,
-      status: {
-        used: used + 1,
-        remaining: Math.max(0, DAILY_MESSAGE_LIMIT - (used + 1)),
-        limit: DAILY_MESSAGE_LIMIT,
-      },
-    }
+    return await chatText(system, [...history, { role: 'user', content: text }])
   }
 }

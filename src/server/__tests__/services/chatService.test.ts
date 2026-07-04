@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { eq } from 'drizzle-orm'
 import { db } from '../mocks/db'
 import * as schema from '@/server/db/schema'
 import { ChatService } from '@/server/services/chatService'
+import { chatJson } from '@/server/services/llmService'
 
 // IA mockada — sem rede, resposta determinística.
 vi.mock('@/server/services/llmService', () => ({
@@ -72,6 +74,84 @@ describe('ChatService.sendMessage', () => {
     await expect(
       ChatService.sendMessage(USER_ID, 'a'.repeat(600))
     ).rejects.toMatchObject({ status: 400 })
+  })
+})
+
+describe('ChatService.sendMessage — lançamentos via chat', () => {
+  it('cria despesa quando a mensagem é um comando com valor', async () => {
+    vi.mocked(chatJson).mockResolvedValueOnce({
+      action: 'create_expense',
+      descricao: 'Padaria',
+      valor: 25.5,
+      data: null,
+      categoria: null,
+      metodo: 'pix',
+    })
+
+    const result = await ChatService.sendMessage(USER_ID, 'gastei 25,50 na padaria')
+
+    expect(result.reply).toContain('Despesa registrada')
+    expect(result.reply).toContain('Padaria')
+
+    const rows = await db.select().from(schema.expenses).where(eq(schema.expenses.tipo, 'Padaria'))
+    expect(rows).toHaveLength(1)
+    expect(Number(rows[0].quantidade)).toBe(25.5)
+    expect(rows[0].metodo_pagamento).toBe('pix')
+  })
+
+  it('cria receita quando o comando é de recebimento', async () => {
+    vi.mocked(chatJson).mockResolvedValueOnce({
+      action: 'create_income',
+      descricao: 'Freela',
+      valor: 200,
+      data: null,
+      categoria: null,
+      metodo: null,
+    })
+
+    const result = await ChatService.sendMessage(USER_ID, 'recebi 200 de um freela')
+
+    expect(result.reply).toContain('Receita registrada')
+    const rows = await db.select().from(schema.incomes).where(eq(schema.incomes.tipo, 'Freela'))
+    expect(rows).toHaveLength(1)
+    expect(Number(rows[0].quantidade)).toBe(200)
+  })
+
+  it('pede o valor quando o comando não o informa (e não cria nada)', async () => {
+    vi.mocked(chatJson).mockResolvedValueOnce({
+      action: 'create_expense',
+      descricao: 'Farmácia',
+      valor: null,
+    })
+
+    const result = await ChatService.sendMessage(USER_ID, 'adiciona uma despesa de farmácia')
+
+    expect(result.reply.toLowerCase()).toContain('valor')
+    const rows = await db.select().from(schema.expenses).where(eq(schema.expenses.tipo, 'Farmácia'))
+    expect(rows).toHaveLength(0)
+  })
+
+  it('recusa lançamento no cartão de crédito e orienta usar o formulário', async () => {
+    vi.mocked(chatJson).mockResolvedValueOnce({
+      action: 'create_expense',
+      descricao: 'Tênis',
+      valor: 300,
+      metodo: 'cartao de credito',
+    })
+
+    const result = await ChatService.sendMessage(USER_ID, 'comprei um tênis de 300 no crédito')
+
+    expect(result.reply).toContain('cartão de crédito')
+    const rows = await db.select().from(schema.expenses).where(eq(schema.expenses.tipo, 'Tênis'))
+    expect(rows).toHaveLength(0)
+  })
+
+  it('cai no chat normal quando a classificação diz que não é comando', async () => {
+    vi.mocked(chatJson).mockResolvedValueOnce({ action: 'none' })
+
+    const result = await ChatService.sendMessage(USER_ID, 'quanto eu gastei este mês?')
+
+    expect(result.reply).toContain('Alimentação')
   })
 })
 
