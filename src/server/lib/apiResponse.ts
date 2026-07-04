@@ -15,5 +15,10 @@ export function err(message: string, status = 500, details?: unknown): NextRespo
 
 export function apiError(error: unknown, fallback: string): NextResponse {
   const e = error as ApiError
+  // Erros inesperados (sem status próprio) viram 500 genérico na resposta;
+  // sem este log o erro real fica invisível nos logs do servidor/Vercel.
+  if (!e?.status || e.status >= 500) {
+    console.error('[apiError]', fallback, error)
+  }
   return err(resolveUserMessage(error, fallback), e?.status ?? 500, e)
 }
