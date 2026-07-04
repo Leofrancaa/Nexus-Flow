@@ -34,12 +34,14 @@ export class BalanceCarryoverService {
     static async check(userId: number, targetMes: number, targetAno: number): Promise<CarryoverStatus> {
         const { mes: srcMes, ano: srcAno } = prevMonth(targetMes, targetAno)
 
+        // O saldo do mês fonte INCLUI o carryover aplicado nele: assim o saldo
+        // encadeia mês a mês (jan→fev→mar) e bate com o que o usuário vê no
+        // dashboard como resultado do mês.
         const [receitasRaw, despesasRaw] = await Promise.all([
             db.execute(sql`
                 SELECT COALESCE(SUM(quantidade), 0) AS total
                 FROM incomes
                 WHERE user_id = ${userId}
-                  AND tipo != ${CARRYOVER_INCOME_TYPE}
                   AND EXTRACT(MONTH FROM data) = ${srcMes}
                   AND EXTRACT(YEAR FROM data) = ${srcAno}
             `),
@@ -47,7 +49,6 @@ export class BalanceCarryoverService {
                 SELECT COALESCE(SUM(quantidade), 0) AS total
                 FROM expenses
                 WHERE user_id = ${userId}
-                  AND tipo != ${CARRYOVER_EXPENSE_TYPE}
                   AND EXTRACT(MONTH FROM data) = ${srcMes}
                   AND EXTRACT(YEAR FROM data) = ${srcAno}
             `),
@@ -57,15 +58,38 @@ export class BalanceCarryoverService {
             Number((receitasRaw.rows[0] as { total: string }).total) -
             Number((despesasRaw.rows[0] as { total: string }).total)
 
-        if (saldo === 0) {
+        // A detecção de "aplicado" considera tanto a linha de receita quanto a
+        // de despesa: se o saldo do mês fonte mudou de sinal depois de aplicado,
+        // a linha antiga continua sendo encontrada (e pode ser desfeita).
+        const applied = await this.findApplied(userId, targetMes, targetAno)
+        const isApplied = applied.income_id !== undefined || applied.expense_id !== undefined
+
+        if (saldo === 0 && !isApplied) {
             return { source_mes: srcMes, source_ano: srcAno, saldo: 0, tipo: 'zerado', status: 'sem_saldo' }
         }
 
+        return {
+            source_mes: srcMes,
+            source_ano: srcAno,
+            saldo,
+            tipo: saldo > 0 ? 'positivo' : saldo < 0 ? 'negativo' : 'zerado',
+            status: isApplied ? 'aplicado' : 'pendente',
+            income_id: applied.income_id,
+            expense_id: applied.expense_id,
+        }
+    }
+
+    /** Localiza o lançamento de carryover (receita ou despesa) já aplicado no mês alvo. */
+    private static async findApplied(
+        userId: number,
+        targetMes: number,
+        targetAno: number
+    ): Promise<{ income_id?: number; expense_id?: number }> {
         const targetStart = startOfMonth(targetMes, targetAno)
         const targetEnd = startOfNextMonth(targetMes, targetAno)
 
-        if (saldo > 0) {
-            const [existing] = await db
+        const [[income], [expense]] = await Promise.all([
+            db
                 .select({ id: incomes.id })
                 .from(incomes)
                 .where(
@@ -76,15 +100,8 @@ export class BalanceCarryoverService {
                         lt(incomes.data, targetEnd)
                     )
                 )
-                .limit(1)
-            return {
-                source_mes: srcMes, source_ano: srcAno,
-                saldo, tipo: 'positivo',
-                status: existing ? 'aplicado' : 'pendente',
-                income_id: existing?.id,
-            }
-        } else {
-            const [existing] = await db
+                .limit(1),
+            db
                 .select({ id: expenses.id })
                 .from(expenses)
                 .where(
@@ -95,14 +112,10 @@ export class BalanceCarryoverService {
                         lt(expenses.data, targetEnd)
                     )
                 )
-                .limit(1)
-            return {
-                source_mes: srcMes, source_ano: srcAno,
-                saldo, tipo: 'negativo',
-                status: existing ? 'aplicado' : 'pendente',
-                expense_id: existing?.id,
-            }
-        }
+                .limit(1),
+        ])
+
+        return { income_id: income?.id, expense_id: expense?.id }
     }
 
     static async apply(userId: number, targetMes: number, targetAno: number): Promise<CarryoverStatus> {
@@ -155,16 +168,19 @@ export class BalanceCarryoverService {
     }
 
     static async undo(userId: number, targetMes: number, targetAno: number): Promise<void> {
-        const info = await this.check(userId, targetMes, targetAno)
+        // Busca direta pelos lançamentos aplicados, sem depender do saldo
+        // recalculado (que pode ter mudado desde que o carryover foi aplicado).
+        const applied = await this.findApplied(userId, targetMes, targetAno)
 
-        if (info.status !== 'aplicado') {
+        if (applied.income_id === undefined && applied.expense_id === undefined) {
             throw createErrorResponse('Nenhum carryover aplicado encontrado para este mês.', 404)
         }
 
-        if (info.income_id) {
-            await db.delete(incomes).where(eq(incomes.id, info.income_id))
-        } else if (info.expense_id) {
-            await db.delete(expenses).where(eq(expenses.id, info.expense_id))
+        if (applied.income_id !== undefined) {
+            await db.delete(incomes).where(eq(incomes.id, applied.income_id))
+        }
+        if (applied.expense_id !== undefined) {
+            await db.delete(expenses).where(eq(expenses.id, applied.expense_id))
         }
     }
 

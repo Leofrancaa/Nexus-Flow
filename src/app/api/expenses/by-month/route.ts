@@ -9,12 +9,16 @@ export async function GET(request: NextRequest) {
     const user = getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
+    const anoParam = new URL(request.url).searchParams.get('ano')
+    const ano = anoParam ? Number(anoParam) : new Date().getFullYear()
+
     const result = await db.execute(sql`
       SELECT
         EXTRACT(MONTH FROM data) AS numero_mes,
         SUM(quantidade) AS total
       FROM expenses
       WHERE user_id = ${user.id}
+        AND EXTRACT(YEAR FROM data) = ${ano}
       GROUP BY numero_mes
       ORDER BY numero_mes
     `)

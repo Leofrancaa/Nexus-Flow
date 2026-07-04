@@ -36,19 +36,30 @@ export function EditCardForm({ card, onClose, onUpdated }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (tipo === "crédito" && (!limite || parseFloat(limite) <= 0)) {
+      toast.error("Informe um limite válido para cartão de crédito.");
+      return;
+    }
+
     try {
+      // Limite só se aplica a crédito: enviá-lo para cartão de débito (limite 0)
+      // faz a API rejeitar a edição inteira com "Limite deve ser positivo".
+      const body: Record<string, unknown> = {
+        nome,
+        numero,
+        tipo,
+        cor: corSelecionada,
+      };
+      if (tipo === "crédito") {
+        body.limite = parseFloat(limite);
+      }
+
       const res = await apiRequest(`/api/cards/${card.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          nome,
-          numero,
-          tipo,
-          cor: corSelecionada,
-          limite: parseFloat(limite),
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();

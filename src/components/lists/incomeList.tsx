@@ -172,11 +172,11 @@ export function IncomeList({
                   <span className="text-[var(--card-text)] font-medium">
                     {formatDateBR(income.data)}
                   </span>
-                  {income.observacoes && (
+                  {(income.nota || income.observacoes) && (
                     <>
                       <span>•</span>
                       <span className="text-muted-foreground truncate max-w-[180px]">
-                        Obs: {income.observacoes}
+                        Obs: {income.nota || income.observacoes}
                       </span>
                     </>
                   )}

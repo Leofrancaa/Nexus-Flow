@@ -75,6 +75,18 @@ describe('BalanceCarryoverService.check', () => {
     expect(result.status).toBe('aplicado')
     expect(result.income_id).toBeDefined()
   })
+
+  it('inclui o carryover recebido pelo mês fonte no saldo (encadeamento mês a mês)', async () => {
+    // Janeiro recebeu R$ 300 de carryover de dezembro e movimentou 1000/600
+    await seedIncome('300', JAN, 'saldo_anterior')
+    await seedIncome('1000', JAN)
+    await seedExpense('600', JAN)
+
+    const result = await BalanceCarryoverService.check(USER_ID, TARGET_MES, TARGET_ANO)
+
+    expect(result.saldo).toBe(700)
+    expect(result.tipo).toBe('positivo')
+  })
 })
 
 describe('BalanceCarryoverService.apply', () => {
@@ -158,6 +170,22 @@ describe('BalanceCarryoverService.undo', () => {
       .select()
       .from(schema.expenses)
       .where(eq(schema.expenses.tipo, 'debito_anterior'))
+    expect(remaining).toHaveLength(0)
+  })
+
+  it('desfaz mesmo quando o saldo do mês fonte mudou de sinal depois de aplicado', async () => {
+    // Carryover positivo foi aplicado em fevereiro…
+    await seedIncome('400', FEB_START, 'saldo_anterior')
+    // …mas janeiro foi editado depois e agora fecha negativo
+    await seedIncome('100', JAN)
+    await seedExpense('500', JAN)
+
+    await BalanceCarryoverService.undo(USER_ID, TARGET_MES, TARGET_ANO)
+
+    const remaining = await db
+      .select()
+      .from(schema.incomes)
+      .where(eq(schema.incomes.tipo, 'saldo_anterior'))
     expect(remaining).toHaveLength(0)
   })
 

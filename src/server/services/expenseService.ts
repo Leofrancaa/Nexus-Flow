@@ -192,6 +192,10 @@ export class ExpenseService {
     ): Promise<Expense[]> {
         const { parcelas, quantidade, tipo, card_id } = expenseData
         const valorParcela = Math.round((Number(quantidade) / Number(parcelas!)) * 100) / 100
+        // A última parcela absorve a diferença de arredondamento para que a soma
+        // das parcelas feche exatamente com o valor total debitado do limite.
+        const valorUltimaParcela =
+            Math.round((Number(quantidade) - valorParcela * (Number(parcelas!) - 1)) * 100) / 100
 
         const parcelasData = Array.from({ length: parcelas! }, (_, i) => {
             const parcelaPurchaseDate = addMonthsSafe(baseDate, i)
@@ -208,7 +212,7 @@ export class ExpenseService {
         const valuesToInsert: ExpenseInsert[] = parcelasData.map(({ index, purchaseDate, comp }) => ({
             metodo_pagamento: expenseData.metodo_pagamento,
             tipo: `${tipo} (${index + 1}/${parcelas})`,
-            quantidade: String(valorParcela),
+            quantidade: String(index === Number(parcelas!) - 1 ? valorUltimaParcela : valorParcela),
             fixo: false,
             data: new Date(`${formatDate(purchaseDate)}T12:00:00`),
             parcelas: parcelas!,
@@ -291,7 +295,17 @@ export class ExpenseService {
             }))
 
         if (replicasData.length > 0) {
-            await db.insert(expenses).values(replicasData)
+            // Debita o limite junto com a criação das réplicas: o pagamento da
+            // fatura devolve esses valores, então sem o débito aqui o limite
+            // disponível inflaria acima do limite do cartão a cada fatura paga.
+            const totalReplicas = replicasData.reduce((acc, r) => acc + Number(r.quantidade), 0)
+            await db.transaction(async (tx) => {
+                await tx.insert(expenses).values(replicasData)
+                await tx
+                    .update(cards)
+                    .set({ limite_disponivel: sql`${cards.limite_disponivel} - ${totalReplicas}` })
+                    .where(eq(cards.id, baseExpense.card_id!))
+            })
         }
     }
 
@@ -561,22 +575,67 @@ export class ExpenseService {
             )
 
             const deleted = await db.select().from(expenses).where(fixedConditions)
-            await db.delete(expenses).where(fixedConditions)
+
+            await db.transaction(async (tx) => {
+                await this.restoreCardLimits(tx, deleted, userId)
+                await tx.delete(expenses).where(fixedConditions)
+            })
 
             return deleted.map((d) => this.mapToExpense(d as unknown as Record<string, unknown>))
         }
 
-        const metodoNorm = normalize(expense.metodo_pagamento)
-        if (metodoNorm.includes("credito") && expense.card_id) {
-            await db
-                .update(cards)
-                .set({ limite_disponivel: sql`${cards.limite_disponivel} + ${Number(expense.quantidade)}` })
-                .where(eq(cards.id, expense.card_id))
-        }
-
-        await db.delete(expenses).where(eq(expenses.id, expenseId))
+        await db.transaction(async (tx) => {
+            await this.restoreCardLimits(tx, [expense], userId)
+            await tx.delete(expenses).where(eq(expenses.id, expenseId))
+        })
 
         return this.mapToExpense(expense as unknown as Record<string, unknown>)
+    }
+
+    /**
+     * Devolve ao limite disponível o valor das despesas de crédito removidas,
+     * exceto as de competência cuja fatura já foi paga — nesses casos o limite
+     * já foi devolvido pelo pagamento, e devolver de novo inflaria o limite.
+     */
+    private static async restoreCardLimits(
+        tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+        deletedExpenses: Array<typeof expenses.$inferSelect>,
+        userId: number
+    ): Promise<void> {
+        const restoreByCard = new Map<number, number>()
+
+        for (const exp of deletedExpenses) {
+            if (!exp.card_id || !normalize(exp.metodo_pagamento).includes('credito')) continue
+
+            if (exp.competencia_mes && exp.competencia_ano) {
+                const [row] = await tx
+                    .select({ c: count() })
+                    .from(cardInvoicesPayments)
+                    .where(
+                        and(
+                            eq(cardInvoicesPayments.user_id, userId),
+                            eq(cardInvoicesPayments.card_id, exp.card_id),
+                            eq(cardInvoicesPayments.competencia_mes, exp.competencia_mes),
+                            eq(cardInvoicesPayments.competencia_ano, exp.competencia_ano)
+                        )
+                    )
+                if (Number(row?.c ?? 0) > 0) continue
+            }
+
+            restoreByCard.set(
+                exp.card_id,
+                (restoreByCard.get(exp.card_id) ?? 0) + Number(exp.quantidade)
+            )
+        }
+
+        for (const [cardId, total] of restoreByCard) {
+            await tx
+                .update(cards)
+                .set({
+                    limite_disponivel: sql`LEAST(${cards.limite}, ${cards.limite_disponivel} + ${total})`,
+                })
+                .where(and(eq(cards.id, cardId), eq(cards.user_id, userId)))
+        }
     }
 
     private static mapToExpense(expense: Record<string, unknown>): Expense {

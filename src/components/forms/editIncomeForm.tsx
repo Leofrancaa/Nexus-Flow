@@ -31,7 +31,7 @@ export function EditIncomeForm({ income, onClose, onUpdated }: Props) {
   const [tipo, setTipo] = useState(income.tipo || "");
   const [quantidade, setQuantidade] = useState(String(income.quantidade || ""));
   const [fonte, setFonte] = useState(income.fonte || "");
-  const [nota, setNota] = useState(income.observacoes || "");
+  const [nota, setNota] = useState(income.nota || income.observacoes || "");
   const [data, setData] = useState(
     income.data ? income.data.split("T")[0] : ""
   );
@@ -69,7 +69,7 @@ export function EditIncomeForm({ income, onClose, onUpdated }: Props) {
           tipo,
           quantidade: parseFloat(quantidade),
           fonte,
-          observacoes: nota,
+          nota,
           data,
           category_id: parseInt(categoriaId),
         }),

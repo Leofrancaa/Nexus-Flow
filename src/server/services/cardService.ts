@@ -1,4 +1,4 @@
-import { and, eq, desc, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
 import { cards, expenses, cardInvoicesPayments } from '@/server/db/schema'
 import {
@@ -79,12 +79,7 @@ export class CardService {
         const queryResult = await db.execute(sql`
             SELECT
                 c.*,
-                COALESCE(SUM(e.quantidade), 0) AS gasto_total,
-                CASE
-                    WHEN CURRENT_DATE <= make_date(EXTRACT(YEAR FROM CURRENT_DATE)::int, EXTRACT(MONTH FROM CURRENT_DATE)::int, c.dia_vencimento)
-                    THEN make_date(EXTRACT(YEAR FROM CURRENT_DATE)::int, EXTRACT(MONTH FROM CURRENT_DATE)::int, c.dia_vencimento)
-                    ELSE make_date(EXTRACT(YEAR FROM CURRENT_DATE)::int, EXTRACT(MONTH FROM CURRENT_DATE)::int + 1, c.dia_vencimento)
-                END AS proximo_vencimento
+                COALESCE(SUM(e.quantidade), 0) AS gasto_total
             FROM cards c
             LEFT JOIN expenses e ON e.card_id = c.id
                 AND e.user_id = ${userId}
@@ -104,8 +99,35 @@ export class CardService {
                 limite,
                 limite_disponivel: limiteDisponivel,
                 gasto_total: gastoTotal,
+                proximo_vencimento: this.getProximoVencimento(Number(card.dia_vencimento)),
             }
         }) as CardWithStats[]
+    }
+
+    // Próximo vencimento calculado em JS: o dia é limitado ao último dia do mês
+    // (dia 31 em fevereiro vira 28/29) e a virada dez→jan não estoura o mês.
+    private static getProximoVencimento(diaVencimento: number): string {
+        const hoje = new Date()
+        const clampDay = (ano: number, mesIndex: number) =>
+            Math.min(diaVencimento, new Date(ano, mesIndex + 1, 0).getDate())
+
+        let ano = hoje.getFullYear()
+        let mesIndex = hoje.getMonth()
+        let vencimento = new Date(ano, mesIndex, clampDay(ano, mesIndex))
+
+        const hojeSemHora = new Date(ano, mesIndex, hoje.getDate())
+        if (hojeSemHora > vencimento) {
+            mesIndex += 1
+            if (mesIndex > 11) {
+                mesIndex = 0
+                ano += 1
+            }
+            vencimento = new Date(ano, mesIndex, clampDay(ano, mesIndex))
+        }
+
+        const mm = String(vencimento.getMonth() + 1).padStart(2, '0')
+        const dd = String(vencimento.getDate()).padStart(2, '0')
+        return `${vencimento.getFullYear()}-${mm}-${dd}`
     }
 
     static async getCardById(cardId: number, userId: number): Promise<Card | null> {
@@ -137,6 +159,15 @@ export class CardService {
             throw createErrorResponse("Dias de fechamento antes deve estar entre 1 e 31.", 400)
         }
 
+        // Checagem de dono ANTES de qualquer update: sem ela, o caminho com
+        // "limite" atualizava cartão de outro usuário (o WHERE só filtrava o id).
+        const [exists] = await db
+            .select()
+            .from(cards)
+            .where(and(eq(cards.id, cardId), eq(cards.user_id, userId)))
+            .limit(1)
+        if (!exists) throw createErrorResponse("Cartão não encontrado.", 404)
+
         if (limite !== undefined) {
             if (!isPositiveNumber(limite)) {
                 throw createErrorResponse("Limite deve ser um número positivo.", 400)
@@ -164,18 +195,11 @@ export class CardService {
                     ...(dia_vencimento !== undefined ? { dia_vencimento } : {}),
                     ...(dias_fechamento_antes !== undefined ? { dias_fechamento_antes } : {}),
                 })
-                .where(eq(cards.id, cardId))
+                .where(and(eq(cards.id, cardId), eq(cards.user_id, userId)))
                 .returning()
 
             return this.mapToCard(result)
         }
-
-        const [exists] = await db
-            .select()
-            .from(cards)
-            .where(and(eq(cards.id, cardId), eq(cards.user_id, userId)))
-            .limit(1)
-        if (!exists) throw createErrorResponse("Cartão não encontrado.", 404)
 
         const [result] = await db
             .update(cards)
@@ -187,7 +211,7 @@ export class CardService {
                 ...(dia_vencimento !== undefined ? { dia_vencimento } : {}),
                 ...(dias_fechamento_antes !== undefined ? { dias_fechamento_antes } : {}),
             })
-            .where(eq(cards.id, cardId))
+            .where(and(eq(cards.id, cardId), eq(cards.user_id, userId)))
             .returning()
 
         return this.mapToCard(result)

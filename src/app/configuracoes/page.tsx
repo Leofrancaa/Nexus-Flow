@@ -142,7 +142,7 @@ export default function ConfiguracoesPage() {
         loadInviteCodes();
       } else {
         const data = await response.json();
-        toast.error(data.message || "Erro ao gerar código");
+        toast.error(data.error || data.message || "Erro ao gerar código");
       }
     } catch {
       toast.error("Erro ao gerar código");
@@ -169,7 +169,7 @@ export default function ConfiguracoesPage() {
         loadInviteCodes();
       } else {
         const data = await response.json();
-        toast.error(data.message || "Erro ao deletar código");
+        toast.error(data.error || data.message || "Erro ao deletar código");
       }
     } catch {
       toast.error("Erro ao deletar código");

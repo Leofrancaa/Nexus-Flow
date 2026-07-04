@@ -79,8 +79,8 @@ export function CarryoverBanner({ customMonth, customYear, refreshKey, onApplied
 
       const label =
         status?.tipo === "positivo"
-          ? `Saldo de ${formatCurrency(status?.saldo ?? 0)} adicionado como receita!`
-          : `Débito de ${formatCurrency(status?.saldo ?? 0)} adicionado como despesa!`;
+          ? `Saldo de ${formatCurrency(Math.abs(status?.saldo ?? 0))} adicionado como receita!`
+          : `Débito de ${formatCurrency(Math.abs(status?.saldo ?? 0))} adicionado como despesa!`;
 
       toast.success(label, { id: toastId });
       onApplied?.();

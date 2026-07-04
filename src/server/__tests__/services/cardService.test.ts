@@ -124,6 +124,14 @@ describe('CardService.updateCard', () => {
       CardService.updateCard(999, { nome: 'X' }, USER_ID)
     ).rejects.toMatchObject({ status: 404 })
   })
+
+  it('lança erro 404 ao tentar atualizar o limite de cartão de outro usuário', async () => {
+    const card = await seedCard()
+
+    await expect(
+      CardService.updateCard(card.id, { limite: 5000 }, 999)
+    ).rejects.toMatchObject({ status: 404 })
+  })
 })
 
 // ─── deleteCard ──────────────────────────────────────────────────────────────

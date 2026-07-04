@@ -102,7 +102,7 @@ export function NewIncomeForm({ onClose, onCreated }: Props) {
           quantidade: parseFloat(valor),
           data,
           fonte,
-          observacoes: nota,
+          nota,
           fixo,
           category_id: parseInt(categoriaId),
         }),

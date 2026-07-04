@@ -46,6 +46,7 @@ export default function CategoryCard({
   const [deleteWarning, setDeleteWarning] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(nome);
+  const [displayName, setDisplayName] = useState(nome);
   const [isSaving, setIsSaving] = useState(false);
 
   const router = useRouter();
@@ -107,16 +108,16 @@ export default function CategoryCard({
 
   const handleEditClick = () => {
     setIsEditing(true);
-    setEditedName(nome);
+    setEditedName(displayName);
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditedName(nome);
+    setEditedName(displayName);
   };
 
   const handleSaveEdit = async () => {
-    if (!editedName.trim() || editedName.trim() === nome) {
+    if (!editedName.trim() || editedName.trim() === displayName) {
       setIsEditing(false);
       return;
     }
@@ -146,8 +147,8 @@ export default function CategoryCard({
 
       toast.success("Categoria atualizada com sucesso!", { id: toastId });
       setIsEditing(false);
-      // Atualizar a UI localmente
-      window.location.reload();
+      // Atualiza o nome localmente — recarregar a página descartaria o toast.
+      setDisplayName(editedName.trim());
     } catch (error) {
       if (error instanceof Error && error.message.includes("Sessão expirada")) {
         toast.error("Sessão expirada. Redirecionando para login...", {
@@ -325,7 +326,7 @@ export default function CategoryCard({
             ) : (
               <>
                 <p className="text-lg font-bold" style={{ color: cor }}>
-                  {nome}
+                  {displayName}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
                   {tipo}

@@ -8,7 +8,10 @@ export async function GET(request: NextRequest) {
     const user = getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
-    const result = await IncomeService.getIncomesGroupedByMonth(user.id)
+    const anoParam = new URL(request.url).searchParams.get('ano')
+    const ano = anoParam ? Number(anoParam) : new Date().getFullYear()
+
+    const result = await IncomeService.getIncomesGroupedByMonth(user.id, ano)
     return ok(result, 'Receitas por mês recuperadas com sucesso.')
   } catch (error) {
     return apiError(error, 'Erro ao buscar receitas por mês.')

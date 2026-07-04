@@ -76,7 +76,7 @@ function ResetPasswordForm() {
           router.push("/login");
         }, 2000);
       } else {
-        toast.error(data.message || "Erro ao redefinir senha. O token pode estar expirado.");
+        toast.error(data.error || data.message || "Erro ao redefinir senha. O token pode estar expirado.");
       }
     } catch (error: unknown) {
       toast.error(

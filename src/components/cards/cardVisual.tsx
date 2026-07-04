@@ -124,10 +124,11 @@ export function CardVisual({
   const handlePayInvoice = async () => {
     try {
       setPagarLoading(true);
-      const now = new Date();
+      // Sem mes/ano: o backend calcula a competência da próxima fatura a
+      // vencer (compras pós-fechamento caem na competência seguinte).
       const res = await apiRequest(`/api/cards/${id}/pay-invoice`, {
         method: "POST",
-        body: JSON.stringify({ mes: now.getMonth() + 1, ano: now.getFullYear() }),
+        body: JSON.stringify({}),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Falha ao pagar fatura.");

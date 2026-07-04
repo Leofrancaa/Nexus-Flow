@@ -43,7 +43,7 @@ export default function ForgotPassword() {
         toast.success("Email de recuperação enviado! Verifique sua caixa de entrada.");
         setEmailSent(true);
       } else {
-        toast.error(data.message || "Erro ao enviar email de recuperação");
+        toast.error(data.error || data.message || "Erro ao enviar email de recuperação");
       }
     } catch (error: unknown) {
       toast.error(

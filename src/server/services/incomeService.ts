@@ -31,12 +31,13 @@ export class IncomeService {
         const {
             tipo,
             quantidade,
-            nota,
             data,
             fonte,
             fixo = false,
             category_id
         } = incomeData
+
+        const nota = incomeData.nota ?? incomeData.observacoes
 
         const formattedBaseDate = data || formatDate(new Date())
 
@@ -173,10 +174,12 @@ export class IncomeService {
             throw createErrorResponse("Receita não encontrada.", 404)
         }
 
+        const notaAtualizada = updateData.nota ?? updateData.observacoes
+
         const setData = {
             ...(updateData.tipo !== undefined ? { tipo: updateData.tipo } : {}),
             ...(updateData.quantidade !== undefined ? { quantidade: String(updateData.quantidade) } : {}),
-            ...(updateData.nota !== undefined ? { nota: updateData.nota } : {}),
+            ...(notaAtualizada !== undefined ? { nota: notaAtualizada } : {}),
             ...(updateData.data !== undefined ? { data: new Date(`${updateData.data}T12:00:00`) } : {}),
             ...(updateData.fonte !== undefined ? { fonte: updateData.fonte } : {}),
             ...(updateData.category_id !== undefined ? { category_id: updateData.category_id } : {}),
@@ -207,26 +210,19 @@ export class IncomeService {
         }
 
         if (income.fixo) {
-            const deleted = await db
-                .select()
-                .from(incomes)
-                .where(
-                    and(
-                        eq(incomes.user_id, userId),
-                        eq(incomes.tipo, income.tipo),
-                        eq(incomes.fixo, true)
-                    )
-                )
+            // Mesmo critério do deleteExpense: remove apenas as réplicas desta
+            // receita fixa (mesmo tipo e valor) desta data em diante — réplicas
+            // passadas e receitas homônimas de outro valor são preservadas.
+            const fixedConditions = and(
+                eq(incomes.user_id, userId),
+                eq(incomes.tipo, income.tipo),
+                eq(incomes.quantidade, income.quantidade),
+                eq(incomes.fixo, true),
+                gte(incomes.data, income.data)
+            )
 
-            await db
-                .delete(incomes)
-                .where(
-                    and(
-                        eq(incomes.user_id, userId),
-                        eq(incomes.tipo, income.tipo),
-                        eq(incomes.fixo, true)
-                    )
-                )
+            const deleted = await db.select().from(incomes).where(fixedConditions)
+            await db.delete(incomes).where(fixedConditions)
 
             return deleted.map((d) => this.mapToIncome(d as unknown as Record<string, unknown>))
         }
@@ -290,13 +286,17 @@ export class IncomeService {
         return parseFloat((queryResult.rows[0] as { total: string }).total)
     }
 
-    static async getIncomesGroupedByMonth(userId: number): Promise<Array<{ mes: string; total: number }>> {
+    static async getIncomesGroupedByMonth(
+        userId: number,
+        year: number = new Date().getFullYear()
+    ): Promise<Array<{ mes: string; total: number }>> {
         const queryResult = await db.execute(sql`
             SELECT
                 EXTRACT(MONTH FROM data) AS numero_mes,
                 SUM(quantidade) AS total
             FROM incomes
             WHERE user_id = ${userId}
+              AND EXTRACT(YEAR FROM data) = ${year}
             GROUP BY numero_mes
             ORDER BY numero_mes
         `)

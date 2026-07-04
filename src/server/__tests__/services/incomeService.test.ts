@@ -79,7 +79,7 @@ describe('IncomeService.deleteIncome', () => {
     expect(rows).toHaveLength(0)
   })
 
-  it('deleta receita fixa e todas as do mesmo tipo', async () => {
+  it('deleta receita fixa e réplicas futuras do mesmo tipo e valor', async () => {
     const income = await seedIncome({ fixo: true, tipo: 'Aluguel' })
     await seedIncome({ fixo: true, tipo: 'Aluguel', data: new Date('2025-02-05T12:00:00') })
 
@@ -93,6 +93,21 @@ describe('IncomeService.deleteIncome', () => {
       .from(schema.incomes)
       .where(and(eq(schema.incomes.tipo, 'Aluguel'), eq(schema.incomes.fixo, true)))
     expect(remaining).toHaveLength(0)
+  })
+
+  it('preserva réplicas passadas e receitas fixas homônimas de outro valor', async () => {
+    const passada = await seedIncome({ fixo: true, tipo: 'Aluguel', data: new Date('2025-01-05T12:00:00') })
+    const base = await seedIncome({ fixo: true, tipo: 'Aluguel', data: new Date('2025-02-05T12:00:00') })
+    await seedIncome({ fixo: true, tipo: 'Aluguel', data: new Date('2025-03-05T12:00:00') })
+    const outroValor = await seedIncome({ fixo: true, tipo: 'Aluguel', quantidade: '999', data: new Date('2025-03-05T12:00:00') })
+
+    const result = await IncomeService.deleteIncome(base.id, USER_ID)
+
+    expect(Array.isArray(result)).toBe(true)
+    expect((result as unknown[]).length).toBe(2)
+
+    const remaining = await db.select().from(schema.incomes).where(eq(schema.incomes.user_id, USER_ID))
+    expect(remaining.map((r) => r.id).sort()).toEqual([passada.id, outroValor.id].sort())
   })
 
   it('lança erro 404 quando receita não existe', async () => {

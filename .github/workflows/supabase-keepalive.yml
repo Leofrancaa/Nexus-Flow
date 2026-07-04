@@ -1,0 +1,43 @@
+# Mantém o projeto Supabase ativo (o free tier pausa após ~7 dias sem atividade).
+# Roda a cada 3 dias e gera atividade real no banco de duas formas possíveis:
+#
+#   1. Variável de repositório KEEPALIVE_URL (Settings → Secrets and variables →
+#      Actions → Variables): URL pública do app (ex.: https://seuapp.vercel.app).
+#      O workflow chama {KEEPALIVE_URL}/api/health, que executa SELECT 1 no banco.
+#
+#   2. Secret SUPABASE_DB_URL (Settings → Secrets and variables → Actions →
+#      Secrets): a connection string do Postgres (a mesma DATABASE_URL do app).
+#      Usada como fallback se KEEPALIVE_URL não estiver configurada.
+#
+# Basta configurar UMA das duas. Também dá para disparar manualmente na aba
+# Actions (workflow_dispatch) para testar.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    # A cada 3 dias, às 09:17 UTC (horário "quebrado" evita picos de fila do Actions)
+    - cron: "17 9 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping via endpoint /api/health do app
+        if: ${{ vars.KEEPALIVE_URL != '' }}
+        run: |
+          echo "Chamando ${KEEPALIVE_URL%/}/api/health"
+          curl --fail --silent --show-error --max-time 60 "${KEEPALIVE_URL%/}/api/health"
+        env:
+          KEEPALIVE_URL: ${{ vars.KEEPALIVE_URL }}
+
+      - name: Query direta no Postgres (fallback)
+        if: ${{ vars.KEEPALIVE_URL == '' }}
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Configure a variável KEEPALIVE_URL ou o secret SUPABASE_DB_URL no repositório."
+            exit 1
+          fi
+          psql "$SUPABASE_DB_URL" -c "SELECT 1 AS keepalive;"

@@ -165,6 +165,21 @@ describe('ExpenseService.createExpense — parcelamento', () => {
     const [updatedCard] = await db.select().from(schema.cards).where(eq(schema.cards.id, card.id))
     expect(Number(updatedCard.limite_disponivel)).toBe(200) // 500 - 300
   })
+
+  it('ajusta a última parcela para a soma fechar com o valor total', async () => {
+    const card = await seedCard({ limite_disponivel: '500' })
+
+    const result = await ExpenseService.createExpense(
+      { metodo_pagamento: 'crédito', tipo: 'Fone', quantidade: 100, parcelas: 3, card_id: card.id, data: '2025-01-15' },
+      USER_ID
+    )
+
+    const valores = (result as Array<{ quantidade: number }>).map((r) => r.quantidade).sort((a, b) => a - b)
+    expect(valores).toEqual([33.33, 33.33, 33.34])
+
+    const soma = valores.reduce((a, b) => a + b, 0)
+    expect(Math.round(soma * 100) / 100).toBe(100)
+  })
 })
 
 describe('ExpenseService.createExpense — crédito fixo', () => {
@@ -178,6 +193,21 @@ describe('ExpenseService.createExpense — crédito fixo', () => {
 
     // base + réplicas dos meses seguintes (todas as faturas em aberto)
     expect((await expensesOf()).length).toBeGreaterThan(1)
+  })
+
+  it('debita do limite também as réplicas — pagar a fatura devolve o que foi debitado', async () => {
+    const card = await seedCard({ limite: '1000', limite_disponivel: '500' })
+
+    await ExpenseService.createExpense(
+      { metodo_pagamento: 'crédito', tipo: 'Spotify', quantidade: 10, fixo: true, card_id: card.id, data: '2025-01-15' },
+      USER_ID
+    )
+
+    const exps = await expensesOf()
+    const totalLancado = exps.reduce((acc, e) => acc + Number(e.quantidade), 0)
+
+    const [updatedCard] = await db.select().from(schema.cards).where(eq(schema.cards.id, card.id))
+    expect(Number(updatedCard.limite_disponivel)).toBeCloseTo(500 - totalLancado, 2)
   })
 })
 
@@ -215,6 +245,30 @@ describe('ExpenseService.deleteExpense', () => {
 
     const [updatedCard] = await db.select().from(schema.cards).where(eq(schema.cards.id, card.id))
     expect(Number(updatedCard.limite_disponivel)).toBe(500) // 350 + 150
+  })
+
+  it('não devolve o limite quando a fatura da competência já foi paga', async () => {
+    const card = await seedCard({ limite_disponivel: '350' })
+    const exp = await seedExpense({
+      metodo_pagamento: 'crédito',
+      card_id: card.id,
+      quantidade: '150',
+      competencia_mes: 1,
+      competencia_ano: 2025,
+    })
+    // Fatura 01/2025 já paga: o pagamento devolveu o limite dessa competência.
+    await db.insert(schema.cardInvoicesPayments).values({
+      user_id: USER_ID,
+      card_id: card.id,
+      competencia_mes: 1,
+      competencia_ano: 2025,
+      amount_paid: '150',
+    })
+
+    await ExpenseService.deleteExpense(exp.id, USER_ID)
+
+    const [updatedCard] = await db.select().from(schema.cards).where(eq(schema.cards.id, card.id))
+    expect(Number(updatedCard.limite_disponivel)).toBe(350)
   })
 
   it('deleta despesa fixa e todas as futuras de mesmo tipo/valor', async () => {

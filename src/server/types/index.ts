@@ -134,6 +134,8 @@ export interface CreateIncomeRequest {
     tipo: string
     quantidade: number
     nota?: string
+    // Alias aceito por compatibilidade: versões do frontend enviam "observacoes".
+    observacoes?: string
     data?: string
     fonte?: string
     fixo?: boolean

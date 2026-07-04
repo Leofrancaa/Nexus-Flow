@@ -5,6 +5,8 @@ export interface Income {
     data: string;
     fonte: string;
     fixo?: boolean; // ✅ novo campo
+    nota?: string; // campo persistido no banco
+    /** @deprecated o banco usa "nota"; mantido só por compatibilidade */
     observacoes?: string;
     category_id?: number;
     categoria_nome?: string;

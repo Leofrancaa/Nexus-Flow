@@ -219,6 +219,31 @@ export class CategoryService {
         const incomesCount = Number(incomesCountRow[0]?.c ?? 0)
 
         await db.transaction(async (tx) => {
+            // Antes de apagar as despesas em cascata, devolve ao limite dos
+            // cartões o valor das despesas de crédito com fatura ainda não paga
+            // (fatura paga já devolveu o limite no momento do pagamento).
+            const idList = sql.join(allCategoryIds.map((id) => sql`${id}`), sql`, `)
+            await tx.execute(sql`
+                UPDATE cards c
+                SET limite_disponivel = LEAST(c.limite, c.limite_disponivel + s.total)
+                FROM (
+                    SELECT e.card_id, SUM(e.quantidade) AS total
+                    FROM expenses e
+                    LEFT JOIN card_invoices_payments p
+                        ON p.user_id = e.user_id
+                        AND p.card_id = e.card_id
+                        AND p.competencia_mes = e.competencia_mes
+                        AND p.competencia_ano = e.competencia_ano
+                    WHERE e.user_id = ${userId}
+                      AND e.category_id IN (${idList})
+                      AND e.card_id IS NOT NULL
+                      AND e.metodo_pagamento ILIKE '%cr_dito%'
+                      AND p.id IS NULL
+                    GROUP BY e.card_id
+                ) s
+                WHERE c.id = s.card_id AND c.user_id = ${userId}
+            `)
+
             await tx.delete(expenses).where(
                 and(inArray(expenses.category_id, allCategoryIds), eq(expenses.user_id, userId))
             )
