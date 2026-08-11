@@ -1,158 +1,203 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   Nexus — design system
+   Dark-only por decisão de projeto: é um app de consulta rápida no celular.
+   Não há tema claro; não use utilidades `dark:`.
+   ========================================================================= */
+
+@theme {
+  /* Superfícies — neutros com leve viés frio, escolhidos e não herdados. */
+  --color-bg: #0a0a0a;
+  --color-surface: #131315;
+  --color-elevated: #1a1a1d;
+  --color-line: #26262a;
+
+  /* Texto */
+  --color-fg: #fafafa;
+  --color-muted: #a1a1aa;
+  --color-subtle: #52525b;
+
+  /* Semântico — separado do acento de marca. */
+  --color-positive: #a3e635;
+  --color-negative: #f87171;
+  --color-warning: #fbbf24;
+
+  /* Marca */
+  --color-brand: #d4ff00;
+
+  /* Paleta categórica dos gráficos. As categorias do usuário têm cor própria
+     no banco (categories.cor); esta série é o fallback e a ordem de rodízio. */
+  --color-cat-1: #d4ff00;
+  --color-cat-2: #38bdf8;
+  --color-cat-3: #fb923c;
+  --color-cat-4: #f472b6;
+  --color-cat-5: #a78bfa;
+  --color-cat-6: #2dd4bf;
+
+  /* Tipografia */
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-manrope), sans-serif;
+
+  /* Forma */
+  --radius-card: 20px;
+  --radius-pill: 9999px;
+}
+
+/* ----------------------------------------------------------------------------
+   PONTE TEMPORÁRIA — remover quando a Fase 4 terminar.
+
+   ~470 usos de `var(--card-bg)` e afins espalhados por ~65 componentes ainda
+   apontam para os nomes antigos. Este bloco os redireciona para os tokens
+   acima, para que o app continue renderizável enquanto as telas migram uma a
+   uma. Não use estes nomes em código novo.
+
+   Para conferir o que ainda falta migrar:
+     grep -rho "var(--card-\|var(--filter-\|var(--chart-\|var(--select-" src/
+-------------------------------------------------------------------------- */
+
 :root {
-  --background: #f9fafb;
-  --foreground: #111111;
-  --card-bg: #f9fafb;
-  --stats-card-bg: #f9fafb;
-  --card-text: #111111;
-  --card-border: #d1d5db;
-  --page-bg: #e5e7eb;
-  --sidebar-border: #d4d4d8;
-  --card-icon: #111111;
-  --card-icon-bg-neutral: #e5e7eb;
-  --card-icon-bg-green: #d1fae5;
-  --card-icon-bg-red: #fee2e2;
-  --card-icon-bg-yellow: #fef9c3;
-  --card-icon-bg-blue: #dbeafe;
-  --chart-bg: #f3f4f6;
-  --chart-title: #0f172a;
-  --chart-axis: #374151;
-  --chart-grid: #d1d5db;
-  --chart-tooltip-bg: #f9fafb;
-  --chart-tooltip-border: #d1d5db;
-  --chart-tooltip-label: #1f2937;
-  --chart-tooltip-item: #111827;
-  --chart-stroke: #d1d5db;
-  --chart-legend-border: #d4d4d8;
-  --chart-legend-text: #1f2937;
-  --filter-bg: #f3f4f6;
-  --filter-border: #d1d5db;
-  --filter-input-bg: #ffffff;
-  --filter-input-border: #d1d5db;
-  --filter-text: #111111;
-  --filter-placeholder: #6b7280; /* Tailwind gray-500 */
-  --select-trigger-bg: #ffffff;
-  --select-trigger-border: #d1d5db;
-  --select-trigger-text: #111111;
-  --select-icon: #00d4d4;
-  --select-content-bg: #f9f9f9;
-  --select-item-hover: #e5e7eb;
-  --select-check: #00d4d4;
-  --list-bg: #f4f4f5;
-  --card-list-bg: #f9f9f9;
-  --plan-card-text: #0a0a0a; /* Tailwind gray-700 */
-  --progress-bg: #e5e7eb;
-  --hover-bg: rgba(0, 0, 0, 0.05); /* Tailwind gray-100 */
+  --background: var(--color-bg);
+  --foreground: var(--color-fg);
+  --page-bg: var(--color-bg);
+  --list-bg: var(--color-bg);
+
+  --card-bg: var(--color-surface);
+  --stats-card-bg: var(--color-surface);
+  --card-list-bg: var(--color-surface);
+  --card-text: var(--color-fg);
+  --card-border: var(--color-line);
+  --plan-card-text: var(--color-muted);
+  --sidebar-border: var(--color-line);
+
+  --card-icon: var(--color-fg);
+  --card-icon-bg-neutral: rgb(255 255 255 / 0.08);
+  --card-icon-bg-green: rgb(163 230 53 / 0.14);
+  --card-icon-bg-red: rgb(248 113 113 / 0.14);
+  --card-icon-bg-yellow: rgb(251 191 36 / 0.14);
+  --card-icon-bg-blue: rgb(56 189 248 / 0.14);
+
+  --chart-bg: var(--color-surface);
+  --chart-title: var(--color-fg);
+  --chart-axis: var(--color-subtle);
+  --chart-grid: var(--color-line);
+  --chart-stroke: var(--color-bg);
+  --chart-tooltip-bg: var(--color-elevated);
+  --chart-tooltip-border: var(--color-line);
+  --chart-tooltip-label: var(--color-fg);
+  --chart-tooltip-item: var(--color-muted);
+  --chart-legend-border: var(--color-line);
+  --chart-legend-text: var(--color-muted);
+
+  --filter-bg: var(--color-surface);
+  --filter-border: var(--color-line);
+  --filter-input-bg: var(--color-elevated);
+  --filter-input-border: var(--color-line);
+  --filter-text: var(--color-fg);
+  --filter-placeholder: var(--color-subtle);
+
+  --select-trigger-bg: var(--color-elevated);
+  --select-trigger-border: var(--color-line);
+  --select-trigger-text: var(--color-fg);
+  --select-content-bg: var(--color-elevated);
+  --select-item-hover: var(--color-line);
+  --select-icon: var(--color-brand);
+  --select-check: var(--color-brand);
+
+  --progress-bg: var(--color-line);
+  --hover-bg: rgb(255 255 255 / 0.06);
 }
 
-.dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --card-bg: #111; /* fundo original do card */
-  --stats-card-bg: #18181b;
-  --card-text: #ffffff;
-  --card-border: #262626;
-  --page-bg: #1f1f23;
-  --sidebar-border: #3f3f46;
-  --card-icon: #ffffff;
-  --card-icon-bg-neutral: #ffffff20;
-  --card-icon-bg-green: #064e3b99; /* verde escuro com transparência */
-  --card-icon-bg-red: #7f1d1d99; /* vermelho escuro com transparência */
-  --card-icon-bg-yellow: #78350f99; /* amarelo escuro com transparência */
-  --card-icon-bg-blue: #1e3a8a99;
-  --chart-bg: #111111;
-  --chart-title: #ffffff;
-  --chart-axis: #cccccc;
-  --chart-grid: #333333;
-  --chart-tooltip-bg: #1f1f1f;
-  --chart-tooltip-border: #444444;
-  --chart-tooltip-label: #ffffff;
-  --chart-tooltip-item: #ffffff;
-  --chart-stroke: #0a0a0a;
-  --chart-legend-border: #ffffff1a;
-  --chart-legend-text: #ffffff;
-  --filter-bg: #111111;
-  --filter-border: #222222;
-  --filter-input-bg: #1b1b1b;
-  --filter-input-border: #333333;
-  --filter-text: #ffffff;
-  --filter-placeholder: #a1a1aa;
-  --select-trigger-bg: #1b1b1b;
-  --select-trigger-border: #2e2e2e;
-  --select-trigger-text: #ffffff;
-  --select-icon: #00d4d4;
-  --select-content-bg: #1b1b1b;
-  --select-item-hover: #2e2e2e;
-  --select-check: #00d4d4;
-  --list-bg: #0a0a0a;
-  --card-list-bg: #111;
-  --plan-card-text: #99a1af;
-  --progress-bg: rgba(255, 255, 255, 0.1);
-  --hover-bg: rgba(255, 255, 255, 0.2);
+/* --- base ---------------------------------------------------------------- */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scrollbar-width: none;
+  }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-weight: 450;
+    overflow-x: hidden;
+  }
+
+  /* Grão: tira o aspecto de retângulo preto de CSS. Fixo e inerte ao toque. */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  /* Foco de teclado visível em tudo. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  /* Scrollbar oculta — o app é mobile-first e rola por toque. */
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  /* Ícone do date picker nativo precisa inverter no fundo escuro. */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+  }
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* --- utilitários -------------------------------------------------------- */
+
+@utility num {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+/* Faz o verde de marca emitir luz em vez de ser só preenchimento. */
+@utility glow {
+  box-shadow: 0 0 32px rgb(212 255 0 / 0.18);
 }
 
-/* globals.css */
-[data-sonner-toast] {
-  background-color: #111827; /* nexus.background */
-  color: #f3f4f6; /* nexus.text */
-  border: 1px solid #3b82f6; /* nexus.border */
-  border-radius: 0.75rem; /* rounded-xl */
-  padding: 0.75rem 1rem; /* px-4 py-3 */
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
-  font-family: var(--font-manrope), sans-serif;
+@utility glow-sm {
+  box-shadow: 0 0 16px rgb(212 255 0 / 0.22);
 }
 
-[data-sonner-toast][data-type="success"] {
-  border-color: #22c55e; /* nexus.success */
+/* Revelação escalonada: um momento coreografado no load, não efeitos soltos.
+   Combine com style={{ animationDelay }} para a cascata. */
+@utility rise {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: nx-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-[data-sonner-toast][data-type="error"] {
-  border-color: #ef4444; /* nexus.error */
+@keyframes nx-rise {
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-/* Scrollbar padrão Nexus */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: #333;
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-color: #555;
-}
-
-/* Estilo para ícone de calendário em inputs type="date" no tema dark */
-.dark input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  cursor: pointer;
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-}
-
-/* Cursor pointer para todos os botões */
-button {
-  cursor: pointer;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

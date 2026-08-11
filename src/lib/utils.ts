@@ -1,5 +1,13 @@
-export function cn(...classes: (string | false | null | undefined)[]) {
-    return classes.filter(Boolean).join(' ')
+import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+/**
+ * Junta classes resolvendo conflitos do Tailwind — a última vence.
+ * Sem o twMerge, passar className num componente não sobrescrevia o estilo
+ * base de forma previsível: quem ganhava era a ordem da folha gerada.
+ */
+export function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs))
 }
 
 /**

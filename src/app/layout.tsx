@@ -1,15 +1,23 @@
 // app/layout.tsx
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Manrope } from "next/font/google";
+import { Manrope, Bricolage_Grotesque } from "next/font/google";
 import LayoutWrapper from "../components/navigation/layoutWrapper";
 import { DateProvider } from "../contexts/dateContext";
 import { ThemeProvider } from "@/contexts/themeContext";
 import AuthGuard from "@/components/authGuard";
 
+// Corpo e UI.
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
+  display: "swap",
+});
+
+// Valores monetários e títulos — variável, com numerais tabulares.
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-bricolage",
   display: "swap",
 });
 
@@ -47,7 +55,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#00D4D4",
+  // Colore a barra do navegador/PWA — acompanha o fundo do app.
+  themeColor: "#0A0A0A",
+  viewportFit: "cover", // libera env(safe-area-inset-*) para a bottom nav
 };
 
 export default function RootLayout({
@@ -56,8 +66,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={manrope.variable}>
-      <body className="antialiased bg-gray-50 min-h-screen font-sans">
+    <html lang="pt-BR" className={`${manrope.variable} ${bricolage.variable}`}>
+      <body className="antialiased min-h-screen font-sans">
         <AuthGuard>
           <DateProvider>
             <ThemeProvider>
