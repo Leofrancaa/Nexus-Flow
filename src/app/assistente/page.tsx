@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Send, Sparkles } from "lucide-react";
-import PageTitle from "@/components/pageTitle";
 import { apiRequest, isAuthenticated } from "@/lib/auth";
 import { toast } from "react-hot-toast";
 
@@ -81,7 +80,10 @@ export default function AssistantPage() {
         setMessages((prev) => prev.slice(0, -1)); // remove a mensagem otimista
         return;
       }
-      setMessages((prev) => [...prev, { role: "assistant", content: data.data.reply }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data.data.reply },
+      ]);
       setRemaining(data.data.status.remaining);
     } catch {
       toast.error("Erro ao enviar mensagem.");
@@ -91,38 +93,52 @@ export default function AssistantPage() {
     }
   };
 
-  return (
-    <main
-      className="flex flex-col min-h-screen px-8 py-8 lg:py-4"
-      style={{ background: "var(--page-bg)" }}
-    >
-      <div className="flex flex-col lg:flex-row lg:justify-between gap-2 mt-14 lg:mt-0">
-        <PageTitle
-          title="Assistente"
-          subTitle="Pergunte sobre suas finanças (IA)"
-        />
-        <span className="self-start text-sm px-3 py-1 rounded-full bg-cyan-600/15 text-cyan-500 font-medium">
-          {remaining}/{limit} mensagens hoje
-        </span>
-      </div>
+  const esgotado = remaining <= 0;
 
+  return (
+    <main className="relative flex h-dvh flex-col overflow-hidden bg-bg">
       <div
-        className="mt-6 flex-1 flex flex-col rounded-xl border overflow-hidden"
-        style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}
-      >
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[50vh]">
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[220px] bg-[url('/aurora.svg')] bg-cover bg-top bg-no-repeat"
+      />
+
+      <div className="relative mx-auto flex w-full max-w-[430px] flex-1 flex-col overflow-hidden px-5">
+        <header className="flex shrink-0 items-center justify-between gap-3 pb-4 pt-8">
+          <div>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-fg">
+              Assistente
+            </h1>
+            <p className="mt-0.5 text-sm text-muted">
+              Pergunte sobre suas finanças
+            </p>
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
+              esgotado
+                ? "bg-negative/15 text-negative"
+                : "bg-brand/15 text-brand"
+            }`}
+          >
+            {remaining}/{limit} hoje
+          </span>
+        </header>
+
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain py-2">
           {messages.length === 0 && (
-            <div className="text-center text-[var(--plan-card-text)] mt-10">
-              <Sparkles className="w-8 h-8 mx-auto text-cyan-500 mb-2" />
-              <p>Pergunte algo sobre suas finanças para começar.</p>
-              <div className="flex flex-wrap gap-2 justify-center mt-4">
+            <div className="mt-8 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/12">
+                <Sparkles className="h-6 w-6 text-brand" />
+              </div>
+              <p className="text-sm text-muted">
+                Pergunte algo sobre suas finanças para começar.
+              </p>
+              <div className="mt-5 flex flex-col gap-2">
                 {SUGGESTIONS.map((s) => (
                   <button
                     key={s}
                     onClick={() => send(s)}
-                    disabled={remaining <= 0 || sending}
-                    className="text-xs px-3 py-2 rounded-full border hover:bg-[var(--hover-bg)] disabled:opacity-50"
-                    style={{ borderColor: "var(--card-border)", color: "var(--card-text)" }}
+                    disabled={esgotado || sending}
+                    className="rounded-2xl bg-surface px-4 py-3 text-left text-sm text-muted transition-colors hover:bg-elevated hover:text-fg disabled:opacity-50"
                   >
                     {s}
                   </button>
@@ -134,19 +150,16 @@ export default function AssistantPage() {
           {messages.map((m, i) => (
             <div
               key={m.id ?? i}
-              className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+              className={`flex ${
+                m.role === "user" ? "justify-end" : "justify-start"
+              }`}
             >
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap ${
+                className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                   m.role === "user"
-                    ? "bg-cyan-600 text-white rounded-br-sm"
-                    : "rounded-bl-sm"
+                    ? "rounded-br-md bg-brand font-medium text-bg"
+                    : "rounded-bl-md bg-surface text-fg"
                 }`}
-                style={
-                  m.role === "assistant"
-                    ? { backgroundColor: "var(--progress-bg)", color: "var(--card-text)" }
-                    : undefined
-                }
               >
                 {m.content}
               </div>
@@ -155,51 +168,58 @@ export default function AssistantPage() {
 
           {sending && (
             <div className="flex justify-start">
-              <div
-                className="rounded-2xl rounded-bl-sm px-4 py-2 text-sm animate-pulse"
-                style={{ backgroundColor: "var(--progress-bg)", color: "var(--card-text)" }}
-              >
-                Pensando...
+              <div className="flex gap-1.5 rounded-2xl rounded-bl-md bg-surface px-4 py-3.5">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted"
+                    style={{ animationDelay: `${i * 160}ms` }}
+                  />
+                ))}
               </div>
             </div>
           )}
           <div ref={endRef} />
         </div>
 
-        {/* Input */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
             send(input);
           }}
-          className="flex items-start gap-2 p-3 border-t"
-          style={{ borderColor: "var(--card-border)" }}
+          className="shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"
         >
-          <div className="flex-1">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value.slice(0, MAX_LEN))}
-              maxLength={MAX_LEN}
-              placeholder={remaining > 0 ? "Digite sua pergunta..." : "Limite diário atingido"}
-              disabled={remaining <= 0 || sending}
-              className="w-full rounded-lg px-3 py-2 bg-[var(--page-bg)] border outline-none disabled:opacity-50"
-              style={{ borderColor: "var(--card-border)", color: "var(--card-text)" }}
-            />
-            <div
-              className={`text-[10px] text-right mt-1 ${
-                input.length >= MAX_LEN ? "text-red-400" : "text-[var(--plan-card-text)]"
-              }`}
-            >
-              {input.length}/{MAX_LEN}
+          <div className="flex items-end gap-2 rounded-2xl bg-surface p-2">
+            <div className="min-w-0 flex-1">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value.slice(0, MAX_LEN))}
+                maxLength={MAX_LEN}
+                placeholder={
+                  esgotado ? "Limite diário atingido" : "Digite sua pergunta..."
+                }
+                disabled={esgotado || sending}
+                className="w-full bg-transparent px-3 py-2.5 text-base text-fg outline-none placeholder:text-subtle disabled:opacity-50"
+              />
+              {input.length > MAX_LEN * 0.8 && (
+                <div
+                  className={`px-3 pb-1 text-right text-[10px] ${
+                    input.length >= MAX_LEN ? "text-negative" : "text-subtle"
+                  }`}
+                >
+                  {input.length}/{MAX_LEN}
+                </div>
+              )}
             </div>
+            <button
+              type="submit"
+              aria-label="Enviar"
+              disabled={esgotado || sending || !input.trim()}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand text-bg transition-opacity glow-sm hover:opacity-90 disabled:opacity-40 disabled:shadow-none"
+            >
+              <Send className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={remaining <= 0 || sending || !input.trim()}
-            className="px-4 py-2 rounded-lg bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-50 flex items-center gap-1"
-          >
-            <Send className="w-4 h-4" />
-          </button>
         </form>
       </div>
     </main>

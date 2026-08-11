@@ -10,7 +10,6 @@ import { toast } from "react-hot-toast";
 import Button from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RightShowcase } from "@/components/rightShowCase";
 import { login, resendVerification, LoginError } from "@/lib/auth";
 
 export default function Login() {
@@ -54,19 +53,24 @@ export default function Login() {
 
       if (response.success) {
         toast.success("Login realizado com sucesso!");
-        // Usar setTimeout para dar tempo do token ser salvo
+        // Pequeno atraso para o cookie de sessão assentar antes da navegação.
         setTimeout(() => {
           router.push("/dashboard");
         }, 500);
       } else {
-        toast.error(response.message || "Não foi possível fazer login. Verifique suas credenciais");
+        toast.error(
+          response.message ||
+            "Não foi possível fazer login. Verifique suas credenciais"
+        );
       }
     } catch (error: unknown) {
       if (error instanceof LoginError && error.code === "email_not_verified") {
         setNeedsVerification(true);
       }
       toast.error(
-        error instanceof Error ? error.message : "Não foi possível completar a ação. Tente novamente"
+        error instanceof Error
+          ? error.message
+          : "Não foi possível completar a ação. Tente novamente"
       );
     } finally {
       setLoading(false);
@@ -74,153 +78,114 @@ export default function Login() {
   };
 
   return (
-    <main className="relative min-h-screen bg-[#0E1116] overflow-hidden">
-      {/* linhas do fundo que você já tinha */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <svg
-          className="w-full h-full"
-          xmlns="http://www.w3.org/2000/svg"
-          preserveAspectRatio="none"
-        >
-          <g strokeWidth="2">
-            <line x1="0" y1="30%" x2="100%" y2="60%" stroke="#00D4AA" />
-            <line x1="0" y1="70%" x2="100%" y2="50%" stroke="#00D4D4" />
-            <line x1="10%" y1="0" x2="10%" y2="100%" stroke="#3B82F6" />
-            <line
-              x1="40%"
-              y1="0"
-              x2="60%"
-              y2="100%"
-              stroke="rgba(255,255,255,0.05)"
+    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-bg">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[380px] bg-[url('/aurora.svg')] bg-cover bg-top bg-no-repeat"
+      />
+
+      <div className="relative mx-auto flex w-full max-w-[430px] flex-1 flex-col justify-center px-6 py-12">
+        <div className="mb-10 text-center">
+          <div className="mx-auto mb-8 w-[130px]">
+            <Image
+              src="/logo-nexus.png"
+              alt="Nexus"
+              width={0}
+              height={0}
+              sizes="130px"
+              style={{ width: "100%", height: "auto" }}
+              priority
             />
-            <line x1="80%" y1="0" x2="70%" y2="100%" stroke="#3B82F6" />
-            <line
-              x1="0"
-              y1="50%"
-              x2="100%"
-              y2="50%"
-              stroke="rgba(255,255,255,0.05)"
-            />
-            <line
-              x1="0"
-              y1="30%"
-              x2="100%"
-              y2="10%"
-              stroke="rgba(255,255,255,0.05)"
-            />
-            <line x1="50%" y1="0" x2="50%" y2="100%" stroke="#00D4AA" />
-            <line x1="20%" y1="0" x2="90%" y2="100%" stroke="#3B82F6" />
-          </g>
-        </svg>
-      </div>
-
-      <div className="relative z-10 grid w-full min-h-screen lg:grid-cols-2">
-        {/* ESQUERDA: form (inalterado) */}
-        <div className="flex items-center justify-center px-4 py-10">
-          <div className="w-full max-w-lg sm:max-w-md lg:max-w-lg bg-[#111827] rounded-2xl shadow-lg px-6 sm:px-8 md:px-10 pb-8 border border-white/10">
-            <div className="text-center">
-              <div className="mx-auto mt-6 mb-6 w-[140px]">
-                <Image
-                  src="/logo-nexus.png"
-                  alt="Logo Nexus"
-                  width={0}
-                  height={0}
-                  sizes="100vw"
-                  style={{ width: "100%", height: "auto" }}
-                  priority
-                />
-              </div>
-              <h1 className="text-2xl font-semibold text-white">
-                Entrar na conta
-              </h1>
-            </div>
-
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-5 mt-2 flex flex-col"
-            >
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <div className="relative mt-1">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
-                    className="pl-10 max-w-full"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="senha">Senha</Label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm text-[#3B82F6] hover:underline"
-                  >
-                    Esqueci minha senha
-                  </Link>
-                </div>
-                <div className="relative mt-1">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
-                  <Input
-                    id="senha"
-                    type={showSenha ? "text" : "password"}
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                    placeholder="Sua senha"
-                    className="pl-10 pr-10 max-w-full"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSenha(!showSenha)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] cursor-pointer hover:text-black"
-                  >
-                    {showSenha ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <Button type="submit" className="h-12 max-w-full" disabled={loading}>
-                Entrar
-              </Button>
-
-              {needsVerification && (
-                <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-3 text-sm text-yellow-200">
-                  <p>Seu e-mail ainda não foi confirmado.</p>
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    disabled={resending}
-                    className="mt-2 text-[#3B82F6] hover:underline font-medium disabled:opacity-50"
-                  >
-                    {resending ? "Reenviando..." : "Reenviar e-mail de confirmação"}
-                  </button>
-                </div>
-              )}
-
-              <p className="text-md text-center text-[#9CA3AF] mt-4">
-                Não tem uma conta?{" "}
-                <Link
-                  href="/register"
-                  className="text-[#3B82F6] hover:underline font-medium text-lg"
-                >
-                  Crie agora
-                </Link>
-              </p>
-            </form>
           </div>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-fg">
+            Entrar na conta
+          </h1>
+          <p className="mt-2 text-sm text-muted">
+            Suas finanças, num lugar só.
+          </p>
         </div>
 
-        {/* DIREITA: painel estilo Lovable */}
-        <RightShowcase />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <div className="relative mt-1.5">
+              <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                className="pl-11"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="senha">Senha</Label>
+              <Link
+                href="/forgot-password"
+                className="text-sm text-muted transition-colors hover:text-brand"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
+            <div className="relative mt-1.5">
+              <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
+              <Input
+                id="senha"
+                type={showSenha ? "text" : "password"}
+                autoComplete="current-password"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="Sua senha"
+                className="pl-11 pr-11"
+              />
+              <button
+                type="button"
+                onClick={() => setShowSenha(!showSenha)}
+                aria-label={showSenha ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-subtle transition-colors hover:text-fg"
+              >
+                {showSenha ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <Button type="submit" className="mt-2" disabled={loading}>
+            {loading ? "Entrando..." : "Entrar"}
+          </Button>
+
+          {needsVerification && (
+            <div className="rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
+              <p>Seu e-mail ainda não foi confirmado.</p>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                className="mt-2 font-medium text-fg underline underline-offset-4 disabled:opacity-50"
+              >
+                {resending ? "Reenviando..." : "Reenviar e-mail de confirmação"}
+              </button>
+            </div>
+          )}
+
+          <p className="mt-2 text-center text-sm text-muted">
+            Não tem uma conta?{" "}
+            <Link
+              href="/register"
+              className="font-semibold text-brand hover:underline"
+            >
+              Crie agora
+            </Link>
+          </p>
+        </form>
       </div>
     </main>
   );

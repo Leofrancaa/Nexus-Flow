@@ -1,9 +1,9 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { ContributeForm } from "../forms/contributeForm";
 import { TrendingUp } from "lucide-react";
+import { Modal } from "../ui/modal";
 
 interface Props {
   planId: number;
@@ -14,39 +14,22 @@ export function ContributeModal({ planId, onContributed }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger asChild>
-        <button className="flex items-center gap-2 text-black cursor-pointer bg-cyan-400 hover:bg-cyan-300 px-4 py-2 rounded-xl font-medium text-sm transition-all">
-          <span className="text-[16px]">Contribuir</span>
-          <TrendingUp></TrendingUp>
+    <Modal
+      open={open}
+      onOpenChange={setOpen}
+      title="Contribuir com o plano"
+      trigger={
+        <button className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-bg transition-opacity glow-sm hover:opacity-90">
+          Contribuir
+          <TrendingUp className="h-4 w-4" />
         </button>
-      </Dialog.Trigger>
-
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" />
-        <Dialog.Content className="fixed z-50 top-1/2 left-1/2 w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-[#111] border border-[#333] p-6 shadow-lg focus:outline-none">
-          <div className="flex justify-between items-center mb-4">
-            <Dialog.Title className="text-xl font-semibold text-white">
-              Contribuir com o plano
-            </Dialog.Title>
-
-            <Dialog.Close asChild>
-              <button
-                className="text-white hover:text-gray-300 cursor-pointer"
-                data-radix-dialog-close
-              >
-                ✕
-              </button>
-            </Dialog.Close>
-          </div>
-
-          <ContributeForm
-            planId={planId}
-            onClose={() => setOpen(false)}
-            onContributed={onContributed}
-          />
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      }
+    >
+      <ContributeForm
+        planId={planId}
+        onClose={() => setOpen(false)}
+        onContributed={onContributed}
+      />
+    </Modal>
   );
 }

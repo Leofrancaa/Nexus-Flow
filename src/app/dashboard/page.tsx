@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import PageTitle from "@/components/pageTitle";
+import { GreetingHeader } from "@/components/layout/greetingHeader";
 import { DashboardCards } from "@/components/cards/dashboardStatsCard";
 import { DashboardFilter } from "@/components/filters/dashboardFilter";
 import { NewExpenseModal } from "@/components/modals/newExpenseModal";
@@ -34,20 +34,17 @@ export default function Dashboard() {
     setCustomYear(ano);
   };
   return (
-    <main className="flex flex-col min-h-screen bg-[var(--page-bg)] px-8 py-8 w-full lg:py-4">
-      <div className="flex flex-col lg:flex-row w-full items-start justify-between gap-4 mt-14 lg:mt-0">
-        <PageTitle
-          title="Dashboard"
-          subTitle="Gerencie e acompanhe suas finanças"
-        />
-
-        <div className="flex flex-col gap-4 lg:flex-row justify-between lg:gap-4 w-full lg:w-auto">
-          <NewIncomeModal onCreated={() => setRefreshKey((prev) => prev + 1)} />
-          <NewExpenseModal
-            onCreated={() => setRefreshKey((prev) => prev + 1)}
-          />
-        </div>
-      </div>
+    <main className="flex min-h-screen w-full flex-col overflow-hidden bg-bg px-5 pb-8">
+      <GreetingHeader
+        action={
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+            <NewIncomeModal onCreated={() => setRefreshKey((prev) => prev + 1)} />
+            <NewExpenseModal
+              onCreated={() => setRefreshKey((prev) => prev + 1)}
+            />
+          </div>
+        }
+      />
 
       {/* Banner de Carryover de Saldo */}
       <div className="mt-4 w-full">
