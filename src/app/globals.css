@@ -42,6 +42,12 @@
   /* Forma */
   --radius-card: 20px;
   --radius-pill: 9999px;
+
+  /* Espaço ocupado pela bottom nav, já somada a área segura do aparelho.
+     Vive no namespace `--spacing-*` para virar `pb-nav`, `bottom-nav`, `h-nav`
+     — assim a folga do rodapé é um valor só, e não um número mágico repetido
+     em cada tela. */
+  --spacing-nav: calc(4.75rem + env(safe-area-inset-bottom));
 }
 
 /* ----------------------------------------------------------------------------

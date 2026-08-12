@@ -1,12 +1,12 @@
 // src/app/dashboard/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { GreetingHeader } from "@/components/layout/greetingHeader";
+import { PageWrapper } from "@/components/layout/pageWrapper";
 import { DashboardCards } from "@/components/cards/dashboardStatsCard";
 import { DashboardFilter } from "@/components/filters/dashboardFilter";
-import { NewExpenseModal } from "@/components/modals/newExpenseModal";
-import { NewIncomeModal } from "@/components/modals/newIncomeModal";
+import { useDataChanged } from "@/hooks/useDataRefresh";
 import BalanceChart from "@/components/charts/balanceChart";
 import { ExpenseByCategoryChart } from "../../components/charts/expenseByCategoryChart";
 import { IncomeByCategoryPieChart } from "../../components/charts/incomeByCategoryPieChart";
@@ -33,18 +33,14 @@ export default function Dashboard() {
   const handleYearChange = (ano: string) => {
     setCustomYear(ano);
   };
+
+  // O lançamento manual saiu daqui para o FAB, que vive no layout — o aviso de
+  // "criei algo" chega por evento.
+  useDataChanged(useCallback(() => setRefreshKey((prev) => prev + 1), []));
+
   return (
-    <main className="flex min-h-screen w-full flex-col overflow-hidden bg-bg px-5 pb-8">
-      <GreetingHeader
-        action={
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-            <NewIncomeModal onCreated={() => setRefreshKey((prev) => prev + 1)} />
-            <NewExpenseModal
-              onCreated={() => setRefreshKey((prev) => prev + 1)}
-            />
-          </div>
-        }
-      />
+    <PageWrapper>
+      <GreetingHeader />
 
       {/* Banner de Carryover de Saldo */}
       <div className="mt-4 w-full">
@@ -57,7 +53,10 @@ export default function Dashboard() {
       </div>
 
       {/* Filtro de Mês/Ano + Cards de Metas + Alertas de Limites + Saúde Financeira */}
-      <div className="mt-6 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+      {/* Uma coluna só: os breakpoints do Tailwind olham a janela, não o
+          container de 430px — em telas largas o grid antigo espremia os cards
+          dentro da coluna estreita. */}
+      <div className="mt-6 grid w-full grid-cols-1 gap-4 items-stretch">
         <div className="w-full">
           <DashboardFilter
             onCustomMonthChange={handleMonthChange}
@@ -98,7 +97,7 @@ export default function Dashboard() {
       </div>
 
       {/* Gráficos por Categoria com mês/ano personalizados */}
-      <div className="mt-10 w-full flex flex-col lg:flex-row justify-between gap-4">
+      <div className="mt-10 flex w-full flex-col justify-between gap-4">
         <ExpenseByCategoryChart
           mes={Number(customMonth)}
           ano={Number(customYear)}
@@ -121,6 +120,6 @@ export default function Dashboard() {
           onlyCards
         />
       </div>
-    </main>
+    </PageWrapper>
   );
 }

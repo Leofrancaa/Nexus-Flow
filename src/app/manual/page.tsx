@@ -719,7 +719,7 @@ export default function ManualPage() {
   return (
     <main className="min-h-screen px-5 sm:px-8 lg:px-10 py-8 lg:py-4 bg-[var(--page-bg)] text-[var(--foreground)]">
       <div className="w-full mx-auto">
-        <div className="mt-14 lg:mt-0 mb-6">
+        <div className="mb-6">
           <PageTitle
             title="Manual"
             subTitle="Aprenda a usar o Nexus passo a passo."

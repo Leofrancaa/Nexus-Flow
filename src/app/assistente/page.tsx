@@ -96,7 +96,9 @@ export default function AssistantPage() {
   const esgotado = remaining <= 0;
 
   return (
-    <main className="relative flex h-dvh flex-col overflow-hidden bg-bg">
+    // Altura da janela menos a bottom nav: o campo de mensagem precisa parar
+    // logo acima da barra, e não atrás dela.
+    <main className="relative flex h-[calc(100dvh-var(--spacing-nav))] flex-col overflow-hidden bg-bg">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-[220px] bg-[url('/aurora.svg')] bg-cover bg-top bg-no-repeat"
@@ -187,7 +189,7 @@ export default function AssistantPage() {
             e.preventDefault();
             send(input);
           }}
-          className="shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"
+          className="shrink-0 pb-3 pt-3"
         >
           <div className="flex items-end gap-2 rounded-2xl bg-surface p-2">
             <div className="min-w-0 flex-1">

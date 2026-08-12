@@ -4,7 +4,6 @@ import type { Metadata, Viewport } from "next";
 import { Manrope, Bricolage_Grotesque } from "next/font/google";
 import LayoutWrapper from "../components/navigation/layoutWrapper";
 import { DateProvider } from "../contexts/dateContext";
-import { ThemeProvider } from "@/contexts/themeContext";
 import AuthGuard from "@/components/authGuard";
 
 // Corpo e UI.
@@ -70,9 +69,7 @@ export default function RootLayout({
       <body className="antialiased min-h-screen font-sans">
         <AuthGuard>
           <DateProvider>
-            <ThemeProvider>
-              <LayoutWrapper>{children}</LayoutWrapper>
-            </ThemeProvider>
+            <LayoutWrapper>{children}</LayoutWrapper>
           </DateProvider>
         </AuthGuard>
       </body>

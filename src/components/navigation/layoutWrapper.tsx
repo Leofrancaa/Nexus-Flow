@@ -1,10 +1,17 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Sidebar } from "./sidebar";
+import { BottomNav } from "@/components/layout/bottomNav";
+import { Fab } from "@/components/layout/fab";
 import { Toaster } from "react-hot-toast";
 
-const publicRoutes = ["/login", "/register", "/", "/forgot-password", "/reset-password"];
+const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
+
+/**
+ * Telas em que o FAB atrapalharia mais do que ajudaria: o assistente já tem
+ * um campo fixo no rodapé, e o perfil é hub de navegação, não de lançamento.
+ */
+const routesWithoutFab = ["/assistente", "/perfil"];
 
 export default function LayoutWrapper({
   children,
@@ -13,14 +20,19 @@ export default function LayoutWrapper({
 }) {
   const pathname = usePathname();
   const isPublic = publicRoutes.includes(pathname);
+  const showFab = !routesWithoutFab.some((r) => pathname.startsWith(r));
 
   return (
     <>
       {!isPublic ? (
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 bg-gray-50">{children}</main>
-        </div>
+        <>
+          {/* `pb-nav` garante que nenhuma tela termine escondida atrás da
+              barra — inclusive as que ainda não foram migradas. É `div` porque
+              o `<main>` é responsabilidade da página. */}
+          <div className="min-h-dvh pb-nav">{children}</div>
+          {showFab && <Fab />}
+          <BottomNav />
+        </>
       ) : (
         <>{children}</>
       )}

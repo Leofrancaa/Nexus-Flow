@@ -51,7 +51,7 @@ export default function Categories() {
       className="flex flex-col min-h-screen px-8 py-8 lg:py-4"
       style={{ background: "var(--page-bg)" }}
     >
-      <div className="flex flex-col lg:flex-row lg:justify-between gap-4 mt-14 lg:mt-0">
+      <div className="flex flex-col lg:flex-row lg:justify-between gap-4">
         <PageTitle
           title="Categorias"
           subTitle="Gerencie e acompanhe suas categorias"

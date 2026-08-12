@@ -252,7 +252,7 @@ export default function ConfiguracoesPage() {
 
   return (
     <main className="flex flex-col min-h-screen bg-[var(--page-bg)] px-8 py-8 lg:py-4">
-      <div className="flex flex-col lg:flex-row lg:justify-between gap-4 mt-14 lg:mt-0">
+      <div className="flex flex-col lg:flex-row lg:justify-between gap-4">
         <PageTitle
           title="Configurações"
           subTitle="Gerencie suas preferências e segurança da conta"
