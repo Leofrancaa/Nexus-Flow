@@ -30,7 +30,7 @@ A referência visual é o Pierre; a estrutura é o app que já existe.
 - **Banco de teste** — `db/01-schema.sql` e `db/02-seed.sql` levantam um Supabase
   novo do zero, com dados de exemplo. Ver `db/README.md`.
 
-**Linha de base a manter verde:** 204 testes / 13 arquivos, `type-check` e `lint`
+**Linha de base a manter verde:** 207 testes / 14 arquivos, `type-check` e `lint`
 limpos. (Eram 252/18 antes do bloco 4: os 5 specs dos módulos removidos saíram
 junto, e os 3 testes de `parseAmount` migraram para `utils/helper.test.ts`.)
 
@@ -263,7 +263,7 @@ O Supabase Auth passa a valer a pena no dia em que houver login social.
 ## Verificação a cada bloco
 
 1. `npm run type-check` e `npm run lint` limpos.
-2. `npm test` verde — 204 testes é a linha de base.
+2. `npm test` verde — 207 testes é a linha de base.
 3. Browser no preset mobile (375×812): as 5 abas, console sem erros, zero
    scroll horizontal. Depois no desktop, confirmando o container de 430px.
    Sem `.env` o servidor sobe mas toda API responde 500 — dá para conferir o
