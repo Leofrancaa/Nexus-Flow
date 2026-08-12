@@ -221,12 +221,42 @@ positivo num conector de cartão ainda vira despesa.
 | **10 componentes órfãos** desde que `/despesas` e `/receitas` viraram redirect: `lists/{expense,income}List`, `filters/{expense,income}Filter`, `cards/{expenseStatsCard,incomesStatsCard}`, `panels/*`, `modals/new{Expense,Income}Modal` | `src/components/` | Deletar no fim do bloco 2, depois de aproveitar o que servir na nova Atividades |
 | **Ponte de compatibilidade CSS** — ~470 referências a `var(--card-bg)` e afins de ~65 componentes ainda passam por aliases temporários | `globals.css`, bloco marcado | Remover quando o bloco 2 terminar. Acompanhar com `grep -rho "var(--card-\|var(--filter-\|var(--chart-\|var(--select-" src/` |
 | Formulário de meta duplicado quase idêntico | `newGoalModal.tsx` / `editGoalModal.tsx` | Extrair um `GoalForm` compartilhado |
-| `getSaldoFuturo` é byte-idêntico a `getSaldoAtual` — não filtra datas futuras | `server/utils/finance/` | Corrigir ou remover |
-| `saveExpenseHistory` escreve numa tabela `expense_history` que não existe em nenhuma migration | `server/utils/finance/` | Código morto: remover |
-| `/api/users/currency/convert` (POST) não chama `getAuthUser` | `app/api/users/currency/` | Adicionar auth |
+| ~~`getSaldoFuturo` byte-idêntico a `getSaldoAtual`~~ | — | ✅ `getSaldoAtual` passou a cortar em hoje; `getSaldoFuturo` segue somando tudo. Spec em `__tests__/utils/saldo.test.ts` trava a diferença |
+| ~~`saveExpenseHistory` é código morto~~ | — | ✅ removido (nenhum chamador). A tabela `expense_history` fica: produção tem linhas nela |
+| ~~`/api/users/currency/convert` sem `getAuthUser`~~ | — | ✅ autenticada |
+| **Sessão de 30 dias, sem revogação nem limite de tentativa no login** | `server/lib/auth.ts`, `api/auth/login` | Ver a nota de segurança abaixo |
 | Infra multi-usuário (convites, painel admin, verificação por SMTP) num app de um usuário só | vários | Decidir se remove |
 | `next lint` deprecado no Next 16 | `package.json` | `npx @next/codemod@canary next-lint-to-eslint-cli .` |
 | Zero testes de frontend, rota ou E2E | — | A skill `webapp-testing` está instalada |
+
+---
+
+## Nota de segurança — auth próprio x Supabase Auth
+
+O middleware não era carregado (estava na raiz em vez de `src/`): qualquer
+visitante abria `/dashboard` e recebia 200. Nenhum dado vazou — as 66 rotas de
+API chamam `getAuthUser` e respondiam 401 — mas a única barreira das telas era
+o `AuthGuard` no cliente. Corrigido.
+
+O que o auth atual já faz bem: bcrypt com custo 12; cookie `httpOnly`, `secure`
+em produção e `sameSite=lax`; `JWT_SECRET` obrigatório (lança se faltar); token
+de reset com `randomBytes(32)`, com expiração e uso único.
+
+O que falta, em ordem de risco:
+
+1. **Nada limita tentativa de login.** A página é pública na internet e aceita
+   quantas senhas por segundo o atacante quiser. É o buraco mais barato de
+   fechar e o de maior retorno.
+2. **Token vale 30 dias e não dá para revogar.** `logout` só apaga o cookie —
+   quem copiou o token continua entrando por um mês. O padrão é acesso curto
+   (~1h) com refresh rotativo.
+3. Sem MFA e sem checagem de senha vazada.
+
+Migrar para o Supabase Auth resolveria os três de graça, mas custa migrar os
+usuários de `users.senha` para `auth.users` e refazer login, cadastro, convite,
+reset e verificação de e-mail. Para um app de um usuário só, fechar (1) e (2)
+no que já existe entrega quase o mesmo resultado por uma fração do trabalho.
+O Supabase Auth passa a valer a pena no dia em que houver login social.
 
 ---
 

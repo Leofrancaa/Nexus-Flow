@@ -1,9 +1,15 @@
 import { NextRequest } from 'next/server'
+import { getAuthUser, unauthorizedResponse } from '@/server/lib/auth'
 import { ok, err, apiError } from '@/server/lib/apiResponse'
 import { CurrencyService } from '@/server/services/currencyService'
 
 export async function POST(request: NextRequest) {
   try {
+    // Era a única rota da pasta sem checagem de sessão. Não expunha dado do
+    // usuário, mas deixava qualquer um gastar a cota da API de câmbio.
+    const user = getAuthUser(request)
+    if (!user) return unauthorizedResponse()
+
     const { amount, from_currency, to_currency } = await request.json()
     if (!amount || !from_currency || !to_currency) {
       return err('Amount, from_currency e to_currency são obrigatórios.', 400)

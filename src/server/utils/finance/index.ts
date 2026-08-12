@@ -11,7 +11,6 @@ export { getParcelasPendentes } from './getParcelasPendentes'
 export { getResumoAnual } from './getResumoAnual'
 export { getReceitasDoMes } from './getReceitasDoMes'
 export { getDespesasDoMes } from './getDespesasDoMes'
-export { saveExpenseHistory } from './saveExpenseHistory'
 
 export type { GastosPorCategoriaResult } from './getGastosPorCategoria'
 export type { GastosPorCartaoResult } from './getGastosPorCartao'
