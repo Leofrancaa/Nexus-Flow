@@ -1,6 +1,7 @@
 # Nexus Flow — próximos passos
 
-> Estado em 11/08/2026. Ordenado por dependência: cada bloco assume o anterior pronto.
+> Estado em 11/08/2026, com o bloco 1 concluído. Ordenado por dependência:
+> cada bloco assume o anterior pronto.
 
 O objetivo é um app pessoal de finanças, mobile-first e dark, com os dados
 bancários entrando sozinhos via Open Finance (Pluggy) em vez de digitação manual.
@@ -21,35 +22,59 @@ A referência visual é o Pierre; a estrutura é o app que já existe.
 - `ui/button.tsx` e `ui/input.tsx` nos tokens.
 - Login e assistente repaginados.
 - Repositório migrado para `Nexus-Flow` com os 158 commits.
+- **Shell mobile-first (bloco 1).** Bottom nav de 5 abas, coluna de 430px, FAB
+  de lançamento, `/atividades` e `/perfil` no ar, sidebar e tema claro fora.
+- **Limpeza de escopo (bloco 4).** Importador de extrato, carreira, estudos e
+  pessoal removidos do código e do banco.
+- **Schema da Pluggy (parte do bloco 5).** Colunas e tabelas criadas, vazias.
+- **Banco de teste** — `db/01-schema.sql` e `db/02-seed.sql` levantam um Supabase
+  novo do zero, com dados de exemplo. Ver `db/README.md`.
 
-**Linha de base a manter verde:** 252 testes / 18 arquivos, `type-check` e `lint` limpos.
+**Linha de base a manter verde:** 204 testes / 13 arquivos, `type-check` e `lint`
+limpos. (Eram 252/18 antes do bloco 4: os 5 specs dos módulos removidos saíram
+junto, e os 3 testes de `parseAmount` migraram para `utils/helper.test.ts`.)
+
+> ⚠️ `npm ci` falha: o `package-lock.json` está fora de sincronia com o
+> `package.json` (faltam `esbuild`, `@emnapi/*`). Instalar sem o lock traz
+> `recharts` e `vitest` mais novos, e aí `type-check` e `npm test` quebram por
+> motivo alheio ao código. Regerar o lock é a próxima dívida a pagar. O
+> `npm test` também exige Node ≥ 20.19 (o `vitest` 4 faz `require()` de ESM);
+> em Node 20.17 roda com `NODE_OPTIONS=--experimental-require-module`.
 
 ---
 
-## 1. Shell mobile-first
+## 1. Shell mobile-first ✅
 
-Sem isto o app continua sendo um painel desktop com cores novas.
+Sem isto o app continuaria sendo um painel desktop com cores novas.
 
-- [ ] `components/layout/bottom-nav.tsx` — 5 abas (Home · Atividades · Cartões ·
+- [x] `components/layout/bottomNav.tsx` — 5 abas (Home · Atividades · Cartões ·
       Assistente · Perfil), `backdrop-blur`, aba ativa com `glow`,
-      `env(safe-area-inset-bottom)` respeitado.
-- [ ] `components/layout/page-wrapper.tsx` — `max-w-[430px] mx-auto px-5 pb-24`.
-- [ ] `components/layout/fab.tsx` — círculo 56px da marca, abre o lançamento manual.
-- [ ] `layoutWrapper.tsx` monta `BottomNav`; **deletar `sidebar.tsx`** (315 linhas).
-- [ ] Remover `contexts/themeContext.tsx` e `components/toggles/` — só podem sair
-      junto com a sidebar, que é quem consome o `ThemeToggle`.
+      `env(safe-area-inset-bottom)` respeitado. Rotas-filhas (`/categorias`,
+      `/limites`, …) acendem a aba Perfil.
+- [x] `components/layout/pageWrapper.tsx` — `max-w-[430px] mx-auto px-5`, e é
+      ele quem emite o `<main>` da página.
+- [x] `components/layout/fab.tsx` — círculo 56px da marca; um toque abre
+      *Nova receita* / *Nova despesa*. Escondido no assistente e no perfil.
+- [x] `layoutWrapper.tsx` monta `BottomNav` + `Fab`; `sidebar.tsx` deletada.
+- [x] `contexts/themeContext.tsx` e `components/toggles/` removidos.
+- [x] Token `--spacing-nav` no `@theme`: a folga do rodapé virou `pb-nav`,
+      aplicado uma vez no wrapper de layout — inclusive nas telas ainda não
+      migradas, que senão terminariam escondidas atrás da barra.
+- [x] `hooks/useDataRefresh.ts` — o FAB vive no layout e a tela que recarrega é
+      filha do `children`; o aviso de "criei algo" vai por evento no `window`.
 
-**Rotas.** Sobram 10 páginas financeiras para 5 abas:
+**Rotas.** As 10 páginas financeiras couberam em 5 abas:
 
 | Aba | Rota | Nota |
 |---|---|---|
 | Home | `/dashboard` | |
-| Atividades | `/atividades` *(nova)* | funde `/despesas` + `/receitas` numa lista só, com chips *Entradas / Saídas / Período*. As duas rotas antigas redirecionam |
-| Cartões | `/cartoes` | |
+| Atividades | `/atividades` | funde `/despesas` + `/receitas` numa lista só, agrupada por dia, com chips *Todas / Entradas / Saídas*, busca e navegação de mês. `/despesas` → `?tipo=saidas` e `/receitas` → `?tipo=entradas` |
+| Cartões | `/cartoes` | ainda no visual antigo (bloco 2) |
 | Assistente | `/assistente` | pronto |
-| Perfil | `/perfil` *(nova)* | hub: Categorias, Limites, Planos, Conexões bancárias, Configurações, Manual |
+| Perfil | `/perfil` | hub: Categorias, Limites, Planos, Configurações, Manual, sair. Conexões bancárias entra no bloco 5 |
 
-Atualizar `middleware.ts` conforme as rotas mudarem.
+`middleware.ts` atualizado; as rotas antigas continuam protegidas para o
+redirect não vazar a existência da tela a quem não está logado.
 
 ---
 
@@ -58,15 +83,19 @@ Atualizar `middleware.ts` conforme as rotas mudarem.
 - [ ] **Dashboard** — bloco-herói de saldo (número em Bricolage e sparkline
       ocupando o mesmo espaço), grid de widgets, `balanceChart` vira área com
       gradiente lima e eixo Y oculto.
-- [ ] **Atividades** — agrupamento por dia com header ("Ontem", "Domingo"), ícone
-      redondo da instituição, valor com sinal colorido. É a tela mais usada;
-      merece o maior cuidado de densidade e área de toque.
+- [ ] **Atividades** — a estrutura já está de pé (agrupamento por dia, sinal
+      colorido, ação por toque). Falta o ícone redondo da instituição no lugar
+      das iniciais da categoria e uma passada de densidade/área de toque — é a
+      tela mais usada.
 - [ ] **Cartões** — `cardVisual.tsx` (358 linhas) com fatura e vencimento em
       destaque, limite em donut.
-- [ ] **Perfil** — hub em lista.
+- [x] **Perfil** — hub em lista.
 - [ ] Restantes nos tokens: `/categorias`, `/limites`, `/planos`,
       `/configuracoes`, `/register`, `/forgot-password`, `/reset-password`,
-      `/verify-email`, `/` (landing).
+      `/verify-email`.
+- [x] A landing de `/` foi apagada — o app é de um usuário só, que já sabe o que
+      ele faz; não havia o que vender. A raiz é um redirect no `middleware.ts`:
+      logado vai para o dashboard, deslogado para o login.
 - [ ] `/manual` (752 linhas) — o conteúdo documenta funcionalidades que serão
       removidas; reescrever por último.
 
@@ -86,25 +115,25 @@ Atualizar `middleware.ts` conforme as rotas mudarem.
 
 ---
 
-## 4. Limpeza de escopo
+## 4. Limpeza de escopo ✅
 
-**A ordem importa** — o passo 1 é pré-requisito dos demais.
+**A ordem importava** — o passo 1 era pré-requisito dos demais.
 
-1. [ ] Mover `parseAmount` de `server/utils/import/types.ts` para
-       `server/utils/helper.ts` e atualizar `chatActionService.ts:6`.
-       **Sem isso, apagar a pasta `import/` quebra o assistente de IA.**
-2. [ ] Preservar as regras de palavra-chave de `server/utils/import/categorize.ts`
-       — viram a base da categorização da Pluggy.
-3. [ ] Deletar `app/importar/`, `app/api/imports/`, `importService.ts`,
+1. [x] `parseAmount` mudou de `server/utils/import/types.ts` para
+       `server/utils/helper.ts`; `chatActionService.ts` atualizado.
+       Os 3 testes dela vieram junto, para `utils/helper.test.ts`.
+2. [x] As regras de palavra-chave viraram `server/utils/pluggy/categorize.ts` —
+       são a base da categorização da Pluggy. Ainda sem chamador.
+3. [x] Deletados `app/importar/`, `app/api/imports/`, `importService.ts`,
        `server/utils/import/` e os 2 specs.
-4. [ ] Deletar `app/{carreira,estudos,pessoal}/`, `app/api/{career,study,personal}/`,
-       os 3 services e os 3 specs.
-5. [ ] **Editar o array `TABLES` em `server/__tests__/mocks/db.ts:24`** — remover
-       `imported_transactions`, `import_batches`, `career_profile`,
-       `career_milestones`, `study_items`, `personal_goals`.
-       É um array hardcoded usado no `TRUNCATE`: sem essa edição **a suíte
-       inteira quebra**.
-6. [ ] `drizzle/0005_remove_import_and_personal.sql` com os `DROP TABLE`.
+4. [x] Deletados `app/{carreira,estudos,pessoal}/`,
+       `app/api/{career,study,personal}/`, os 3 services e os 3 specs.
+5. [x] Array `TABLES` de `server/__tests__/mocks/db.ts` enxugado.
+6. [x] `drizzle/0006_remove_import_and_personal.sql` com os `DROP TABLE`
+       (o `0005` ficou com a Pluggy), mais a remoção das tabelas do
+       `schema.ts` e do `db/01-schema.sql`.
+
+O banco tem hoje **15 tabelas** — exatamente a superfície do app.
 
 > ⚠️ `npm run db:push` faz diff de `schema.ts` contra o banco e **não executa**
 > os `drizzle/*.sql`. Esses arquivos existem para o `mocks/db.ts` replicar no
@@ -120,12 +149,16 @@ A ideia central é escrever as transações da Pluggy **nas tabelas `expenses` /
 limites, metas, carryover e o contexto do assistente passam a funcionar com dados
 bancários **sem alterar nenhum service**.
 
-### Schema
+### Schema ✅
 
-- [ ] Colunas em `expenses` e `incomes`: `pluggy_transaction_id`,
+Feito junto com o banco local (`db/01-schema.sql`), nos dois lugares de sempre:
+`schema.ts` e `drizzle/0005_pluggy.sql`. As tabelas nascem vazias — falta o
+código que as preenche.
+
+- [x] Colunas em `expenses` e `incomes`: `pluggy_transaction_id`,
       `pluggy_account_id`, `origem` (`'manual' | 'pluggy'`), `categoria_manual`.
-- [ ] Tabelas `pluggy_items` e `pluggy_accounts`.
-- [ ] Índice único **parcial** — linhas manuais são `NULL` e não colidem:
+- [x] Tabelas `pluggy_items` e `pluggy_accounts`.
+- [x] Índice único **parcial** — linhas manuais são `NULL` e não colidem:
       ```sql
       CREATE UNIQUE INDEX expenses_pluggy_tx_key ON expenses(pluggy_transaction_id)
         WHERE pluggy_transaction_id IS NOT NULL;
@@ -184,6 +217,8 @@ positivo num conector de cartão ainda vira despesa.
 
 | Item | Onde | Quando resolver |
 |---|---|---|
+| **`package-lock.json` fora de sincronia** — `npm ci` recusa; instalar sem lock derruba `type-check` e `npm test` | raiz | Antes de qualquer outra coisa: regerar o lock e conferir a suíte |
+| **10 componentes órfãos** desde que `/despesas` e `/receitas` viraram redirect: `lists/{expense,income}List`, `filters/{expense,income}Filter`, `cards/{expenseStatsCard,incomesStatsCard}`, `panels/*`, `modals/new{Expense,Income}Modal` | `src/components/` | Deletar no fim do bloco 2, depois de aproveitar o que servir na nova Atividades |
 | **Ponte de compatibilidade CSS** — ~470 referências a `var(--card-bg)` e afins de ~65 componentes ainda passam por aliases temporários | `globals.css`, bloco marcado | Remover quando o bloco 2 terminar. Acompanhar com `grep -rho "var(--card-\|var(--filter-\|var(--chart-\|var(--select-" src/` |
 | Formulário de meta duplicado quase idêntico | `newGoalModal.tsx` / `editGoalModal.tsx` | Extrair um `GoalForm` compartilhado |
 | `getSaldoFuturo` é byte-idêntico a `getSaldoAtual` — não filtra datas futuras | `server/utils/finance/` | Corrigir ou remover |
@@ -198,9 +233,11 @@ positivo num conector de cartão ainda vira despesa.
 ## Verificação a cada bloco
 
 1. `npm run type-check` e `npm run lint` limpos.
-2. `npm test` verde — 252 testes é a linha de base.
-3. Browser no preset mobile (375×812): screenshot das 5 abas, console sem erros,
-   zero scroll horizontal. Depois no desktop, confirmando o container de 430px.
+2. `npm test` verde — 204 testes é a linha de base.
+3. Browser no preset mobile (375×812): as 5 abas, console sem erros, zero
+   scroll horizontal. Depois no desktop, confirmando o container de 430px.
+   Sem `.env` o servidor sobe mas toda API responde 500 — dá para conferir o
+   shell, não os dados.
 4. Fluxo ponta a ponta: FAB → despesa → aparece em Atividades → reflete no saldo
    do Dashboard → dispara alerta se estourar um limite.
 5. Lighthouse mobile depois do bloco 3, olhando CLS.

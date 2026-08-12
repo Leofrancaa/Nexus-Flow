@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 
 const PROTECTED_ROUTES = [
-  '/categorias', '/cartoes', '/limites', '/receitas',
-  '/despesas', '/investimentos', '/dashboard', '/planos',
-  '/configuracoes', '/manual',
-  '/carreira', '/estudos', '/pessoal', '/importar', '/assistente'
+  '/dashboard', '/atividades', '/cartoes', '/assistente', '/perfil',
+  '/categorias', '/limites', '/planos', '/configuracoes', '/manual',
+  // Endereços antigos que hoje só redirecionam — continuam protegidos para o
+  // redirect não vazar a existência da rota a quem não está logado.
+  '/receitas', '/despesas'
 ]
 const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password']
 const COOKIE_NAME = 'nexus_token'
@@ -37,6 +38,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
+  // Não existe página em `/`: a landing foi removida e quem responde pela raiz
+  // é este redirect. Logado cai no dashboard, deslogado cai no login.
   if (pathname === '/') {
     return NextResponse.redirect(new URL(isValidToken ? '/dashboard' : '/login', request.url))
   }
