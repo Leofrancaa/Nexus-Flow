@@ -60,9 +60,6 @@ const nextConfig = {
         optimizePackageImports: ['lucide-react', 'date-fns'],
     },
 
-    // bcrypt não funciona no edge runtime; deve compilar no Node.js
-    serverExternalPackages: ['bcrypt'],
-
     // Webpack customizations para otimizar bundle
     webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
         // Otimizações para produção

@@ -1,125 +1,257 @@
 // src/app/dashboard/page.tsx
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { toast } from "react-hot-toast";
+
 import { GreetingHeader } from "@/components/layout/greetingHeader";
 import { PageWrapper } from "@/components/layout/pageWrapper";
-import { DashboardCards } from "@/components/cards/dashboardStatsCard";
-import { DashboardFilter } from "@/components/filters/dashboardFilter";
+import { BalanceHero } from "@/components/dashboard/balanceHero";
+import { CategoryBreakdown } from "@/components/dashboard/categoryBreakdown";
+import { LimitRing } from "@/components/dashboard/limitRing";
+import { RecentActivity } from "@/components/dashboard/recentActivity";
+import { SpendTrendCard } from "@/components/dashboard/spendTrendCard";
+import { WidgetCard } from "@/components/dashboard/widgetCard";
+import { Money } from "@/components/ui/money";
+import { PrivacyProvider, usePrivacy } from "@/contexts/privacyContext";
 import { useDataChanged } from "@/hooks/useDataRefresh";
-import BalanceChart from "@/components/charts/balanceChart";
-import { ExpenseByCategoryChart } from "../../components/charts/expenseByCategoryChart";
-import { IncomeByCategoryPieChart } from "../../components/charts/incomeByCategoryPieChart";
-import { DashboardInsightsCard } from "@/components/cards/dashboardInsightsCard";
-import { CarryoverBanner } from "@/components/cards/carryoverBanner";
-import { HealthScoreCard } from "@/components/cards/healthScoreCard";
+import { apiRequest } from "@/lib/auth";
+import { toActivities, type Activity } from "@/lib/activities";
+import { gastoAcumuladoPorDia } from "@/lib/spendTrend";
+import type { DashboardData } from "@/server/types/index";
 
-export default function Dashboard() {
+/**
+ * Painel — a tela de relance.
+ *
+ * Responde a três perguntas em ordem de urgência: quanto eu tenho, para onde
+ * o dinheiro foi, e o que está por vencer. Nada aqui pede configuração prévia
+ * para valer alguma coisa: cada bloco ou mostra um número real ou some.
+ *
+ * O mês é sempre o corrente e não há seletor. Navegar no tempo é a função da
+ * tela de Atividades; misturar as duas transformaria o painel numa planilha.
+ */
+export default function DashboardPage() {
+  return (
+    <PrivacyProvider>
+      <Dashboard />
+    </PrivacyProvider>
+  );
+}
+
+function Dashboard() {
+  const [dados, setDados] = useState<DashboardData | null>(null);
+  const [itens, setItens] = useState<Activity[] | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Estados para controlar mês/ano personalizados
-  const [customMonth, setCustomMonth] = useState<string>(
-    String(new Date().getMonth() + 1)
+  const recarregar = useCallback(() => setRefreshKey((k) => k + 1), []);
+  // O lançamento manual vive no FAB, no layout — o aviso de "criei algo"
+  // chega por evento, não por prop.
+  useDataChanged(recarregar);
+
+  useEffect(() => {
+    let cancelado = false;
+
+    const carregar = async () => {
+      const agora = new Date();
+      const query = `mes=${agora.getMonth() + 1}&ano=${agora.getFullYear()}`;
+
+      try {
+        const [resPainel, resDespesas, resReceitas] = await Promise.all([
+          apiRequest("/api/dashboard"),
+          apiRequest(`/api/expenses?${query}`),
+          apiRequest(`/api/incomes?${query}`),
+        ]);
+
+        if (cancelado) return;
+
+        if (resPainel.ok) {
+          setDados((await resPainel.json()).data ?? null);
+        } else {
+          setDados(null);
+        }
+
+        const despesas = resDespesas.ok
+          ? ((await resDespesas.json()).data ?? [])
+          : [];
+        const receitas = resReceitas.ok
+          ? ((await resReceitas.json()).data ?? [])
+          : [];
+
+        if (!cancelado) setItens(toActivities(despesas, receitas));
+      } catch {
+        if (!cancelado) {
+          setItens([]);
+          toast.error("Não foi possível carregar o painel.");
+        }
+      }
+    };
+
+    carregar();
+    return () => {
+      cancelado = true;
+    };
+  }, [refreshKey]);
+
+  const carregando = dados === null;
+
+  const acumulado = useMemo(
+    () => gastoAcumuladoPorDia(itens ?? []),
+    [itens]
   );
-  const [customYear, setCustomYear] = useState<string>(
-    String(new Date().getFullYear())
-  );
 
-  // Handlers para mudança de mês/ano
-  const handleMonthChange = (mes: string) => {
-    setCustomMonth(mes);
-  };
+  // Os cartões a vencer trazem limite e gasto por cartão; o painel mostra a
+  // soma, porque o que importa no relance é a folga total, não cartão a cartão.
+  const cartoes = useMemo(() => {
+    const lista = dados?.cartoesAVencer ?? [];
+    const limite = lista.reduce((soma, c) => soma + Number(c.limite), 0);
+    const gasto = lista.reduce((soma, c) => soma + Number(c.total_gasto), 0);
+    const proximo = [...lista].sort(
+      (a, b) => a.dia_vencimento - b.dia_vencimento
+    )[0];
 
-  const handleYearChange = (ano: string) => {
-    setCustomYear(ano);
-  };
+    return {
+      quantidade: lista.length,
+      limite,
+      gasto,
+      disponivel: Math.max(limite - gasto, 0),
+      consumo: limite > 0 ? gasto / limite : 0,
+      proximo,
+    };
+  }, [dados]);
 
-  // O lançamento manual saiu daqui para o FAB, que vive no layout — o aviso de
-  // "criei algo" chega por evento.
-  useDataChanged(useCallback(() => setRefreshKey((prev) => prev + 1), []));
+  const categorias = dados?.gastosPorCategoria ?? [];
+
+  const despesasMes = Number(dados?.comparativo?.despesas?.atual ?? 0);
+  const despesasAnterior = Number(dados?.comparativo?.despesas?.anterior ?? 0);
+  const receitasMes = Number(dados?.comparativo?.receitas?.atual ?? 0);
 
   return (
     <PageWrapper>
-      <GreetingHeader />
+      <GreetingHeader action={<PrivacyToggle />} />
 
-      {/* Banner de Carryover de Saldo */}
-      <div className="mt-4 w-full">
-        <CarryoverBanner
-          customMonth={customMonth}
-          customYear={customYear}
-          refreshKey={refreshKey}
-          onApplied={() => setRefreshKey((prev) => prev + 1)}
+      <div className="space-y-4">
+        <BalanceHero
+          saldo={Number(dados?.saldo ?? 0)}
+          entradas={receitasMes}
+          saidas={despesasMes}
+          carregando={carregando}
         />
-      </div>
 
-      {/* Filtro de Mês/Ano + Cards de Metas + Alertas de Limites + Saúde Financeira */}
-      {/* Uma coluna só: os breakpoints do Tailwind olham a janela, não o
-          container de 430px — em telas largas o grid antigo espremia os cards
-          dentro da coluna estreita. */}
-      <div className="mt-6 grid w-full grid-cols-1 gap-4 items-stretch">
-        <div className="w-full">
-          <DashboardFilter
-            onCustomMonthChange={handleMonthChange}
-            onCustomYearChange={handleYearChange}
+        {carregando ? (
+          <div className="h-56 animate-pulse rounded-card bg-surface" />
+        ) : (
+          <SpendTrendCard
+            total={despesasMes}
+            serie={acumulado}
+            anterior={despesasAnterior}
           />
-        </div>
-        <div className="flex flex-col">
-          <DashboardInsightsCard
-            customMonth={customMonth}
-            customYear={customYear}
-            refreshKey={refreshKey}
-            onlyGoals
+        )}
+
+        {carregando ? (
+          <div className="grid grid-cols-2 gap-3">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-[9.5rem] animate-pulse rounded-card bg-surface"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <WidgetCard
+              label={cartoes.proximo ? "Fatura atual" : "Cartões"}
+              value={
+                cartoes.quantidade > 0 ? (
+                  <Money value={cartoes.gasto} />
+                ) : (
+                  "Nenhum"
+                )
+              }
+              sub={
+                cartoes.proximo
+                  ? `Vence dia ${cartoes.proximo.dia_vencimento}`
+                  : "Cadastre um cartão"
+              }
+              href="/cartoes"
+              delay={120}
+            />
+
+            <WidgetCard
+              label="Limite disponível"
+              value={
+                cartoes.limite > 0 ? (
+                  <Money value={cartoes.disponivel} />
+                ) : (
+                  "—"
+                )
+              }
+              sub={
+                cartoes.limite > 0 ? (
+                  <>
+                    de <Money value={cartoes.limite} />
+                  </>
+                ) : (
+                  "Sem limite cadastrado"
+                )
+              }
+              href="/cartoes"
+              delay={180}
+              media={
+                cartoes.limite > 0 ? (
+                  <LimitRing ratio={cartoes.consumo} />
+                ) : null
+              }
+            />
+
+            <WidgetCard
+              label="Parcelamentos"
+              value={String(dados?.parcelasPendentes?.length ?? 0)}
+              sub="Em andamento"
+              href="/cartoes"
+              delay={240}
+            />
+
+            <WidgetCard
+              label="Saldo previsto"
+              value={<Money value={Number(dados?.saldoFuturo ?? 0)} />}
+              sub="Já contando o que falta entrar e sair"
+              delay={300}
+            />
+          </div>
+        )}
+
+        {!carregando && (
+          <CategoryBreakdown
+            slices={categorias.map((c) => ({
+              id: c.id,
+              nome: c.nome,
+              total: Number(c.total),
+            }))}
           />
-        </div>
-        <div className="flex flex-col">
-          <DashboardInsightsCard
-            customMonth={customMonth}
-            customYear={customYear}
-            refreshKey={refreshKey}
-            onlyAlerts
-          />
-        </div>
-        <div className="flex flex-col">
-          <HealthScoreCard refreshKey={refreshKey} />
-        </div>
-      </div>
+        )}
 
-      {/* Cards de Estatísticas com mês/ano personalizados */}
-      <DashboardCards
-        customMonth={customMonth}
-        customYear={customYear}
-        refreshKey={refreshKey}
-      />
-
-      {/* Gráfico de Balanço Mensal */}
-      <div className="mt-10 w-full">
-        <BalanceChart refreshKey={refreshKey} />
-      </div>
-
-      {/* Gráficos por Categoria com mês/ano personalizados */}
-      <div className="mt-10 flex w-full flex-col justify-between gap-4">
-        <ExpenseByCategoryChart
-          mes={Number(customMonth)}
-          ano={Number(customYear)}
-          refreshKey={refreshKey}
-        />
-
-        <IncomeByCategoryPieChart
-          mes={Number(customMonth)}
-          ano={Number(customYear)}
-          refreshKey={refreshKey}
-        />
-      </div>
-
-      {/* Cards de Cartão e Plano */}
-      <div className="mt-10 w-full">
-        <DashboardInsightsCard
-          customMonth={customMonth}
-          customYear={customYear}
-          refreshKey={refreshKey}
-          onlyCards
-        />
+        <RecentActivity itens={itens} />
       </div>
     </PageWrapper>
   );
 }
+
+/** Botão do olho: some com os valores sem derrubar a sessão. */
+function PrivacyToggle() {
+  const { oculto, alternar } = usePrivacy();
+  const Icone = oculto ? EyeOff : Eye;
+
+  return (
+    <button
+      type="button"
+      onClick={alternar}
+      aria-pressed={oculto}
+      aria-label={oculto ? "Mostrar valores" : "Ocultar valores"}
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-muted transition-colors hover:bg-elevated hover:text-fg"
+    >
+      <Icone className="h-[1.125rem] w-[1.125rem]" aria-hidden="true" />
+    </button>
+  );
+}
+

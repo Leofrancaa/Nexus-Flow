@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Send, Sparkles } from "lucide-react";
-import { apiRequest, isAuthenticated } from "@/lib/auth";
+import { apiRequest, hasActiveSession } from "@/lib/auth";
 import { toast } from "react-hot-toast";
 
 interface Message {
@@ -32,7 +32,9 @@ export default function AssistantPage() {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!isAuthenticated()) router.push("/login");
+    void hasActiveSession().then((authenticated) => {
+      if (!authenticated) router.push("/login");
+    });
   }, [router]);
 
   const fetchChat = useCallback(async () => {

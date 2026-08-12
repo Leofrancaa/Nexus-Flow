@@ -26,7 +26,7 @@ interface IncomeStatsResult {
 export class IncomeService {
     static async createIncome(
         incomeData: CreateIncomeRequest,
-        userId: number
+        userId: string
     ): Promise<Income | Income[]> {
         const {
             tipo,
@@ -68,7 +68,7 @@ export class IncomeService {
     private static async replicateFixedIncome(
         baseIncome: Income,
         baseDateString: string,
-        userId: number
+        userId: string
     ): Promise<Income[]> {
         const baseDate = new Date(`${baseDateString}T12:00:00`)
         const diaOriginal = baseDate.getDate()
@@ -106,7 +106,7 @@ export class IncomeService {
     }
 
     static async getIncomesByDateRange(
-        userId: number,
+        userId: string,
         startDate: string,
         endDate: string
     ): Promise<IncomeWithCategory[]> {
@@ -135,7 +135,7 @@ export class IncomeService {
     }
 
     static async getIncomesByMonthYear(
-        userId: number,
+        userId: string,
         month: number,
         year: number
     ): Promise<IncomeWithCategory[]> {
@@ -162,7 +162,7 @@ export class IncomeService {
     static async updateIncome(
         incomeId: number,
         updateData: Partial<CreateIncomeRequest>,
-        userId: number
+        userId: string
     ): Promise<Income> {
         const [exists] = await db
             .select()
@@ -198,7 +198,7 @@ export class IncomeService {
         return this.mapToIncome(result)
     }
 
-    static async deleteIncome(incomeId: number, userId: number): Promise<Income | Income[]> {
+    static async deleteIncome(incomeId: number, userId: string): Promise<Income | Income[]> {
         const [income] = await db
             .select()
             .from(incomes)
@@ -233,7 +233,7 @@ export class IncomeService {
     }
 
     static async getIncomeStats(
-        userId: number,
+        userId: string,
         month: number,
         year: number,
         categoryId?: number | undefined
@@ -256,7 +256,7 @@ export class IncomeService {
         return queryResult.rows[0] as unknown as IncomeStatsResult
     }
 
-    static async getMonthlyTotal(userId: number, month: number, year: number): Promise<number> {
+    static async getMonthlyTotal(userId: string, month: number, year: number): Promise<number> {
         const queryResult = await db.execute(sql`
             SELECT COALESCE(SUM(quantidade), 0) AS total
             FROM incomes
@@ -269,7 +269,7 @@ export class IncomeService {
     }
 
     static async getTotalByCategory(
-        userId: number,
+        userId: string,
         categoryId: number,
         month: number,
         year: number
@@ -287,7 +287,7 @@ export class IncomeService {
     }
 
     static async getIncomesGroupedByMonth(
-        userId: number,
+        userId: string,
         year: number = new Date().getFullYear()
     ): Promise<Array<{ mes: string; total: number }>> {
         const queryResult = await db.execute(sql`
@@ -311,7 +311,7 @@ export class IncomeService {
     }
 
     static async getCategoryResume(
-        userId: number,
+        userId: string,
         month: number,
         year: number
     ): Promise<Array<{

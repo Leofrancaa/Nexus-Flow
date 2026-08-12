@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
@@ -11,8 +11,7 @@ import Button from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RightShowcase } from "@/components/rightShowCase";
-
-const API_URL = "/api";
+import { createClient } from "@/utils/supabase/client";
 
 function ResetPasswordForm() {
   const [novaSenha, setNovaSenha] = useState("");
@@ -20,19 +19,7 @@ function ResetPasswordForm() {
   const [showNovaSenha, setShowNovaSenha] = useState(false);
   const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const tokenFromUrl = searchParams.get("token");
-    if (!tokenFromUrl) {
-      toast.error("Token de recuperação inválido");
-      router.push("/login");
-    } else {
-      setToken(tokenFromUrl);
-    }
-  }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,31 +39,17 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (!token) {
-      toast.error("Token inválido");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth/reset-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ token, novaSenha }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      const { error } = await createClient().auth.updateUser({ password: novaSenha });
+      if (!error) {
         toast.success("Senha redefinida com sucesso! Redirecionando...");
         setTimeout(() => {
-          router.push("/login");
+          router.push("/dashboard");
         }, 2000);
       } else {
-        toast.error(data.error || data.message || "Erro ao redefinir senha. O token pode estar expirado.");
+        toast.error("O link expirou ou não é mais válido. Solicite uma nova recuperação.");
       }
     } catch (error: unknown) {
       toast.error(
@@ -86,10 +59,6 @@ function ResetPasswordForm() {
       setLoading(false);
     }
   };
-
-  if (!token) {
-    return null;
-  }
 
   return (
     <main className="relative min-h-screen bg-[#0E1116] overflow-hidden">

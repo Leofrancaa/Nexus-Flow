@@ -6,7 +6,7 @@ import { toNumber } from '@/server/utils/helper'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     const { searchParams } = new URL(request.url)
     const mes = searchParams.get('mes') ? toNumber(searchParams.get('mes')) ?? undefined : undefined

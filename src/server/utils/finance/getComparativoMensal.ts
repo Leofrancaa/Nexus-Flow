@@ -11,7 +11,7 @@ interface ComparativoMensalResult {
 }
 
 export const getComparativoMensal = async (
-    user_id: number,
+    user_id: string,
     mesAtual: number,
     anoAtual: number
 ): Promise<ComparativoMensalResult> => {

@@ -10,32 +10,14 @@ import { toast } from "react-hot-toast";
 import Button from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { login, resendVerification, LoginError } from "@/lib/auth";
+import { login, LoginError } from "@/lib/auth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [showSenha, setShowSenha] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [needsVerification, setNeedsVerification] = useState(false);
-  const [resending, setResending] = useState(false);
   const router = useRouter();
-
-  const handleResend = async () => {
-    if (!email) {
-      toast.error("Informe seu e-mail para reenviar a confirmação");
-      return;
-    }
-    setResending(true);
-    try {
-      const res = await resendVerification(email);
-      toast.success(res.message || "E-mail de confirmação reenviado.");
-    } catch {
-      toast.error("Não foi possível reenviar agora. Tente novamente.");
-    } finally {
-      setResending(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,8 +28,6 @@ export default function Login() {
     }
 
     setLoading(true);
-    setNeedsVerification(false);
-
     try {
       const response = await login({ email, senha });
 
@@ -64,9 +44,6 @@ export default function Login() {
         );
       }
     } catch (error: unknown) {
-      if (error instanceof LoginError && error.code === "email_not_verified") {
-        setNeedsVerification(true);
-      }
       toast.error(
         error instanceof Error
           ? error.message
@@ -161,20 +138,6 @@ export default function Login() {
           <Button type="submit" className="mt-2" disabled={loading}>
             {loading ? "Entrando..." : "Entrar"}
           </Button>
-
-          {needsVerification && (
-            <div className="rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
-              <p>Seu e-mail ainda não foi confirmado.</p>
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={resending}
-                className="mt-2 font-medium text-fg underline underline-offset-4 disabled:opacity-50"
-              >
-                {resending ? "Reenviando..." : "Reenviar e-mail de confirmação"}
-              </button>
-            </div>
-          )}
 
           <p className="mt-2 text-center text-sm text-muted">
             Não tem uma conta?{" "}

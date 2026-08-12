@@ -24,7 +24,7 @@ type ExpenseInsert = typeof expenses.$inferInsert
 export class ExpenseService {
     static async createExpense(
         expenseData: CreateExpenseRequest,
-        userId: number
+        userId: string
     ): Promise<Expense | Expense[]> {
         const {
             metodo_pagamento,
@@ -78,7 +78,7 @@ export class ExpenseService {
 
     private static async handleCreditCardExpense(
         expenseData: CreateExpenseRequest & { data: string },
-        userId: number,
+        userId: string,
         baseDateString: string
     ): Promise<Expense | Expense[]> {
         const baseDate = new Date(`${baseDateString}T12:00:00`)
@@ -158,7 +158,7 @@ export class ExpenseService {
     }
 
     private static async checkIfInvoicePaid(
-        userId: number,
+        userId: string,
         cardId: number,
         mes: number,
         ano: number
@@ -185,7 +185,7 @@ export class ExpenseService {
 
     private static async handleInstallmentExpense(
         expenseData: CreateExpenseRequest & { data: string },
-        userId: number,
+        userId: string,
         baseDate: Date,
         dueDay: number,
         closeDaysBefore: number
@@ -240,7 +240,7 @@ export class ExpenseService {
     private static async replicateFixedCreditCardExpense(
         baseExpense: Expense,
         baseDate: Date,
-        userId: number,
+        userId: string,
         diaVencimento: number,
         diasFechamentoAntes: number
     ): Promise<void> {
@@ -312,7 +312,7 @@ export class ExpenseService {
     private static async replicateFixedExpense(
         baseExpense: Expense,
         baseDateString: string,
-        userId: number
+        userId: string
     ): Promise<void> {
         const baseDate = new Date(`${baseDateString}T12:00:00`)
         const diaOriginal = baseDate.getDate()
@@ -347,7 +347,7 @@ export class ExpenseService {
     }
 
     static async getExpensesByMonthYear(
-        userId: number,
+        userId: string,
         month: number,
         year: number
     ): Promise<ExpenseWithCategory[]> {
@@ -372,7 +372,7 @@ export class ExpenseService {
     }
 
     static async getExpensesByDateRange(
-        userId: number,
+        userId: string,
         startDate: string,
         endDate: string
     ): Promise<ExpenseWithCategory[]> {
@@ -401,7 +401,7 @@ export class ExpenseService {
         }))
     }
 
-    static async getMonthlyTotal(userId: number, month: number, year: number): Promise<number> {
+    static async getMonthlyTotal(userId: string, month: number, year: number): Promise<number> {
         const queryResult = await db.execute(sql`
             SELECT COALESCE(SUM(quantidade), 0) as total
             FROM expenses
@@ -414,7 +414,7 @@ export class ExpenseService {
     }
 
     static async getTotalByCategory(
-        userId: number,
+        userId: string,
         categoryId: number,
         month: number,
         year: number
@@ -432,7 +432,7 @@ export class ExpenseService {
     }
 
     static async getExpenseStats(
-        userId: number,
+        userId: string,
         month: number,
         year: number,
         categoryId?: number
@@ -467,7 +467,7 @@ export class ExpenseService {
     }
 
     static async getExpensesByCategory(
-        userId: number,
+        userId: string,
         month: number,
         year: number
     ): Promise<Array<{ id: number; nome: string; cor: string; quantidade: number; total: number; percentual: number }>> {
@@ -511,7 +511,7 @@ export class ExpenseService {
     static async updateExpense(
         expenseId: number,
         updateData: Partial<CreateExpenseRequest>,
-        userId: number
+        userId: string
     ): Promise<Expense> {
         const [original] = await db
             .select()
@@ -553,7 +553,7 @@ export class ExpenseService {
 
     static async deleteExpense(
         expenseId: number,
-        userId: number
+        userId: string
     ): Promise<Expense | Expense[]> {
         const [expense] = await db
             .select()
@@ -600,7 +600,7 @@ export class ExpenseService {
     private static async restoreCardLimits(
         tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
         deletedExpenses: Array<typeof expenses.$inferSelect>,
-        userId: number
+        userId: string
     ): Promise<void> {
         const restoreByCard = new Map<number, number>()
 

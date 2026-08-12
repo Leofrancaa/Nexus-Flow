@@ -5,7 +5,7 @@ import { ChatService } from '@/server/services/chatService'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     const [messages, status] = await Promise.all([
       ChatService.getHistory(user.id),
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     const { message } = await request.json()
     if (!message || typeof message !== 'string') {

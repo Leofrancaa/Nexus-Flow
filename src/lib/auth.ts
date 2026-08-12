@@ -1,65 +1,48 @@
+import { createClient as createSupabaseClient } from '@/utils/supabase/client'
+
 const API_URL = '/api'
 
-// Verificar se está autenticado (lê cookie não-httpOnly de flag)
-export const isAuthenticated = (): boolean => {
-  if (typeof document === 'undefined') return false
-  return document.cookie.includes('nexus_authenticated=1')
-}
+export class LoginError extends Error {}
 
-// Erro de login que carrega o "code" da API (ex.: 'email_not_verified').
-export class LoginError extends Error {
-  code?: string
-  constructor(message: string, code?: string) {
-    super(message)
-    this.name = 'LoginError'
-    this.code = code
+export const hasActiveSession = async (): Promise<boolean> => {
+  try {
+    const { data, error } = await createSupabaseClient().auth.getClaims()
+    return !error && typeof data?.claims?.sub === 'string'
+  } catch {
+    return false
   }
 }
 
-// Login
 export const login = async (data: { email: string; senha: string }) => {
-  const response = await fetch(`${API_URL}/auth/login`, {
+  const { error } = await createSupabaseClient().auth.signInWithPassword({
+    email: data.email.trim(),
+    password: data.senha,
+  })
+  if (error) throw new LoginError('E-mail ou senha incorretos.')
+  return { success: true, message: 'Login realizado com sucesso.' }
+}
+
+export const register = async (data: {
+  nome: string
+  email: string
+  senha: string
+  inviteCode: string
+  aceitouTermos: boolean
+}) => {
+  const response = await fetch(`${API_URL}/auth/supabase-register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new LoginError(error.error || 'E-mail ou senha incorretos.', error.code)
-  }
-  return response.json()
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(body.error || 'Não foi possível criar a conta.')
+  return body
 }
 
-// Reenvia o e-mail de confirmação de conta.
-export const resendVerification = async (email: string) => {
-  const response = await fetch(`${API_URL}/auth/resend-verification`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-  })
-  return response.json()
-}
-
-// Register
-export const register = async (data: { nome: string; email: string; senha: string; inviteCode: string }) => {
-  const response = await fetch(`${API_URL}/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.error || 'Erro ao registrar.')
-  }
-  return response.json()
-}
-
-// Logout
 export const logout = async (): Promise<void> => {
-  await fetch(`${API_URL}/auth/logout`, { method: 'POST' })
+  await createSupabaseClient().auth.signOut()
 }
 
-// Obter dados do usuário
 export const getUserData = async () => {
   const response = await fetch(`${API_URL}/auth/me`)
   if (!response.ok) return null
@@ -67,30 +50,15 @@ export const getUserData = async () => {
   return json.data?.user ?? null
 }
 
-// Helper genérico para requisições autenticadas (cookies enviados automaticamente)
-// endpoint deve ser o path completo, ex: "/api/expenses"
 export const apiRequest = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
-  // Não forçar Content-Type em uploads (FormData) — o browser define o boundary.
-  const isFormData =
-    typeof FormData !== 'undefined' && options.body instanceof FormData
-
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
   const headers: HeadersInit = isFormData
     ? { ...options.headers }
     : { 'Content-Type': 'application/json', ...options.headers }
-
   const response = await fetch(endpoint, { ...options, headers })
 
-  if (response.status === 401) {
-    // Sessão expirada/inválida: limpa o flag de autenticação e manda pro login
-    // SEM propagar erro, para não disparar toasts ("erro ao carregar...") nas telas.
-    if (typeof window !== 'undefined') {
-      document.cookie = 'nexus_authenticated=; Max-Age=0; path=/'
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login'
-      }
-    }
-    // Promessa que nunca resolve: a navegação descarta a tela atual, então o
-    // código chamador não chega a exibir toast de erro.
+  if (response.status === 401 && typeof window !== 'undefined') {
+    if (!window.location.pathname.startsWith('/login')) window.location.href = '/login'
     return new Promise<Response>(() => {})
   }
 

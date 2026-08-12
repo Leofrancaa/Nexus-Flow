@@ -10,7 +10,7 @@ import { incomes, expenses } from '@/server/db/schema'
  * já gravou. Sem o filtro, os dois números eram sempre idênticos e o
  * "saldo futuro" do dashboard não queria dizer nada.
  */
-export const getSaldoAtual = async (user_id: number): Promise<number> => {
+export const getSaldoAtual = async (user_id: string): Promise<number> => {
     const hoje = new Date()
 
     const [receitas, despesas] = await Promise.all([

@@ -12,7 +12,7 @@ export interface ParcelasPendentesResult {
     parcelas: number
 }
 
-export const getParcelasPendentes = async (user_id: number): Promise<ParcelasPendentesResult[]> => {
+export const getParcelasPendentes = async (user_id: string): Promise<ParcelasPendentesResult[]> => {
     const today = new Date(formatDate(new Date()))
 
     const rows = await db

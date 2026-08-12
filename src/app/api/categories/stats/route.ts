@@ -5,7 +5,7 @@ import { CategoryService } from '@/server/services/categoryService'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
     const stats = await CategoryService.getCategoryStats(user.id)

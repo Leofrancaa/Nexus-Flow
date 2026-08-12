@@ -5,7 +5,7 @@ import { CurrencyService } from '@/server/services/currencyService'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     const result = await CurrencyService.getUserCurrency(user.id)
     return ok(result, 'Moeda do usuário recuperada com sucesso.')
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     const { currency } = await request.json()
     if (!currency) return err('Moeda é obrigatória.', 400)

@@ -6,7 +6,7 @@ import { isPositiveNumber } from '@/server/utils/helper'
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
     const { category_id, amount, month, year } = await request.json()

@@ -9,6 +9,7 @@ import {
   numeric,
   timestamp,
   date,
+  uuid,
   unique,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
@@ -35,20 +36,14 @@ const timestamps = {
     .$onUpdate(() => new Date()),
 }
 
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
+export const profiles = pgTable('profiles', {
+  // Este é o UUID emitido por auth.users. Não há senha ou token local.
+  id: uuid('id').primaryKey(),
   nome: text('nome').notNull(),
   email: text('email').notNull().unique(),
-  senha: text('senha'),
   currency: text('currency').default('BRL').notNull(),
   accepted_terms: boolean('accepted_terms').default(false).notNull(),
   accepted_terms_at: timestamp('accepted_terms_at', { mode: 'date' }),
-  reset_password_token: text('reset_password_token'),
-  reset_password_expires: timestamp('reset_password_expires', { mode: 'date' }),
-  // Confirmação de e-mail no cadastro.
-  email_verified: boolean('email_verified').default(false).notNull(),
-  verification_token: text('verification_token'),
-  verification_expires: timestamp('verification_expires', { mode: 'date' }),
   ...timestamps,
 })
 
@@ -58,7 +53,7 @@ export const categories = pgTable('categories', {
   cor: text('cor').default('#6B7280').notNull(),
   tipo: text('tipo').notNull(),
   parent_id: integer('parent_id'),
-  user_id: integer('user_id').notNull(),
+  user_id: uuid('user_id').notNull(),
   ...timestamps,
 })
 
@@ -73,7 +68,7 @@ export const expenses = pgTable(
     data: date('data', { mode: 'date' }).notNull(),
     parcelas: integer('parcelas'),
     frequencia: text('frequencia'),
-    user_id: integer('user_id').notNull(),
+    user_id: uuid('user_id').notNull(),
     card_id: integer('card_id'),
     category_id: integer('category_id'),
     observacoes: text('observacoes'),
@@ -100,7 +95,7 @@ export const incomes = pgTable(
     data: date('data', { mode: 'date' }).notNull(),
     fonte: text('fonte'),
     fixo: boolean('fixo').default(false).notNull(),
-    user_id: integer('user_id').notNull(),
+    user_id: uuid('user_id').notNull(),
     category_id: integer('category_id'),
     ...pluggyColumns,
     ...timestamps,
@@ -124,7 +119,7 @@ export const cards = pgTable('cards', {
     .notNull(),
   dia_vencimento: integer('dia_vencimento').default(1).notNull(),
   dias_fechamento_antes: integer('dias_fechamento_antes').default(10).notNull(),
-  user_id: integer('user_id').notNull(),
+  user_id: uuid('user_id').notNull(),
   ...timestamps,
 })
 
@@ -132,7 +127,7 @@ export const cardInvoicesPayments = pgTable(
   'card_invoices_payments',
   {
     id: serial('id').primaryKey(),
-    user_id: integer('user_id').notNull(),
+    user_id: uuid('user_id').notNull(),
     card_id: integer('card_id').notNull(),
     competencia_mes: integer('competencia_mes').notNull(),
     competencia_ano: integer('competencia_ano').notNull(),
@@ -153,7 +148,7 @@ export const goals = pgTable(
   'goals',
   {
     id: serial('id').primaryKey(),
-    user_id: integer('user_id').notNull(),
+    user_id: uuid('user_id').notNull(),
     nome: text('nome').notNull(),
     valor_alvo: numeric('valor_alvo', { precision: 12, scale: 2 }).notNull(),
     mes: integer('mes').notNull(),
@@ -165,7 +160,7 @@ export const goals = pgTable(
 
 export const plans = pgTable('plans', {
   id: serial('id').primaryKey(),
-  user_id: integer('user_id').notNull(),
+  user_id: uuid('user_id').notNull(),
   nome: text('nome').notNull(),
   descricao: text('descricao'),
   meta: numeric('meta', { precision: 12, scale: 2 }).notNull(),
@@ -183,7 +178,7 @@ export const plans = pgTable('plans', {
 export const planContributions = pgTable('plan_contributions', {
   id: serial('id').primaryKey(),
   plan_id: integer('plan_id').notNull(),
-  user_id: integer('user_id').notNull(),
+  user_id: uuid('user_id').notNull(),
   valor: numeric('valor', { precision: 12, scale: 2 }).notNull(),
   created_at: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })
@@ -192,7 +187,7 @@ export const thresholds = pgTable(
   'thresholds',
   {
     id: serial('id').primaryKey(),
-    user_id: integer('user_id').notNull(),
+    user_id: uuid('user_id').notNull(),
     category_id: integer('category_id').notNull(),
     valor: numeric('valor', { precision: 12, scale: 2 }).notNull(),
     ...timestamps,
@@ -204,7 +199,7 @@ export const thresholds = pgTable(
 // Histórico de mensagens; também usado para contar o limite diário por usuário.
 export const chatMessages = pgTable('chat_messages', {
   id: serial('id').primaryKey(),
-  user_id: integer('user_id').notNull(),
+  user_id: uuid('user_id').notNull(),
   // 'user' | 'assistant'
   role: text('role').notNull(),
   content: text('content').notNull(),
@@ -217,7 +212,7 @@ export const chatMessages = pgTable('chat_messages', {
 // ele que o webhook encontra o dono do evento.
 export const pluggyItems = pgTable('pluggy_items', {
   id: serial('id').primaryKey(),
-  user_id: integer('user_id').notNull(),
+  user_id: uuid('user_id').notNull(),
   item_id: text('item_id').notNull().unique(),
   connector_id: integer('connector_id'),
   connector_name: text('connector_name'),
@@ -232,7 +227,7 @@ export const pluggyItems = pgTable('pluggy_items', {
 // que veio do banco não tem onde aparecer.
 export const pluggyAccounts = pgTable('pluggy_accounts', {
   id: serial('id').primaryKey(),
-  user_id: integer('user_id').notNull(),
+  user_id: uuid('user_id').notNull(),
   item_id: text('item_id').notNull(),
   account_id: text('account_id').notNull().unique(),
   // 'BANK' | 'CREDIT'
@@ -248,10 +243,10 @@ export const pluggyAccounts = pgTable('pluggy_accounts', {
 export const inviteCodes = pgTable('invite_codes', {
   id: serial('id').primaryKey(),
   code: varchar('code').notNull().unique(),
-  created_by: integer('created_by').notNull(),
+  created_by: uuid('created_by').notNull(),
   is_used: boolean('is_used').default(false).notNull(),
   expires_at: timestamp('expires_at', { mode: 'date' }),
-  used_by: integer('used_by'),
+  used_by: uuid('used_by'),
   used_at: timestamp('used_at', { mode: 'date' }),
   created_at: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })

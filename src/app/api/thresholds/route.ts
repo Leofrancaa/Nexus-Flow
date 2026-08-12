@@ -6,7 +6,7 @@ import { isPositiveNumber } from '@/server/utils/helper'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
     const thresholds = await ThresholdService.getThresholdsByUser(user.id)
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
     const thresholdData = await request.json()

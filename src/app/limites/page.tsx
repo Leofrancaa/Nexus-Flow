@@ -11,7 +11,7 @@ import { toast } from "react-hot-toast";
 import { EditThresholdModal } from "@/components/modals/editThresholdModal";
 import { EditGoalModal } from "@/components/modals/editGoalModal";
 import { useRouter } from "next/navigation";
-import { apiRequest, isAuthenticated } from "@/lib/auth";
+import { apiRequest, hasActiveSession } from "@/lib/auth";
 import ConfirmDialog from "@/components/ui/confirmDialog";
 
 interface Goal {
@@ -41,10 +41,9 @@ export default function Limits() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push("/login");
-      return;
-    }
+    void hasActiveSession().then((authenticated) => {
+      if (!authenticated) router.push("/login");
+    });
   }, [router]);
 
   const [limites, setLimites] = useState<Threshold[]>([]);

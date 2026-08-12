@@ -41,7 +41,7 @@ export interface UserResult {
 
 export interface InvoicePaymentResult {
     id: number
-    user_id: number
+    user_id: string
     card_id: number
     competencia_mes: number
     competencia_ano: number
@@ -52,7 +52,7 @@ export interface InvoicePaymentResult {
 export interface ExpenseHistoryResult {
     id: number
     expense_id: number
-    user_id: number
+    user_id: string
     tipo: string
     alteracao: Record<string, unknown>
     data_alteracao: Date

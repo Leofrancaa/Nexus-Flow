@@ -10,7 +10,7 @@ export interface DespesasDoMesResult {
     data: string
     parcelas?: number
     frequencia?: string
-    user_id: number
+    user_id: string
     card_id?: number
     category_id?: number
     observacoes?: string
@@ -27,7 +27,7 @@ interface RawRow {
     data: Date | string
     parcelas: number | null
     frequencia: string | null
-    user_id: number
+    user_id: string
     card_id: number | null
     category_id: number | null
     observacoes: string | null
@@ -36,7 +36,7 @@ interface RawRow {
 }
 
 export const getDespesasDoMes = async (
-    user_id: number,
+    user_id: string,
     mes: number,
     ano: number
 ): Promise<DespesasDoMesResult[]> => {

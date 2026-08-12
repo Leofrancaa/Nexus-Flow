@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
-import { users } from '@/server/db/schema'
+import { profiles } from '@/server/db/schema'
 import { createErrorResponse } from '@/server/utils/helper'
 
 type SupportedCurrency = 'BRL' | 'USD' | 'EUR' | 'GBP'
@@ -22,7 +22,7 @@ export class CurrencyService {
     ]
 
     static async updateUserCurrency(
-        userId: number,
+        userId: string,
         currency: SupportedCurrency
     ): Promise<{ message: string; currency: SupportedCurrency }> {
         const isSupported = this.SUPPORTED_CURRENCIES.some(c => c.code === currency)
@@ -33,7 +33,7 @@ export class CurrencyService {
             )
         }
 
-        await db.update(users).set({ currency }).where(eq(users.id, userId))
+        await db.update(profiles).set({ currency }).where(eq(profiles.id, userId))
 
         return {
             message: `Moeda atualizada para ${currency} com sucesso.`,
@@ -41,14 +41,14 @@ export class CurrencyService {
         }
     }
 
-    static async getUserCurrency(userId: number): Promise<{
+    static async getUserCurrency(userId: string): Promise<{
         currency: SupportedCurrency
         currency_info: CurrencyInfo
     }> {
         const [user] = await db
-            .select({ currency: users.currency })
-            .from(users)
-            .where(eq(users.id, userId))
+            .select({ currency: profiles.currency })
+            .from(profiles)
+            .where(eq(profiles.id, userId))
             .limit(1)
 
         const userCurrency = ((user?.currency) || 'BRL') as SupportedCurrency
@@ -137,7 +137,7 @@ export class CurrencyService {
         }
     }
 
-    static async getUserFinancialSummary(userId: number): Promise<{
+    static async getUserFinancialSummary(userId: string): Promise<{
         currency: SupportedCurrency
         total_income: string
         total_expenses: string

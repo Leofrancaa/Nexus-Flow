@@ -12,7 +12,7 @@ interface RawRow {
 }
 
 export const getTopCategoriasGasto = async (
-    user_id: number,
+    user_id: string,
     mes: number,
     ano: number
 ): Promise<TopCategoriasResult[]> => {

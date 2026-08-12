@@ -10,8 +10,7 @@ import Button from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RightShowcase } from "@/components/rightShowCase";
-
-const API_URL = "/api";
+import { createClient } from "@/utils/supabase/client";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -29,21 +28,14 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth/forgot-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
+      const { error } = await createClient().auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (!error) {
         toast.success("Email de recuperação enviado! Verifique sua caixa de entrada.");
         setEmailSent(true);
       } else {
-        toast.error(data.error || data.message || "Erro ao enviar email de recuperação");
+        toast.error("Não foi possível enviar o e-mail de recuperação.");
       }
     } catch (error: unknown) {
       toast.error(

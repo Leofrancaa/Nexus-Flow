@@ -1,7 +1,7 @@
 "use client"
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { isAuthenticated } from '@/lib/auth'
+import { hasActiveSession } from '@/lib/auth'
 
 const PROTECTED_ROUTES = ['/categorias', '/cartoes', '/limites', '/receitas', '/despesas', '/dashboard', '/planos', '/configuracoes']
 const PUBLIC_ROUTES = ['/login', '/register']
@@ -11,12 +11,21 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   useEffect(() => {
-    const authenticated = isAuthenticated()
-    const isProtected = PROTECTED_ROUTES.some(r => pathname.startsWith(r))
-    const isPublic = PUBLIC_ROUTES.includes(pathname)
+    let active = true
 
-    if (isProtected && !authenticated) router.replace('/login')
-    if (isPublic && authenticated) router.replace('/dashboard')
+    const checkSession = async () => {
+      const authenticated = await hasActiveSession()
+      if (!active) return
+
+      const isProtected = PROTECTED_ROUTES.some(r => pathname.startsWith(r))
+      const isPublic = PUBLIC_ROUTES.includes(pathname)
+
+      if (isProtected && !authenticated) router.replace('/login')
+      if (isPublic && authenticated) router.replace('/dashboard')
+    }
+
+    void checkSession()
+    return () => { active = false }
   }, [pathname, router])
 
   return <>{children}</>

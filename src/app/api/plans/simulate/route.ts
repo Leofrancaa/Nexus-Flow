@@ -9,7 +9,7 @@ import { PlanService } from '@/server/services/planService'
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
     const { meta, prazo, taxa_anual } = await request.json()

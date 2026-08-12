@@ -71,7 +71,7 @@ export interface ReceitasDoMesResult {
     nota?: string
     data: string
     fonte?: string
-    user_id: number
+    user_id: string
     category_id?: number
     created_at: Date
     updated_at: Date
@@ -86,7 +86,7 @@ export interface DespesasDoMesResult {
     data: string
     parcelas?: number
     frequencia?: string
-    user_id: number
+    user_id: string
     card_id?: number
     category_id?: number
     observacoes?: string

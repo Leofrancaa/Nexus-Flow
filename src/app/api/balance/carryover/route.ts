@@ -6,7 +6,7 @@ import { toNumber, resolveUserMessage } from '@/server/utils/helper'
 
 export async function DELETE(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
     const { searchParams } = new URL(request.url)

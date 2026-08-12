@@ -1,0 +1,234 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+
+ ⨯ ./src/components/toggles/themeToggle.css:1:12
+Parsing CSS source code failed
+[0m[31m[1m>[22m[39m[90m 1 |[39m [33mExit[39m code[33m:[39m [35m0[39m
+ [90m   |[39m            [31m[1m^[22m[39m
+ [90m 2 |[39m [33mWall[39m time[33m:[39m [35m7.6[39m seconds
+ [90m 3 |[39m [33mOutput[39m[33m:[39m
+ [90m 4 |[39m [33m.[39mtheme[33m-[39minput {[0m
+
+Invalid token in pseudo element: WhiteSpace(" ")
+
+Import trace:
+  Client Component Browser:
+    ./src/components/toggles/themeToggle.css [Client Component Browser]
+    ./src/components/toggles/themeToggle.tsx [Client Component Browser]
+    ./src/components/navigation/sidebar.tsx [Client Component Browser]
+    ./src/components/navigation/layoutWrapper.tsx [Client Component Browser]
+    ./src/components/navigation/layoutWrapper.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+
+ ⨯ ./src/components/toggles/themeToggle.css:1:12
+Parsing CSS source code failed
+[0m[31m[1m>[22m[39m[90m 1 |[39m [33mExit[39m code[33m:[39m [35m0[39m
+ [90m   |[39m            [31m[1m^[22m[39m
+ [90m 2 |[39m [33mWall[39m time[33m:[39m [35m7.6[39m seconds
+ [90m 3 |[39m [33mOutput[39m[33m:[39m
+ [90m 4 |[39m [33m.[39mtheme[33m-[39minput {[0m
+
+Invalid token in pseudo element: WhiteSpace(" ")
+
+Import trace:
+  Client Component Browser:
+    ./src/components/toggles/themeToggle.css [Client Component Browser]
+    ./src/components/toggles/themeToggle.tsx [Client Component Browser]
+    ./src/components/navigation/sidebar.tsx [Client Component Browser]
+    ./src/components/navigation/layoutWrapper.tsx [Client Component Browser]
+    ./src/components/navigation/layoutWrapper.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+
+ ⨯ ./src/components/toggles/themeToggle.css:1:12
+Parsing CSS source code failed
+[0m[31m[1m>[22m[39m[90m 1 |[39m [33mExit[39m code[33m:[39m [35m0[39m
+ [90m   |[39m            [31m[1m^[22m[39m
+ [90m 2 |[39m [33mWall[39m time[33m:[39m [35m7.6[39m seconds
+ [90m 3 |[39m [33mOutput[39m[33m:[39m
+ [90m 4 |[39m [33m.[39mtheme[33m-[39minput {[0m
+
+Invalid token in pseudo element: WhiteSpace(" ")
+
+Import trace:
+  Client Component Browser:
+    ./src/components/toggles/themeToggle.css [Client Component Browser]
+    ./src/components/toggles/themeToggle.tsx [Client Component Browser]
+    ./src/components/navigation/sidebar.tsx [Client Component Browser]
+    ./src/components/navigation/layoutWrapper.tsx [Client Component Browser]
+    ./src/components/navigation/layoutWrapper.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+
+ ⨯ ./src/components/navigation/layoutWrapper.tsx:6:1
+Module not found: Can't resolve '@/components/navigation/sidebar'
+[0m [90m 4 |[39m [36mimport[39m { [33mBottomNav[39m } [36mfrom[39m [32m"@/components/layout/bottomNav"[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { [33mFab[39m } [36mfrom[39m [32m"@/components/layout/fab"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m { [33mSidebar[39m } [36mfrom[39m [32m"@/components/navigation/sidebar"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m [36mimport[39m { [33mToaster[39m } [36mfrom[39m [32m"react-hot-toast"[39m[33m;[39m
+ [90m 8 |[39m
+ [90m 9 |[39m [36mconst[39m publicRoutes [33m=[39m [[32m"/login"[39m[33m,[39m [32m"/register"[39m[33m,[39m [32m"/forgot-password"[39m[33m,[39m [32m"/reset-password"[39m][33m;[39m[0m
+
+Import map: aliased to relative './src/components/navigation/sidebar' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/navigation/layoutWrapper.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./src/components/navigation/layoutWrapper.tsx:6:1
+Module not found: Can't resolve '@/components/navigation/sidebar'
+[0m [90m 4 |[39m [36mimport[39m { [33mBottomNav[39m } [36mfrom[39m [32m"@/components/layout/bottomNav"[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { [33mFab[39m } [36mfrom[39m [32m"@/components/layout/fab"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m { [33mSidebar[39m } [36mfrom[39m [32m"@/components/navigation/sidebar"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m [36mimport[39m { [33mToaster[39m } [36mfrom[39m [32m"react-hot-toast"[39m[33m;[39m
+ [90m 8 |[39m
+ [90m 9 |[39m [36mconst[39m publicRoutes [33m=[39m [[32m"/login"[39m[33m,[39m [32m"/register"[39m[33m,[39m [32m"/forgot-password"[39m[33m,[39m [32m"/reset-password"[39m][33m;[39m[0m
+
+Import map: aliased to relative './src/components/navigation/sidebar' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/navigation/layoutWrapper.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./src/components/navigation/layoutWrapper.tsx:6:1
+Module not found: Can't resolve '@/components/navigation/sidebar'
+[0m [90m 4 |[39m [36mimport[39m { [33mBottomNav[39m } [36mfrom[39m [32m"@/components/layout/bottomNav"[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { [33mFab[39m } [36mfrom[39m [32m"@/components/layout/fab"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m { [33mSidebar[39m } [36mfrom[39m [32m"@/components/navigation/sidebar"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m [36mimport[39m { [33mToaster[39m } [36mfrom[39m [32m"react-hot-toast"[39m[33m;[39m
+ [90m 8 |[39m
+ [90m 9 |[39m [36mconst[39m publicRoutes [33m=[39m [[32m"/login"[39m[33m,[39m [32m"/register"[39m[33m,[39m [32m"/forgot-password"[39m[33m,[39m [32m"/reset-password"[39m][33m;[39m[0m
+
+Import map: aliased to relative './src/components/navigation/sidebar' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/navigation/layoutWrapper.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./src/components/navigation/layoutWrapper.tsx:6:1
+Module not found: Can't resolve '@/components/navigation/sidebar'
+[0m [90m 4 |[39m [36mimport[39m { [33mBottomNav[39m } [36mfrom[39m [32m"@/components/layout/bottomNav"[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { [33mFab[39m } [36mfrom[39m [32m"@/components/layout/fab"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m { [33mSidebar[39m } [36mfrom[39m [32m"@/components/navigation/sidebar"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m [36mimport[39m { [33mToaster[39m } [36mfrom[39m [32m"react-hot-toast"[39m[33m;[39m
+ [90m 8 |[39m
+ [90m 9 |[39m [36mconst[39m publicRoutes [33m=[39m [[32m"/login"[39m[33m,[39m [32m"/register"[39m[33m,[39m [32m"/forgot-password"[39m[33m,[39m [32m"/reset-password"[39m][33m;[39m[0m
+
+Import map: aliased to relative './src/components/navigation/sidebar' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/navigation/layoutWrapper.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./src/components/navigation/layoutWrapper.tsx:6:1
+Module not found: Can't resolve '@/components/navigation/sidebar'
+[0m [90m 4 |[39m [36mimport[39m { [33mBottomNav[39m } [36mfrom[39m [32m"@/components/layout/bottomNav"[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { [33mFab[39m } [36mfrom[39m [32m"@/components/layout/fab"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m { [33mSidebar[39m } [36mfrom[39m [32m"@/components/navigation/sidebar"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m [36mimport[39m { [33mToaster[39m } [36mfrom[39m [32m"react-hot-toast"[39m[33m;[39m
+ [90m 8 |[39m
+ [90m 9 |[39m [36mconst[39m publicRoutes [33m=[39m [[32m"/login"[39m[33m,[39m [32m"/register"[39m[33m,[39m [32m"/forgot-password"[39m[33m,[39m [32m"/reset-password"[39m][33m;[39m[0m
+
+Import map: aliased to relative './src/components/navigation/sidebar' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/navigation/layoutWrapper.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./src/components/navigation/layoutWrapper.tsx:6:1
+Module not found: Can't resolve '@/components/navigation/sidebar'
+[0m [90m 4 |[39m [36mimport[39m { [33mBottomNav[39m } [36mfrom[39m [32m"@/components/layout/bottomNav"[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { [33mFab[39m } [36mfrom[39m [32m"@/components/layout/fab"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m { [33mSidebar[39m } [36mfrom[39m [32m"@/components/navigation/sidebar"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m [36mimport[39m { [33mToaster[39m } [36mfrom[39m [32m"react-hot-toast"[39m[33m;[39m
+ [90m 8 |[39m
+ [90m 9 |[39m [36mconst[39m publicRoutes [33m=[39m [[32m"/login"[39m[33m,[39m [32m"/register"[39m[33m,[39m [32m"/forgot-password"[39m[33m,[39m [32m"/reset-password"[39m][33m;[39m[0m
+
+Import map: aliased to relative './src/components/navigation/sidebar' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/navigation/layoutWrapper.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./src/components/navigation/layoutWrapper.tsx:6:1
+Module not found: Can't resolve '@/components/navigation/sidebar'
+[0m [90m 4 |[39m [36mimport[39m { [33mBottomNav[39m } [36mfrom[39m [32m"@/components/layout/bottomNav"[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { [33mFab[39m } [36mfrom[39m [32m"@/components/layout/fab"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m { [33mSidebar[39m } [36mfrom[39m [32m"@/components/navigation/sidebar"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m [36mimport[39m { [33mToaster[39m } [36mfrom[39m [32m"react-hot-toast"[39m[33m;[39m
+ [90m 8 |[39m
+ [90m 9 |[39m [36mconst[39m publicRoutes [33m=[39m [[32m"/login"[39m[33m,[39m [32m"/register"[39m[33m,[39m [32m"/forgot-password"[39m[33m,[39m [32m"/reset-password"[39m][33m;[39m[0m
+
+Import map: aliased to relative './src/components/navigation/sidebar' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/navigation/layoutWrapper.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./src/components/navigation/layoutWrapper.tsx:6:1
+Module not found: Can't resolve '@/components/navigation/sidebar'
+[0m [90m 4 |[39m [36mimport[39m { [33mBottomNav[39m } [36mfrom[39m [32m"@/components/layout/bottomNav"[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { [33mFab[39m } [36mfrom[39m [32m"@/components/layout/fab"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m { [33mSidebar[39m } [36mfrom[39m [32m"@/components/navigation/sidebar"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m [36mimport[39m { [33mToaster[39m } [36mfrom[39m [32m"react-hot-toast"[39m[33m;[39m
+ [90m 8 |[39m
+ [90m 9 |[39m [36mconst[39m publicRoutes [33m=[39m [[32m"/login"[39m[33m,[39m [32m"/register"[39m[33m,[39m [32m"/forgot-password"[39m[33m,[39m [32m"/reset-password"[39m][33m;[39m[0m
+
+Import map: aliased to relative './src/components/navigation/sidebar' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/navigation/layoutWrapper.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+

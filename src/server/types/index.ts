@@ -44,7 +44,7 @@ export interface Category {
     cor: string
     tipo: 'despesa' | 'receita'
     parent_id?: number
-    user_id: number
+    user_id: string
     created_at: Date
     updated_at: Date
 }
@@ -67,7 +67,7 @@ export interface Card {
     limite_disponivel: number
     dia_vencimento?: number
     dias_fechamento_antes?: number
-    user_id: number
+    user_id: string
     created_at: Date
     updated_at: Date
 }
@@ -92,7 +92,7 @@ export interface Expense {
     data: string
     parcelas?: number
     frequencia?: string
-    user_id: number
+    user_id: string
     card_id?: number
     category_id?: number
     observacoes?: string
@@ -124,7 +124,7 @@ export interface Income {
     data: string
     fonte?: string
     fixo: boolean
-    user_id: number
+    user_id: string
     category_id?: number
     created_at: Date
     updated_at: Date
@@ -153,7 +153,7 @@ export interface Plan {
     status: string
     /** Taxa anual personalizada (% a.a.). Null = usa Selic ao vivo. */
     taxa_anual?: number | null
-    user_id: number
+    user_id: string
     created_at: Date
     updated_at: Date
 }
@@ -191,7 +191,7 @@ export type CareerTrack = 'technical' | 'product'
 export type StudyCategory = 'course' | 'book' | 'certification'
 
 export interface CareerProfile {
-    user_id: number
+    user_id: string
     north_star: string | null
     track: CareerTrack | null
     rationale: string | null
@@ -209,7 +209,7 @@ export interface UpdateCareerProfileRequest {
 
 export interface CareerMilestone {
     id: number
-    user_id: number
+    user_id: string
     title: string
     description: string | null
     horizon: CareerHorizon
@@ -231,7 +231,7 @@ export interface CreateCareerMilestoneRequest {
 
 export interface StudyItem {
     id: number
-    user_id: number
+    user_id: string
     title: string
     description: string | null
     category: StudyCategory | null
@@ -255,7 +255,7 @@ export interface CreateStudyItemRequest {
 
 export interface PersonalGoal {
     id: number
-    user_id: number
+    user_id: string
     title: string
     description: string | null
     status: MilestoneStatus
@@ -276,7 +276,7 @@ export interface CreatePersonalGoalRequest {
 // ===== Threshold Types =====
 export interface Threshold {
     id: number
-    user_id: number
+    user_id: string
     category_id: number
     valor: number
     created_at: Date

@@ -34,7 +34,7 @@ interface ThresholdAlert {
 export class ThresholdService {
     static async createOrUpdateThreshold(
         thresholdData: CreateThresholdRequest,
-        userId: number
+        userId: string
     ): Promise<Threshold> {
         const { category_id, valor } = thresholdData
 
@@ -68,7 +68,7 @@ export class ThresholdService {
         return { ...result, valor: Number(result.valor) } as unknown as Threshold
     }
 
-    static async getThresholdsByUser(userId: number): Promise<ThresholdWithCategory[]> {
+    static async getThresholdsByUser(userId: string): Promise<ThresholdWithCategory[]> {
         const rows = await db
             .select({
                 id: thresholds.id,
@@ -103,7 +103,7 @@ export class ThresholdService {
         }))
     }
 
-    static async getThresholdById(thresholdId: number, userId: number): Promise<Threshold | null> {
+    static async getThresholdById(thresholdId: number, userId: string): Promise<Threshold | null> {
         const [threshold] = await db
             .select()
             .from(thresholds)
@@ -118,7 +118,7 @@ export class ThresholdService {
     static async updateThreshold(
         thresholdId: number,
         updateData: Partial<CreateThresholdRequest>,
-        userId: number
+        userId: string
     ): Promise<Threshold> {
         const { category_id, valor } = updateData
 
@@ -175,7 +175,7 @@ export class ThresholdService {
         return { ...result, valor: Number(result.valor) } as unknown as Threshold
     }
 
-    static async deleteThreshold(thresholdId: number, userId: number): Promise<{ message: string }> {
+    static async deleteThreshold(thresholdId: number, userId: string): Promise<{ message: string }> {
         const exists = await this.getThresholdById(thresholdId, userId)
 
         if (!exists) {
@@ -187,7 +187,7 @@ export class ThresholdService {
         return { message: "Limite removido com sucesso." }
     }
 
-    static async getThresholdAlerts(userId: number, month?: number, year?: number): Promise<ThresholdAlert[]> {
+    static async getThresholdAlerts(userId: string, month?: number, year?: number): Promise<ThresholdAlert[]> {
         const now = new Date()
         const targetMonth = month || (now.getMonth() + 1)
         const targetYear = year || now.getFullYear()
@@ -245,7 +245,7 @@ export class ThresholdService {
     }
 
     static async checkThresholdViolation(
-        userId: number,
+        userId: string,
         categoryId: number,
         amount: number,
         month?: number,
@@ -294,7 +294,7 @@ export class ThresholdService {
         }
     }
 
-    static async getThresholdStats(userId: number): Promise<{
+    static async getThresholdStats(userId: string): Promise<{
         total_thresholds: number
         categories_with_limits: number
         exceeded_this_month: number

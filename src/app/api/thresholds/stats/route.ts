@@ -5,7 +5,7 @@ import { ThresholdService } from '@/server/services/thresholdService'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
     const stats = await ThresholdService.getThresholdStats(user.id)

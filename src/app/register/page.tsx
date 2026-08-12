@@ -29,7 +29,7 @@ export default function Signup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!nome || !email || !senha || !confirmarSenha || !inviteCode) {
+    if (!nome || !email || !senha || !confirmarSenha) {
       toast.error("Por favor, preencha todas as informações");
       return;
     }
@@ -50,11 +50,17 @@ export default function Signup() {
     }
 
     try {
-      const response = await register({ nome, email, senha, inviteCode });
+      const response = await register({
+        nome,
+        email,
+        senha,
+        inviteCode,
+        aceitouTermos,
+      });
 
       if (response.success) {
-        toast.success("Cadastro realizado com sucesso!");
-        router.push("/manual");
+        toast.success(response.message || "Cadastro criado. Verifique seu e-mail para continuar.");
+        router.push("/login");
       } else {
         toast.error(response.message || "Não foi possível criar sua conta");
       }
@@ -218,20 +224,20 @@ export default function Signup() {
 
           {/* Código de Convite - Full width */}
           <div>
-            <Label htmlFor="inviteCode">Código de Convite</Label>
+            <Label htmlFor="inviteCode">Código de convite</Label>
             <div className="relative mt-1">
               <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
               <Input
                 id="inviteCode"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                placeholder="Digite seu código de convite"
+              placeholder="Necessário após a primeira conta"
                 className="pl-10 max-w-full uppercase"
                 maxLength={32}
               />
             </div>
             <p className="text-xs text-[#9CA3AF] mt-1.5">
-              Não tem um código?{" "}
+              Na primeira conta, deixe este campo vazio. Depois disso, novos acessos exigem convite. Não tem um código?{" "}
               <a
                 href="https://wa.me/5571996601709?text=Olá! Gostaria de obter um código de convite para o Nexus"
                 target="_blank"

@@ -7,7 +7,7 @@ import CategoryCard from "@/components/cards/categoryCard";
 import { Categoria } from "@/types/category";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { apiRequest, isAuthenticated } from "@/lib/auth";
+import { apiRequest, hasActiveSession } from "@/lib/auth";
 
 export default function Categories() {
   const router = useRouter();
@@ -15,10 +15,9 @@ export default function Categories() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push("/login");
-      return;
-    }
+    void hasActiveSession().then((authenticated) => {
+      if (!authenticated) router.push("/login");
+    });
   }, [router]);
 
   const fetchCategorias = useCallback(async () => {

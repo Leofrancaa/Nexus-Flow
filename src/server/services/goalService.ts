@@ -5,7 +5,7 @@ import { createErrorResponse, isPositiveNumber } from '@/server/utils/helper'
 
 interface Goal {
     id: number
-    user_id: number
+    user_id: string
     nome: string
     valor_alvo: number
     mes: number
@@ -29,7 +29,7 @@ interface GoalWithProgress extends Goal {
 export class GoalService {
     static async createGoal(
         goalData: CreateGoalRequest,
-        userId: number
+        userId: string
     ): Promise<Goal> {
         const { nome, valor_alvo, mes, ano } = goalData
 
@@ -59,7 +59,7 @@ export class GoalService {
         return { ...result, valor_alvo: Number(result.valor_alvo) } as Goal
     }
 
-    static async getGoalsByUser(userId: number, mes?: number, ano?: number): Promise<GoalWithProgress[]> {
+    static async getGoalsByUser(userId: string, mes?: number, ano?: number): Promise<GoalWithProgress[]> {
         const conditions = [eq(goals.user_id, userId)]
         if (mes !== undefined) conditions.push(eq(goals.mes, mes))
         if (ano !== undefined) conditions.push(eq(goals.ano, ano))
@@ -100,7 +100,7 @@ export class GoalService {
         }))
     }
 
-    static async getGoalById(goalId: number, userId: number): Promise<Goal | null> {
+    static async getGoalById(goalId: number, userId: string): Promise<Goal | null> {
         const [goal] = await db
             .select()
             .from(goals)
@@ -115,7 +115,7 @@ export class GoalService {
     static async updateGoal(
         goalId: number,
         updateData: Partial<CreateGoalRequest>,
-        userId: number
+        userId: string
     ): Promise<Goal> {
         const { nome, valor_alvo, mes, ano } = updateData
 
@@ -168,7 +168,7 @@ export class GoalService {
         return { ...result, valor_alvo: Number(result.valor_alvo) } as Goal
     }
 
-    static async deleteGoal(goalId: number, userId: number): Promise<{ message: string }> {
+    static async deleteGoal(goalId: number, userId: string): Promise<{ message: string }> {
         const exists = await this.getGoalById(goalId, userId)
 
         if (!exists) {
@@ -180,7 +180,7 @@ export class GoalService {
         return { message: "Meta removida com sucesso." }
     }
 
-    static async getGoalStats(userId: number, mes?: number, ano?: number): Promise<{
+    static async getGoalStats(userId: string, mes?: number, ano?: number): Promise<{
         total_goals: number
         achieved_goals: number
         in_progress_goals: number

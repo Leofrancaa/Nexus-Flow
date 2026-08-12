@@ -6,7 +6,7 @@ import {
 } from '@/server/utils/helper'
 
 interface PayInvoiceParams {
-    user_id: number
+    user_id: string
     card_id: number
     mes?: number
     ano?: number
@@ -123,7 +123,7 @@ export class CardInvoiceService {
         }
     }
 
-    static async getAvailableInvoices(user_id: number, card_id: number): Promise<Array<{
+    static async getAvailableInvoices(user_id: string, card_id: number): Promise<Array<{
         competencia_mes: number
         competencia_ano: number
         total_fatura: number
@@ -192,7 +192,7 @@ export class CardInvoiceService {
     }
 
     static async getPaymentHistory(
-        user_id: number,
+        user_id: string,
         card_id: number,
         limit: number = 10
     ): Promise<Array<{
@@ -222,7 +222,7 @@ export class CardInvoiceService {
     }
 
     static async cancelInvoicePayment(
-        user_id: number,
+        user_id: string,
         card_id: number,
         competencia_mes: number,
         competencia_ano: number
@@ -288,7 +288,7 @@ export class CardInvoiceService {
     }
 
     static async canPayInvoice(
-        user_id: number,
+        user_id: string,
         card_id: number,
         competencia_mes: number,
         competencia_ano: number

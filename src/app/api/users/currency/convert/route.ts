@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     // Era a única rota da pasta sem checagem de sessão. Não expunha dado do
     // usuário, mas deixava qualquer um gastar a cota da API de câmbio.
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
     const { amount, from_currency, to_currency } = await request.json()

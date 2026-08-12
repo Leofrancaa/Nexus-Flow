@@ -6,14 +6,12 @@ import LayoutWrapper from "../components/navigation/layoutWrapper";
 import { DateProvider } from "../contexts/dateContext";
 import AuthGuard from "@/components/authGuard";
 
-// Corpo e UI.
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
   display: "swap",
 });
 
-// Valores monetários e títulos — variável, com numerais tabulares.
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-bricolage",

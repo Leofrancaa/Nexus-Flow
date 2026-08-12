@@ -5,7 +5,7 @@ import { CurrencyService } from '@/server/services/currencyService'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     const summary = await CurrencyService.getUserFinancialSummary(user.id)
     return ok(summary, 'Resumo financeiro recuperado com sucesso.')

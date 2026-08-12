@@ -1,7 +1,7 @@
 import { eq, desc } from 'drizzle-orm'
 import { randomBytes } from 'node:crypto'
 import db from '@/server/db/drizzle'
-import { inviteCodes, users } from '@/server/db/schema'
+import { inviteCodes, profiles } from '@/server/db/schema'
 import { createErrorResponse } from '@/server/utils/helper'
 
 // Charset sem caracteres ambíguos (0/O, 1/I).
@@ -15,7 +15,7 @@ function generateCode(len = 8): string {
 }
 
 export class InviteService {
-  // Lista todos os códigos com info de quem usou (join em users).
+  // Lista todos os códigos com info de quem usou (join em profiles).
   static async list() {
     return db
       .select({
@@ -25,15 +25,15 @@ export class InviteService {
         expires_at: inviteCodes.expires_at,
         created_at: inviteCodes.created_at,
         used_at: inviteCodes.used_at,
-        used_by_name: users.nome,
-        used_by_email: users.email,
+        used_by_name: profiles.nome,
+        used_by_email: profiles.email,
       })
       .from(inviteCodes)
-      .leftJoin(users, eq(inviteCodes.used_by, users.id))
+      .leftJoin(profiles, eq(inviteCodes.used_by, profiles.id))
       .orderBy(desc(inviteCodes.created_at))
   }
 
-  static async create(createdBy: number, expiresInDays?: number) {
+  static async create(createdBy: string, expiresInDays?: number) {
     let code = generateCode()
     // Garante unicidade (colisão é raríssima, mas verifica algumas vezes).
     for (let i = 0; i < 5; i++) {
@@ -72,13 +72,13 @@ export class InviteService {
   static async listUsers() {
     return db
       .select({
-        id: users.id,
-        nome: users.nome,
-        email: users.email,
-        created_at: users.created_at,
-        accepted_terms_at: users.accepted_terms_at,
+        id: profiles.id,
+        nome: profiles.nome,
+        email: profiles.email,
+        created_at: profiles.created_at,
+        accepted_terms_at: profiles.accepted_terms_at,
       })
-      .from(users)
-      .orderBy(desc(users.created_at))
+      .from(profiles)
+      .orderBy(desc(profiles.created_at))
   }
 }

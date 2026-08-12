@@ -13,7 +13,7 @@ interface MesRow {
     total_despesas?: string | number
 }
 
-export const getResumoAnual = async (user_id: number, ano: number): Promise<ResumoAnualResult[]> => {
+export const getResumoAnual = async (user_id: string, ano: number): Promise<ResumoAnualResult[]> => {
     const [receitasQuery, despesasQuery] = await Promise.all([
         db.execute(sql`
             SELECT EXTRACT(MONTH FROM data) AS mes, SUM(quantidade) AS total_receitas

@@ -14,26 +14,14 @@ import { useDate } from "@/contexts/dateContext";
 import { useDataChanged } from "@/hooks/useDataRefresh";
 import { apiRequest } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import type { Expense } from "@/types/expense";
-import type { Income } from "@/types/income";
+import {
+  iniciais,
+  toActivities,
+  tituloDoDia,
+  type Activity,
+} from "@/lib/activities";
 
 type Filtro = "todas" | "entradas" | "saidas";
-
-interface Activity {
-  key: string;
-  kind: "expense" | "income";
-  id: number;
-  descricao: string;
-  valor: number;
-  /** Sempre YYYY-MM-DD, já sem a parte de hora. */
-  data: string;
-  categoria?: string;
-  cor?: string;
-  detalhe?: string;
-  fixo?: boolean;
-  expense?: Expense;
-  income?: Income;
-}
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -42,32 +30,6 @@ const MESES = [
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-const soData = (d: string) => d.split("T")[0].split(" ")[0];
-
-/** Data local a partir de YYYY-MM-DD — `new Date(str)` interpretaria como UTC
- *  e no fuso do Brasil jogaria o lançamento para o dia anterior. */
-function dataLocal(iso: string): Date {
-  const [ano, mes, dia] = soData(iso).split("-").map(Number);
-  return new Date(ano, mes - 1, dia);
-}
-
-function tituloDoDia(iso: string): string {
-  const data = dataLocal(iso);
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  const diff = Math.round((hoje.getTime() - data.getTime()) / 86_400_000);
-  if (diff === 0) return "Hoje";
-  if (diff === 1) return "Ontem";
-
-  const formatado = data.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-  return formatado.charAt(0).toUpperCase() + formatado.slice(1);
-}
 
 export default function AtividadesPage() {
   return (
@@ -122,37 +84,7 @@ function Atividades() {
 
         if (cancelado) return;
 
-        const lista: Activity[] = [
-          ...(despesas as Expense[]).map((e) => ({
-            key: `expense-${e.id}`,
-            kind: "expense" as const,
-            id: e.id,
-            descricao: e.tipo,
-            valor: Number(e.quantidade),
-            data: soData(e.data),
-            categoria: e.categoria_nome,
-            cor: e.cor_categoria,
-            detalhe: e.metodo_pagamento,
-            fixo: e.fixo,
-            expense: e,
-          })),
-          ...(receitas as Income[]).map((r) => ({
-            key: `income-${r.id}`,
-            kind: "income" as const,
-            id: r.id,
-            descricao: r.tipo,
-            valor: Number(r.quantidade),
-            data: soData(r.data),
-            categoria: r.categoria_nome,
-            cor: r.cor_categoria,
-            detalhe: r.fonte,
-            fixo: r.fixo,
-            income: r,
-          })),
-        ];
-
-        lista.sort((a, b) => b.data.localeCompare(a.data));
-        setItens(lista);
+        setItens(toActivities(despesas, receitas));
       } catch {
         if (!cancelado) {
           setItens([]);
@@ -360,9 +292,7 @@ function Atividades() {
                           color: item.cor ?? "#a1a1aa",
                         }}
                       >
-                        {(item.categoria ?? item.descricao)
-                          .slice(0, 2)
-                          .toUpperCase()}
+                        {iniciais(item)}
                       </span>
 
                       <span className="min-w-0 flex-1">

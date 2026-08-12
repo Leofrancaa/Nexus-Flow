@@ -6,7 +6,7 @@ import { toNumber } from '@/server/utils/helper'
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     if (!isAdmin(user)) return err('Acesso restrito ao administrador.', 403)
 

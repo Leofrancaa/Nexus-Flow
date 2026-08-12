@@ -13,7 +13,7 @@ interface RawRow {
     limite: string | number
 }
 
-export const getCartoesEstourados = async (user_id: number): Promise<CartoesEstouradosResult[]> => {
+export const getCartoesEstourados = async (user_id: string): Promise<CartoesEstouradosResult[]> => {
     const result = await db.execute(sql`
         SELECT c.id, c.nome, c.limite
         FROM cards c

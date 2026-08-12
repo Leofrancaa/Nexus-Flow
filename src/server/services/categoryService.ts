@@ -14,7 +14,7 @@ import {
 export class CategoryService {
     static async createCategory(
         categoryData: CreateCategoryRequest,
-        userId: number
+        userId: string
     ): Promise<Category> {
         const { nome, cor, tipo, parent_id } = categoryData
 
@@ -98,7 +98,7 @@ export class CategoryService {
     }
 
     static async getCategoriesByUser(
-        userId: number,
+        userId: string,
         tipo?: 'despesa' | 'receita'
     ): Promise<Category[]> {
         const conditions = [eq(categories.user_id, userId)]
@@ -113,7 +113,7 @@ export class CategoryService {
         return rows as unknown as Category[]
     }
 
-    static async getCategoryById(categoryId: number, userId: number): Promise<Category | null> {
+    static async getCategoryById(categoryId: number, userId: string): Promise<Category | null> {
         const [category] = await db
             .select()
             .from(categories)
@@ -126,7 +126,7 @@ export class CategoryService {
     static async updateCategory(
         categoryId: number,
         updateData: Partial<CreateCategoryRequest>,
-        userId: number
+        userId: string
     ): Promise<Category> {
         const { nome, cor, tipo, parent_id } = updateData
 
@@ -197,7 +197,7 @@ export class CategoryService {
         return result as unknown as Category
     }
 
-    static async deleteCategory(categoryId: number, userId: number): Promise<{ message: string; deletedItems: { subcategorias: number; despesas: number; receitas: number } }> {
+    static async deleteCategory(categoryId: number, userId: string): Promise<{ message: string; deletedItems: { subcategorias: number; despesas: number; receitas: number } }> {
         const category = await this.getCategoryById(categoryId, userId)
         if (!category) {
             throw createErrorResponse("Categoria não encontrada.", 404)
@@ -271,7 +271,7 @@ export class CategoryService {
         }
     }
 
-    private static async getAllSubcategoryIds(categoryId: number, userId: number): Promise<number[]> {
+    private static async getAllSubcategoryIds(categoryId: number, userId: string): Promise<number[]> {
         const children = await db
             .select({ id: categories.id })
             .from(categories)
@@ -287,7 +287,7 @@ export class CategoryService {
         return subcategoryIds
     }
 
-    static async getCategoryStats(userId: number): Promise<Array<{
+    static async getCategoryStats(userId: string): Promise<Array<{
         id: number
         nome: string
         tipo: 'despesa' | 'receita'
@@ -336,7 +336,7 @@ export class CategoryService {
     }
 
     static async getCategoryTree(
-        userId: number,
+        userId: string,
         tipo?: 'despesa' | 'receita'
     ): Promise<Array<Category & { children?: Category[] }>> {
         const cats = await this.getCategoriesByUser(userId, tipo)

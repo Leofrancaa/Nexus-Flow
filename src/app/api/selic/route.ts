@@ -5,7 +5,7 @@ import { getSelicAnual } from '@/server/services/selicService'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     const selic = await getSelicAnual()
     return ok(selic, 'Selic recuperada com sucesso.')

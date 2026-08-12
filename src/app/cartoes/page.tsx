@@ -8,7 +8,7 @@ import { CardVisual } from "@/components/cards/cardVisual";
 import { CardType } from "@/types/card";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { apiRequest, isAuthenticated } from "@/lib/auth";
+import { apiRequest, hasActiveSession } from "@/lib/auth";
 
 export default function Cards() {
   const [cards, setCards] = useState<CardType[]>([]);
@@ -18,10 +18,9 @@ export default function Cards() {
 
   // auth guard
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push("/login");
-      return;
-    }
+    void hasActiveSession().then((authenticated) => {
+      if (!authenticated) router.push("/login");
+    });
   }, [router]);
 
   const fetchCards = useCallback(async () => {

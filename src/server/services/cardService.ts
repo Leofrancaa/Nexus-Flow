@@ -18,7 +18,7 @@ interface CardWithStats extends Card {
 export class CardService {
     static async createCard(
         cardData: CreateCardRequest,
-        userId: number
+        userId: string
     ): Promise<Card> {
         const {
             nome,
@@ -72,7 +72,7 @@ export class CardService {
         return this.mapToCard(result)
     }
 
-    static async getCardsByUser(userId: number): Promise<CardWithStats[]> {
+    static async getCardsByUser(userId: string): Promise<CardWithStats[]> {
         const currentMonth = new Date().getMonth() + 1
         const currentYear = new Date().getFullYear()
 
@@ -130,7 +130,7 @@ export class CardService {
         return `${vencimento.getFullYear()}-${mm}-${dd}`
     }
 
-    static async getCardById(cardId: number, userId: number): Promise<Card | null> {
+    static async getCardById(cardId: number, userId: string): Promise<Card | null> {
         const [card] = await db
             .select()
             .from(cards)
@@ -143,7 +143,7 @@ export class CardService {
     static async updateCard(
         cardId: number,
         updateData: Partial<CreateCardRequest>,
-        userId: number
+        userId: string
     ): Promise<Card> {
         const { nome, tipo, numero, cor, limite, dia_vencimento, dias_fechamento_antes } = updateData
 
@@ -217,7 +217,7 @@ export class CardService {
         return this.mapToCard(result)
     }
 
-    static async deleteCard(cardId: number, userId: number): Promise<{ message: string }> {
+    static async deleteCard(cardId: number, userId: string): Promise<{ message: string }> {
         const hasCurrentExpenses = await this.hasCurrentMonthExpenses(cardId, userId)
         if (hasCurrentExpenses) {
             throw createErrorResponse(
@@ -244,7 +244,7 @@ export class CardService {
         return { message: "Cartão removido com sucesso." }
     }
 
-    static async getSaldoEmAberto(cardId: number, userId: number): Promise<number> {
+    static async getSaldoEmAberto(cardId: number, userId: string): Promise<number> {
         const queryResult = await db.execute(sql`
             SELECT COALESCE(SUM(e.quantidade), 0) AS aberto
             FROM expenses e
@@ -261,7 +261,7 @@ export class CardService {
         return Number((queryResult.rows[0] as { aberto: string }).aberto)
     }
 
-    static async hasCurrentMonthExpenses(cardId: number, userId: number): Promise<boolean> {
+    static async hasCurrentMonthExpenses(cardId: number, userId: string): Promise<boolean> {
         const queryResult = await db.execute(sql`
             SELECT COUNT(*) as count FROM expenses
             WHERE card_id = ${cardId} AND user_id = ${userId}
@@ -272,7 +272,7 @@ export class CardService {
         return Number((queryResult.rows[0] as { count: string }).count) > 0
     }
 
-    static async hasPastExpenses(cardId: number, userId: number): Promise<boolean> {
+    static async hasPastExpenses(cardId: number, userId: string): Promise<boolean> {
         const queryResult = await db.execute(sql`
             SELECT COUNT(*) as count FROM expenses
             WHERE card_id = ${cardId} AND user_id = ${userId}
@@ -283,7 +283,7 @@ export class CardService {
         return Number((queryResult.rows[0] as { count: string }).count) > 0
     }
 
-    static async deleteCardAndExpenses(cardId: number, userId: number): Promise<void> {
+    static async deleteCardAndExpenses(cardId: number, userId: string): Promise<void> {
         await db.transaction(async (tx) => {
             const [exists] = await tx
                 .select()
@@ -300,7 +300,7 @@ export class CardService {
         })
     }
 
-    static async getFutureInstallments(cardId: number, userId: number): Promise<Array<{
+    static async getFutureInstallments(cardId: number, userId: string): Promise<Array<{
         id: number
         tipo: string
         quantidade: number

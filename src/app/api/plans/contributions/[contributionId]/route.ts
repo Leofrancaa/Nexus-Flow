@@ -6,7 +6,7 @@ import { toNumber } from '@/server/utils/helper'
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ contributionId: string }> }) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     const { contributionId } = await params
     const contribId = toNumber(contributionId)

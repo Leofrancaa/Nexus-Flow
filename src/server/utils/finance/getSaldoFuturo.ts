@@ -9,7 +9,7 @@ import { incomes, expenses } from '@/server/db/schema'
  * compra no cartão, receita fixa replicada. É o número que responde "se nada
  * mudar, onde eu termino"; o de hoje está em `getSaldoAtual`.
  */
-export const getSaldoFuturo = async (user_id: number): Promise<number> => {
+export const getSaldoFuturo = async (user_id: string): Promise<number> => {
     const [receitas, despesas] = await Promise.all([
         db.select({ total: sum(incomes.quantidade) }).from(incomes).where(eq(incomes.user_id, user_id)),
         db.select({ total: sum(expenses.quantidade) }).from(expenses).where(eq(expenses.user_id, user_id)),

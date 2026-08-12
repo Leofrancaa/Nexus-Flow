@@ -8,7 +8,7 @@ export interface ReceitasDoMesResult {
     nota?: string
     data: string
     fonte?: string
-    user_id: number
+    user_id: string
     category_id?: number
     created_at: Date
     updated_at: Date
@@ -21,14 +21,14 @@ interface RawRow {
     nota: string | null
     data: Date | string
     fonte: string | null
-    user_id: number
+    user_id: string
     category_id: number | null
     created_at: Date
     updated_at: Date
 }
 
 export const getReceitasDoMes = async (
-    user_id: number,
+    user_id: string,
     mes: number,
     ano: number
 ): Promise<ReceitasDoMesResult[]> => {

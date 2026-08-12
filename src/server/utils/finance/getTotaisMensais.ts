@@ -11,7 +11,7 @@ interface TotaisMensaisResult {
     despesas: Array<{ mes: number; total: number }>
 }
 
-export const getTotaisMensais = async (user_id: number): Promise<TotaisMensaisResult> => {
+export const getTotaisMensais = async (user_id: string): Promise<TotaisMensaisResult> => {
     const [receitas, despesas] = await Promise.all([
         db.execute(sql`
             SELECT EXTRACT(MONTH FROM data) as mes, SUM(quantidade) as total

@@ -31,7 +31,7 @@ export interface CarryoverStatus {
 }
 
 export class BalanceCarryoverService {
-    static async check(userId: number, targetMes: number, targetAno: number): Promise<CarryoverStatus> {
+    static async check(userId: string, targetMes: number, targetAno: number): Promise<CarryoverStatus> {
         const { mes: srcMes, ano: srcAno } = prevMonth(targetMes, targetAno)
 
         // O saldo do mês fonte INCLUI o carryover aplicado nele: assim o saldo
@@ -81,7 +81,7 @@ export class BalanceCarryoverService {
 
     /** Localiza o lançamento de carryover (receita ou despesa) já aplicado no mês alvo. */
     private static async findApplied(
-        userId: number,
+        userId: string,
         targetMes: number,
         targetAno: number
     ): Promise<{ income_id?: number; expense_id?: number }> {
@@ -118,7 +118,7 @@ export class BalanceCarryoverService {
         return { income_id: income?.id, expense_id: expense?.id }
     }
 
-    static async apply(userId: number, targetMes: number, targetAno: number): Promise<CarryoverStatus> {
+    static async apply(userId: string, targetMes: number, targetAno: number): Promise<CarryoverStatus> {
         const info = await this.check(userId, targetMes, targetAno)
 
         if (info.status === 'aplicado') {
@@ -167,7 +167,7 @@ export class BalanceCarryoverService {
         }
     }
 
-    static async undo(userId: number, targetMes: number, targetAno: number): Promise<void> {
+    static async undo(userId: string, targetMes: number, targetAno: number): Promise<void> {
         // Busca direta pelos lançamentos aplicados, sem depender do saldo
         // recalculado (que pode ter mudado desde que o carryover foi aplicado).
         const applied = await this.findApplied(userId, targetMes, targetAno)
@@ -184,7 +184,7 @@ export class BalanceCarryoverService {
         }
     }
 
-    static async history(userId: number): Promise<Array<{
+    static async history(userId: string): Promise<Array<{
         mes: number
         ano: number
         saldo: number
@@ -225,7 +225,7 @@ export class BalanceCarryoverService {
     }
 
     private static async getOrCreateCategory(
-        userId: number,
+        userId: string,
         nome: string,
         tipo: 'receita' | 'despesa',
         cor: string

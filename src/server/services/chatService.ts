@@ -25,7 +25,7 @@ interface StoredMessage {
 }
 
 export class ChatService {
-  static async messagesUsedToday(userId: number): Promise<number> {
+  static async messagesUsedToday(userId: string): Promise<number> {
     const [row] = await db
       .select({ c: sql<number>`count(*)` })
       .from(chatMessages)
@@ -39,12 +39,12 @@ export class ChatService {
     return Number(row?.c ?? 0)
   }
 
-  static async getStatus(userId: number): Promise<ChatStatus> {
+  static async getStatus(userId: string): Promise<ChatStatus> {
     const used = await this.messagesUsedToday(userId)
     return { used, remaining: Math.max(0, DAILY_MESSAGE_LIMIT - used), limit: DAILY_MESSAGE_LIMIT }
   }
 
-  static async getHistory(userId: number, limit = 50): Promise<StoredMessage[]> {
+  static async getHistory(userId: string, limit = 50): Promise<StoredMessage[]> {
     const rows = await db
       .select()
       .from(chatMessages)
@@ -55,7 +55,7 @@ export class ChatService {
   }
 
   // Monta um resumo financeiro compacto do usuário para alimentar a IA.
-  private static async buildFinancialContext(userId: number): Promise<string> {
+  private static async buildFinancialContext(userId: string): Promise<string> {
     const now = new Date()
     const mes = now.getMonth() + 1
     const ano = now.getFullYear()
@@ -171,7 +171,7 @@ export class ChatService {
   }
 
   static async sendMessage(
-    userId: number,
+    userId: string,
     message: string
   ): Promise<{ reply: string; status: ChatStatus }> {
     const text = (message ?? '').trim()
@@ -213,7 +213,7 @@ export class ChatService {
   }
 
   // Fluxo conversacional (perguntas/análises) — responde com base no resumo financeiro.
-  private static async conversationalReply(userId: number, text: string): Promise<string> {
+  private static async conversationalReply(userId: string, text: string): Promise<string> {
     const context = await this.buildFinancialContext(userId)
     const recent = await db
       .select()

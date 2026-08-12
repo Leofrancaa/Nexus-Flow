@@ -17,7 +17,7 @@ interface RawRow {
     dia_vencimento: number
 }
 
-export const getCartoesAVencer = async (user_id: number): Promise<CartoesAVencerResult[]> => {
+export const getCartoesAVencer = async (user_id: string): Promise<CartoesAVencerResult[]> => {
     const hoje = new Date()
     const diaHoje = hoje.getDate()
 
@@ -28,6 +28,16 @@ export const getCartoesAVencer = async (user_id: number): Promise<CartoesAVencer
         dias.push(dataTemp.getDate())
     }
 
+    // Interpolar o array direto (`${dias}::int[]`) faz o Drizzle emitir
+    // `($1, $2, ...)`, que o Postgres lê como record e recusa converter para
+    // int[] — "cannot cast type record to integer[]", derrubando o dashboard
+    // inteiro em 500. Montando o ARRAY[...] explicitamente cada dia continua
+    // sendo um parâmetro ligado, sem concatenação de string na query.
+    const listaDias = sql.join(
+        dias.map((dia) => sql`${dia}`),
+        sql`, `
+    )
+
     const result = await db.execute(sql`
         SELECT
             id, nome, limite,
@@ -36,7 +46,7 @@ export const getCartoesAVencer = async (user_id: number): Promise<CartoesAVencer
              WHERE card_id = cards.id AND user_id = ${user_id}) AS total_gasto,
             dia_vencimento
         FROM cards
-        WHERE user_id = ${user_id} AND dia_vencimento = ANY(${dias}::int[])
+        WHERE user_id = ${user_id} AND dia_vencimento = ANY(ARRAY[${listaDias}]::int[])
     `)
     const rows = result.rows as unknown as RawRow[]
 

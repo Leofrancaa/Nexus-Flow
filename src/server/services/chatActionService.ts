@@ -42,7 +42,7 @@ function formatDateBR(isoDate: string): string {
   return `${d}/${m}/${y}`
 }
 
-async function classifyIntent(message: string, userId: number): Promise<ParsedIntent | null> {
+async function classifyIntent(message: string, userId: string): Promise<ParsedIntent | null> {
   const userCategories = await db
     .select({ nome: categories.nome, tipo: categories.tipo })
     .from(categories)
@@ -77,7 +77,7 @@ async function classifyIntent(message: string, userId: number): Promise<ParsedIn
 }
 
 async function resolveCategoryId(
-  userId: number,
+  userId: string,
   categoriaNome: string | null | undefined,
   tipo: 'despesa' | 'receita'
 ): Promise<number | null> {
@@ -93,7 +93,7 @@ async function resolveCategoryId(
   return match?.id ?? null
 }
 
-async function executeAction(userId: number, intent: ParsedIntent): Promise<string> {
+async function executeAction(userId: string, intent: ParsedIntent): Promise<string> {
   const isExpense = intent.action === 'create_expense'
   const rotulo = isExpense ? 'despesa' : 'receita'
 
@@ -162,7 +162,7 @@ async function executeAction(userId: number, intent: ParsedIntent): Promise<stri
  * Retorna a resposta pronta quando a ação foi tratada, ou null para o chat
  * seguir o fluxo conversacional normal.
  */
-export async function tryHandleChatAction(userId: number, message: string): Promise<string | null> {
+export async function tryHandleChatAction(userId: string, message: string): Promise<string | null> {
   if (!ACTION_HINT.test(message)) return null
 
   let intent: ParsedIntent | null

@@ -41,7 +41,7 @@ interface PlanWithProgress extends Plan {
 interface PlanContribution {
     id: number
     plan_id: number
-    user_id: number
+    user_id: string
     valor: number
     created_at: Date
 }
@@ -58,7 +58,7 @@ function statusFromProgress(progresso: number): string {
 export class PlanService {
     static async createPlan(
         planData: CreatePlanRequest,
-        userId: number
+        userId: string
     ): Promise<Plan> {
         const { nome, descricao, meta, prazo, taxa_anual } = planData
 
@@ -111,7 +111,7 @@ export class PlanService {
         return this.mapToPlan(result)
     }
 
-    static async getPlansByUser(userId: number): Promise<PlanWithProgress[]> {
+    static async getPlansByUser(userId: string): Promise<PlanWithProgress[]> {
         try {
             const rows = await db
                 .select()
@@ -138,7 +138,7 @@ export class PlanService {
         }
     }
 
-    static async getPlanById(planId: number, userId: number): Promise<PlanWithProgress | null> {
+    static async getPlanById(planId: number, userId: string): Promise<PlanWithProgress | null> {
         const [plan] = await db
             .select()
             .from(plans)
@@ -153,7 +153,7 @@ export class PlanService {
     static async updatePlan(
         planId: number,
         updateData: Partial<CreatePlanRequest>,
-        userId: number
+        userId: string
     ): Promise<Plan> {
         const { nome, descricao, meta, prazo, taxa_anual } = updateData
 
@@ -231,7 +231,7 @@ export class PlanService {
         return this.mapToPlan(result)
     }
 
-    static async deletePlan(planId: number, userId: number): Promise<{ message: string }> {
+    static async deletePlan(planId: number, userId: string): Promise<{ message: string }> {
         await db.transaction(async (tx) => {
             const [plan] = await tx
                 .select()
@@ -260,7 +260,7 @@ export class PlanService {
     static async addContribution(
         planId: number,
         contributionData: ContributionRequest,
-        userId: number
+        userId: string
     ): Promise<{
         contribution: PlanContribution
         new_total: number
@@ -326,7 +326,7 @@ export class PlanService {
 
     static async getPlanContributions(
         planId: number,
-        userId: number,
+        userId: string,
         limit: number = 20
     ): Promise<PlanContribution[]> {
         const [planExists] = await db
@@ -356,7 +356,7 @@ export class PlanService {
 
     static async removeContribution(
         contributionId: number,
-        userId: number
+        userId: string
     ): Promise<{ message: string; updated_plan: Plan; aporte_mensal_necessario: number }> {
         const selic = await getSelicAnual()
 
@@ -547,7 +547,7 @@ export class PlanService {
         }
     }
 
-    static async getPlanStats(userId: number): Promise<{
+    static async getPlanStats(userId: string): Promise<{
         total_plans: number
         completed_plans: number
         in_progress_plans: number

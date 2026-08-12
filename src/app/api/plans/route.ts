@@ -5,7 +5,7 @@ import { PlanService } from '@/server/services/planService'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     const plans = await PlanService.getPlansByUser(user.id)
     return ok(plans, 'Planos recuperados com sucesso.')
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     const planData = await request.json()
     const result = await PlanService.createPlan(planData, user.id)

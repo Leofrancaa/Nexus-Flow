@@ -5,7 +5,7 @@ import { PlanService } from '@/server/services/planService'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
     const stats = await PlanService.getPlanStats(user.id)
     return ok(stats, 'Estatísticas de planos recuperadas com sucesso.')

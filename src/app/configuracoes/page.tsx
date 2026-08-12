@@ -207,15 +207,10 @@ export default function ConfiguracoesPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth/change-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ senhaAtual, novaSenha }),
-      });
+      const { createClient } = await import("@/utils/supabase/client");
+      const { error } = await createClient().auth.updateUser({ password: novaSenha });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (!error) {
         setMessage({
           type: "success",
           text: "Senha alterada com sucesso!",
@@ -226,7 +221,7 @@ export default function ConfiguracoesPage() {
       } else {
         setMessage({
           type: "error",
-          text: data.message || data.error || "Erro ao alterar senha.",
+          text: "Não foi possível alterar a senha.",
         });
       }
     } catch (error) {

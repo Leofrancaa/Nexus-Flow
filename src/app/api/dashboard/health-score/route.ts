@@ -8,7 +8,7 @@ import { thresholds as thresholdsTable, plans } from '@/server/db/schema'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
     const now = new Date()

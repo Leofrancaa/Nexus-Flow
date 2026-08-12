@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import PageTitle from "@/components/pageTitle";
 import { NewPlanModal } from "@/components/modals/newPlanModal";
 import PlanCard from "@/components/cards/planCard";
-import { apiRequest, isAuthenticated } from "@/lib/auth";
+import { apiRequest, hasActiveSession } from "@/lib/auth";
 import { toast } from "react-hot-toast";
 
 interface Plano {
@@ -30,10 +30,9 @@ export default function Plans() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push("/login");
-      return;
-    }
+    void hasActiveSession().then((authenticated) => {
+      if (!authenticated) router.push("/login");
+    });
   }, [router]);
 
   const fetchPlanos = useCallback(async () => {

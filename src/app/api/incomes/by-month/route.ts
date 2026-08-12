@@ -5,7 +5,7 @@ import { IncomeService } from '@/server/services/incomeService'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
 
     const anoParam = new URL(request.url).searchParams.get('ano')
