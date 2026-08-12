@@ -1,6 +1,17 @@
 import { normalize } from '@/server/utils/helper'
 import { chatJson, isLlmConfigured } from '@/server/services/llmService'
 
+/**
+ * Categorização de transação por descrição.
+ *
+ * Veio do importador de extrato, que foi removido — as regras abaixo são o
+ * resultado de olhar extrato de banco brasileiro de verdade e não valia jogar
+ * fora. Passam a ser a base da categorização das transações da Pluggy, que
+ * chegam com a mesma cara ("IFD*IFOOD", "PG *POSTO IPIRANGA").
+ *
+ * Ainda sem chamador: o `pluggySyncService` do bloco 5 é quem vai usá-las.
+ */
+
 export interface UserCategory {
   id: number
   nome: string

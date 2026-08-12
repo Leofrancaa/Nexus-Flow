@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import {
   pgTable,
   serial,
@@ -8,9 +9,21 @@ import {
   numeric,
   timestamp,
   date,
-  jsonb,
   unique,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
+
+// Colunas que a sincronização da Pluggy acrescenta a `expenses` e `incomes`.
+// São aditivas e nullable de propósito: a linha lançada à mão continua com
+// `origem = 'manual'` e os ids nulos, e nenhum service precisou mudar.
+const pluggyColumns = {
+  pluggy_transaction_id: text('pluggy_transaction_id'),
+  pluggy_account_id: text('pluggy_account_id'),
+  // 'manual' | 'pluggy'
+  origem: text('origem').default('manual').notNull(),
+  // Marca que o usuário escolheu a categoria — o re-sync não sobrescreve.
+  categoria_manual: boolean('categoria_manual').default(false).notNull(),
+}
 
 // Timestamps reutilizados (created_at / updated_at) — mantêm o comportamento do Prisma
 // (retornam objetos Date e atualizam updated_at automaticamente).
@@ -49,36 +62,55 @@ export const categories = pgTable('categories', {
   ...timestamps,
 })
 
-export const expenses = pgTable('expenses', {
-  id: serial('id').primaryKey(),
-  metodo_pagamento: text('metodo_pagamento').notNull(),
-  tipo: text('tipo').notNull(),
-  quantidade: numeric('quantidade', { precision: 12, scale: 2 }).notNull(),
-  fixo: boolean('fixo').default(false).notNull(),
-  data: date('data', { mode: 'date' }).notNull(),
-  parcelas: integer('parcelas'),
-  frequencia: text('frequencia'),
-  user_id: integer('user_id').notNull(),
-  card_id: integer('card_id'),
-  category_id: integer('category_id'),
-  observacoes: text('observacoes'),
-  competencia_mes: integer('competencia_mes'),
-  competencia_ano: integer('competencia_ano'),
-  ...timestamps,
-})
+export const expenses = pgTable(
+  'expenses',
+  {
+    id: serial('id').primaryKey(),
+    metodo_pagamento: text('metodo_pagamento').notNull(),
+    tipo: text('tipo').notNull(),
+    quantidade: numeric('quantidade', { precision: 12, scale: 2 }).notNull(),
+    fixo: boolean('fixo').default(false).notNull(),
+    data: date('data', { mode: 'date' }).notNull(),
+    parcelas: integer('parcelas'),
+    frequencia: text('frequencia'),
+    user_id: integer('user_id').notNull(),
+    card_id: integer('card_id'),
+    category_id: integer('category_id'),
+    observacoes: text('observacoes'),
+    competencia_mes: integer('competencia_mes'),
+    competencia_ano: integer('competencia_ano'),
+    ...pluggyColumns,
+    ...timestamps,
+  },
+  (t) => [
+    // Parcial: as linhas manuais têm a coluna nula e não disputam o índice.
+    uniqueIndex('expenses_pluggy_tx_key')
+      .on(t.pluggy_transaction_id)
+      .where(sql`${t.pluggy_transaction_id} IS NOT NULL`),
+  ]
+)
 
-export const incomes = pgTable('incomes', {
-  id: serial('id').primaryKey(),
-  tipo: text('tipo').notNull(),
-  quantidade: numeric('quantidade', { precision: 12, scale: 2 }).notNull(),
-  nota: text('nota'),
-  data: date('data', { mode: 'date' }).notNull(),
-  fonte: text('fonte'),
-  fixo: boolean('fixo').default(false).notNull(),
-  user_id: integer('user_id').notNull(),
-  category_id: integer('category_id'),
-  ...timestamps,
-})
+export const incomes = pgTable(
+  'incomes',
+  {
+    id: serial('id').primaryKey(),
+    tipo: text('tipo').notNull(),
+    quantidade: numeric('quantidade', { precision: 12, scale: 2 }).notNull(),
+    nota: text('nota'),
+    data: date('data', { mode: 'date' }).notNull(),
+    fonte: text('fonte'),
+    fixo: boolean('fixo').default(false).notNull(),
+    user_id: integer('user_id').notNull(),
+    category_id: integer('category_id'),
+    ...pluggyColumns,
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('incomes_pluggy_tx_key')
+      .on(t.pluggy_transaction_id)
+      .where(sql`${t.pluggy_transaction_id} IS NOT NULL`),
+  ]
+)
 
 export const cards = pgTable('cards', {
   id: serial('id').primaryKey(),
@@ -168,104 +200,6 @@ export const thresholds = pgTable(
   (t) => [unique('thresholds_user_category_key').on(t.user_id, t.category_id)]
 )
 
-// ===== Career / Study / Personal (non-financial modules) =====
-// All column names in English by request.
-
-// Strategic narrative for the career module — one editable row per user.
-export const careerProfile = pgTable('career_profile', {
-  user_id: integer('user_id').primaryKey(),
-  // Strategic north (target role/positioning).
-  north_star: text('north_star'),
-  // Chosen flavor: 'technical' | 'product' | null (undecided).
-  track: text('track'),
-  // The "why this path" rationale.
-  rationale: text('rationale'),
-  // Acceleration principles (editable list).
-  principles: jsonb('principles').$type<string[]>().default([]).notNull(),
-  ...timestamps,
-})
-
-// Career milestones grouped by horizon, each trackable by status.
-export const careerMilestones = pgTable('career_milestones', {
-  id: serial('id').primaryKey(),
-  user_id: integer('user_id').notNull(),
-  title: text('title').notNull(),
-  description: text('description'),
-  // '0-6m' | '6-18m' | '18-36m'
-  horizon: text('horizon').notNull(),
-  // 'planned' | 'in_progress' | 'done'
-  status: text('status').default('planned').notNull(),
-  resource_url: text('resource_url'),
-  position: integer('position').default(0).notNull(),
-  ...timestamps,
-})
-
-// Study track items (courses, books, certifications) with progress.
-export const studyItems = pgTable('study_items', {
-  id: serial('id').primaryKey(),
-  user_id: integer('user_id').notNull(),
-  title: text('title').notNull(),
-  description: text('description'),
-  // 'course' | 'book' | 'certification' | null
-  category: text('category'),
-  resource_url: text('resource_url'),
-  // 0-100
-  progress: integer('progress').default(0).notNull(),
-  // 'planned' | 'in_progress' | 'done'
-  status: text('status').default('planned').notNull(),
-  position: integer('position').default(0).notNull(),
-  ...timestamps,
-})
-
-// Personal life goals with optional target date.
-export const personalGoals = pgTable('personal_goals', {
-  id: serial('id').primaryKey(),
-  user_id: integer('user_id').notNull(),
-  title: text('title').notNull(),
-  description: text('description'),
-  // 'planned' | 'in_progress' | 'done'
-  status: text('status').default('planned').notNull(),
-  target_date: date('target_date', { mode: 'date' }),
-  position: integer('position').default(0).notNull(),
-  ...timestamps,
-})
-
-// ===== Bank statement import (extrato) =====
-
-// One upload/parse run of a bank statement.
-export const importBatches = pgTable('import_batches', {
-  id: serial('id').primaryKey(),
-  user_id: integer('user_id').notNull(),
-  // Original file name / bank label.
-  source: text('source').notNull(),
-  // 'ofx' | 'pdf'
-  format: text('format').notNull(),
-  // 'pending' | 'confirmed' | 'discarded'
-  status: text('status').default('pending').notNull(),
-  created_at: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-})
-
-// A single parsed transaction awaiting review/confirmation.
-export const importedTransactions = pgTable('imported_transactions', {
-  id: serial('id').primaryKey(),
-  batch_id: integer('batch_id').notNull(),
-  user_id: integer('user_id').notNull(),
-  date: date('date', { mode: 'date' }).notNull(),
-  // Absolute value; sign is captured by `type`.
-  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
-  description: text('description').notNull(),
-  // 'expense' | 'income'
-  type: text('type').notNull(),
-  // Category suggested automatically (rules/LLM); user can override.
-  suggested_category_id: integer('suggested_category_id'),
-  category_id: integer('category_id'),
-  // 'pending' | 'confirmed' | 'skipped' | 'duplicate'
-  status: text('status').default('pending').notNull(),
-  // sha256(user_id|date|amount|type|normalized description) — prevents re-import.
-  dedupe_hash: text('dedupe_hash').notNull(),
-  created_at: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-})
-
 // ===== AI assistant chat (Qwen) =====
 // Histórico de mensagens; também usado para contar o limite diário por usuário.
 export const chatMessages = pgTable('chat_messages', {
@@ -275,6 +209,40 @@ export const chatMessages = pgTable('chat_messages', {
   role: text('role').notNull(),
   content: text('content').notNull(),
   created_at: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+})
+
+// ===== Open Finance (Pluggy) =====
+
+// Uma conexão com uma instituição. `item_id` é o id do lado da Pluggy e é por
+// ele que o webhook encontra o dono do evento.
+export const pluggyItems = pgTable('pluggy_items', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull(),
+  item_id: text('item_id').notNull().unique(),
+  connector_id: integer('connector_id'),
+  connector_name: text('connector_name'),
+  // 'UPDATING' | 'UPDATED' | 'LOGIN_ERROR' | 'OUTDATED' | 'WAITING_USER_INPUT'
+  status: text('status').default('UPDATING').notNull(),
+  last_synced_at: timestamp('last_synced_at', { mode: 'date' }),
+  ...timestamps,
+})
+
+// Conta dentro de um item: corrente, poupança ou cartão. `card_id` amarra a
+// conta de crédito ao cartão já cadastrado no app — enquanto for nulo, a fatura
+// que veio do banco não tem onde aparecer.
+export const pluggyAccounts = pgTable('pluggy_accounts', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull(),
+  item_id: text('item_id').notNull(),
+  account_id: text('account_id').notNull().unique(),
+  // 'BANK' | 'CREDIT'
+  type: text('type').notNull(),
+  subtype: text('subtype'),
+  nome: text('nome'),
+  numero: text('numero'),
+  saldo: numeric('saldo', { precision: 12, scale: 2 }),
+  card_id: integer('card_id'),
+  ...timestamps,
 })
 
 export const inviteCodes = pgTable('invite_codes', {

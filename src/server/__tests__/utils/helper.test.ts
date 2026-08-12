@@ -9,7 +9,25 @@ import {
   toNumber,
   isValidHexColor,
   calculateCompetencia,
+  parseAmount,
 } from '@/server/utils/helper'
+
+describe('parseAmount', () => {
+  it('lê formato de máquina (ponto decimal) com sinal', () => {
+    expect(parseAmount('-50.00')).toBe(-50)
+    expect(parseAmount('3000.00')).toBe(3000)
+  })
+
+  it('lê formato pt-BR (1.234,56)', () => {
+    expect(parseAmount('1.234,56')).toBeCloseTo(1234.56)
+    expect(parseAmount('-1.234,56')).toBeCloseTo(-1234.56)
+  })
+
+  it('lê valor com símbolo e parênteses como negativo', () => {
+    expect(parseAmount('R$ 100,00')).toBe(100)
+    expect(parseAmount('(80,00)')).toBe(-80)
+  })
+})
 
 describe('normalize', () => {
   it('remove acentos e converte para lowercase', () => {

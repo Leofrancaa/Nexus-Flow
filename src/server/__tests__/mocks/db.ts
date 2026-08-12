@@ -33,13 +33,9 @@ const TABLES = [
   'categories',
   'invite_codes',
   'expense_history',
-  'career_profile',
-  'career_milestones',
-  'study_items',
-  'personal_goals',
-  'imported_transactions',
-  'import_batches',
   'chat_messages',
+  'pluggy_accounts',
+  'pluggy_items',
   'users',
 ]
 

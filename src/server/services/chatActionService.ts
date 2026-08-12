@@ -3,7 +3,7 @@ import db from '@/server/db/drizzle'
 import { categories } from '@/server/db/schema'
 import { chatJson } from '@/server/services/llmService'
 import { normalize, formatCurrency, formatDate, isValidDateString } from '@/server/utils/helper'
-import { parseAmount } from '@/server/utils/import/types'
+import { parseAmount } from '@/server/utils/helper'
 import { ExpenseService } from './expenseService'
 import { IncomeService } from './incomeService'
 

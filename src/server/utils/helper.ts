@@ -230,3 +230,38 @@ export const isDevelopment = (): boolean => {
 export const isProduction = (): boolean => {
     return process.env.NODE_ENV === 'production'
 }
+
+/**
+ * Converte valor monetário em texto para número.
+ *
+ * Entende "1.234,56" (pt-BR), "1234.56" (formato de máquina) e parênteses como
+ * sinal negativo. Nasceu no parser de extrato; ficou porque o assistente de IA
+ * também precisa dela para ler o valor que o usuário digitou em linguagem
+ * natural ("gastei R$ 42,90 no mercado").
+ */
+export function parseAmount(raw: string | number): number {
+    if (typeof raw === 'number') return raw
+    let s = String(raw).trim().replace(/\s/g, '')
+    if (!s) return NaN
+
+    const negative = s.startsWith('-') || /^\(.*\)$/.test(s)
+    s = s.replace(/[()]/g, '').replace(/[^\d.,-]/g, '')
+
+    const hasDot = s.includes('.')
+    const hasComma = s.includes(',')
+
+    if (hasDot && hasComma) {
+        // O último separador é o decimal.
+        if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+            s = s.replace(/\./g, '').replace(',', '.') // pt-BR: 1.234,56
+        } else {
+            s = s.replace(/,/g, '') // en: 1,234.56
+        }
+    } else if (hasComma) {
+        s = s.replace(',', '.')
+    }
+
+    const n = Math.abs(parseFloat(s))
+    if (Number.isNaN(n)) return NaN
+    return negative ? -n : n
+}
