@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/layout/bottomNav";
 import { Fab } from "@/components/layout/fab";
 import { Toaster } from "react-hot-toast";
+import { Check, LoaderCircle, TriangleAlert } from "lucide-react";
 
 const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
 
@@ -45,50 +46,39 @@ export default function LayoutWrapper({
         toastOptions={{
           duration: 4000,
           style: {
-            background: "#111827",
-            color: "#F3F4F6",
-            border: "1px solid #3B82F6",
-            borderRadius: "12px",
-            padding: "12px 16px",
+            background: "linear-gradient(145deg, #1A1D21 0%, #111316 100%)",
+            color: "#F5F7F8",
+            border: "1px solid rgba(255,255,255,.08)",
+            borderRadius: "16px",
+            padding: "12px 14px",
             fontFamily: "var(--font-manrope), sans-serif",
             fontSize: "14px",
-            fontWeight: "500",
-            maxWidth: "400px",
+            fontWeight: "600",
+            maxWidth: "min(400px, calc(100vw - 32px))",
             wordBreak: "break-word",
-            boxShadow:
-              "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+            boxShadow: "0 22px 54px rgba(0,0,0,.5)",
           },
           success: {
             duration: 3000,
-            iconTheme: {
-              primary: "#22c55e",
-              secondary: "#fff",
-            },
+            icon: <Check className="h-4 w-4 text-brand" />,
             style: {
-              border: "1px solid #22c55e",
-              background: "#111827",
+              border: "1px solid rgba(212,255,0,.22)",
+              boxShadow: "0 22px 54px rgba(0,0,0,.5), inset 3px 0 0 #D4FF00",
             },
           },
           error: {
             duration: 5000,
-            iconTheme: {
-              primary: "#ef4444",
-              secondary: "#fff",
-            },
+            icon: <TriangleAlert className="h-4 w-4 text-negative" />,
             style: {
-              border: "1px solid #ef4444",
-              background: "#111827",
+              border: "1px solid rgba(242,100,112,.24)",
+              boxShadow: "0 22px 54px rgba(0,0,0,.5), inset 3px 0 0 #F26470",
             },
           },
           loading: {
             duration: Infinity,
-            iconTheme: {
-              primary: "#3b82f6",
-              secondary: "#fff",
-            },
+            icon: <LoaderCircle className="h-4 w-4 animate-spin text-brand" />,
             style: {
-              border: "1px solid #3b82f6",
-              background: "#111827",
+              border: "1px solid rgba(212,255,0,.18)",
             },
           },
         }}

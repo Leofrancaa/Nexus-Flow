@@ -16,9 +16,9 @@ export const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-14 w-full items-center justify-between rounded-xl border px-4 py-3 text-base shadow-sm transition-all",
+      "flex h-14 w-full items-center justify-between rounded-[14px] border px-4 py-3 text-base transition-[border-color,box-shadow,background-color] duration-200",
       "bg-[var(--select-trigger-bg)] border-[var(--select-trigger-border)] text-[var(--select-trigger-text)]",
-      "focus:outline-none focus:ring-2 focus:ring-[#00D4D4] focus:border-[#00D4D4]",
+      "focus:border-brand/60 focus:outline-none focus:ring-2 focus:ring-brand/20",
       className
     )}
     {...props}
@@ -40,7 +40,7 @@ export const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "z-50 mt-1 overflow-hidden rounded-md border shadow-md max-h-60",
+        "z-[120] mt-1 max-h-60 overflow-hidden rounded-[14px] border shadow-[0_24px_60px_rgba(0,0,0,.55)]",
         "bg-[var(--select-content-bg)] border-[var(--select-trigger-border)] text-[var(--select-trigger-text)]",
         className
       )}
@@ -73,7 +73,7 @@ export const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-pointer select-none items-center justify-between rounded-md px-4 py-2 text-base",
+      "relative flex min-h-11 cursor-pointer select-none items-center justify-between rounded-[10px] px-4 py-2 text-base",
       "text-[var(--select-trigger-text)] hover:bg-[var(--select-item-hover)] focus:bg-[var(--select-item-hover)] focus:outline-none",
       className
     )}

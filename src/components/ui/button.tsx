@@ -12,8 +12,8 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const base =
-    "flex w-full cursor-pointer items-center justify-center rounded-xl py-4 " +
-    "text-base font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50";
+    "flex min-h-12 w-full cursor-pointer items-center justify-center rounded-[14px] px-5 py-3.5 " +
+    "text-base font-semibold transition-[background-color,color,opacity,transform,box-shadow] duration-200 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none";
 
   const variants = {
     // Texto escuro sobre a marca: o lima é claro demais para texto branco.

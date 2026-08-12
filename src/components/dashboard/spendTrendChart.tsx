@@ -79,9 +79,10 @@ export function SpendTrendChart({ values, className }: SpendTrendChartProps) {
           </linearGradient>
         </defs>
 
-        <path d={area} fill={`url(#${gradId})`} />
+        <path d={area} fill={`url(#${gradId})`} className="nx-trend-area" />
         <path
           d={linha}
+          pathLength="1"
           fill="none"
           stroke="var(--color-brand)"
           strokeWidth="2"
@@ -89,6 +90,7 @@ export function SpendTrendChart({ values, className }: SpendTrendChartProps) {
           strokeLinejoin="round"
           // Mantém a espessura uniforme apesar do esticamento do viewBox.
           vectorEffect="non-scaling-stroke"
+          className="nx-trend-path"
         />
       </svg>
 
@@ -96,7 +98,7 @@ export function SpendTrendChart({ values, className }: SpendTrendChartProps) {
           utilitário de marca, para o verde emitir luz em vez de só preencher. */}
       <span
         aria-hidden="true"
-        className="glow-sm absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand"
+        className="glow-sm absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand motion-safe:animate-[nx-signal-breathe_2.8s_ease-in-out_infinite]"
         style={{ left: "100%", top: `${ultimoY}%` }}
       />
     </div>

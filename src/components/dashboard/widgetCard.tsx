@@ -58,9 +58,9 @@ export function WidgetCard({
   );
 
   const estilo = cn(
-    "rise group flex h-full min-h-[9.5rem] flex-col rounded-card bg-surface p-4",
-    "transition-colors",
-    href && "hover:bg-elevated",
+    "rise group flex h-full min-h-[8.75rem] flex-col rounded-card border border-white/[0.045] bg-[linear-gradient(145deg,#17191d_0%,#121417_100%)] p-4",
+    "transition-[background-color,transform,border-color] duration-200 active:scale-[.985]",
+    href && "hover:border-white/[0.08] hover:bg-elevated",
     className
   );
 

@@ -22,8 +22,8 @@ import {
   validateRequiredFields,
   validatePositiveNumber,
 } from "@/utils/errorUtils";
-import * as Dialog from "@radix-ui/react-dialog";
 import { NewCategoryForm } from "./newCategoryForm";
+import { Modal } from "@/components/ui/modal";
 
 interface Props {
   onClose: () => void;
@@ -182,40 +182,30 @@ export function NewIncomeForm({ onClose, onCreated }: Props) {
                 </SelectContent>
               </Select>
             </div>
-            <Dialog.Root open={showCategoryModal} onOpenChange={setShowCategoryModal}>
-              <Dialog.Trigger asChild>
-                <button
-                  type="button"
-                  className="px-3 rounded-lg bg-green-600 hover:opacity-80 text-white font-bold text-lg transition-all"
-                  title="Criar nova categoria"
-                >
-                  +
-                </button>
-              </Dialog.Trigger>
-              <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-                <Dialog.Content className="fixed z-[60] top-1/2 left-1/2 w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-[#111] border border-[#333] p-6 shadow-lg focus:outline-none">
-                  <div className="flex justify-between items-center mb-4">
-                    <Dialog.Title className="text-xl font-semibold text-white">
-                      Nova Categoria
-                    </Dialog.Title>
-                    <Dialog.Close asChild>
-                      <button className="text-white hover:text-gray-300 cursor-pointer">
-                        ✕
-                      </button>
-                    </Dialog.Close>
-                  </div>
-                  <NewCategoryForm
-                    onClose={() => setShowCategoryModal(false)}
-                    onCreated={(newCategory) => {
-                      fetchCategorias();
-                      setCategoriaId(String(newCategory.id));
-                      setShowCategoryModal(false);
-                    }}
-                  />
-                </Dialog.Content>
-              </Dialog.Portal>
-            </Dialog.Root>
+            <button
+              type="button"
+              onClick={() => setShowCategoryModal(true)}
+              className="flex h-14 w-14 items-center justify-center rounded-[14px] border border-brand/30 bg-brand/10 text-xl font-semibold text-brand transition-[background-color,transform] hover:bg-brand/15 active:scale-[.97]"
+              title="Criar nova categoria"
+              aria-label="Criar nova categoria"
+            >
+              +
+            </button>
+            <Modal
+              open={showCategoryModal}
+              onOpenChange={setShowCategoryModal}
+              title="Nova categoria"
+              description="Crie uma categoria sem sair do lançamento."
+            >
+              <NewCategoryForm
+                onClose={() => setShowCategoryModal(false)}
+                onCreated={(newCategory) => {
+                  fetchCategorias();
+                  setCategoriaId(String(newCategory.id));
+                  setShowCategoryModal(false);
+                }}
+              />
+            </Modal>
           </div>
         </div>
       </div>

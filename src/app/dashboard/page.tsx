@@ -2,19 +2,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { CreditCard, Layers3, Waves } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-import { GreetingHeader } from "@/components/layout/greetingHeader";
 import { PageWrapper } from "@/components/layout/pageWrapper";
-import { BalanceHero } from "@/components/dashboard/balanceHero";
 import { CategoryBreakdown } from "@/components/dashboard/categoryBreakdown";
+import { DashboardHero } from "@/components/dashboard/dashboardHero";
 import { LimitRing } from "@/components/dashboard/limitRing";
 import { RecentActivity } from "@/components/dashboard/recentActivity";
 import { SpendTrendCard } from "@/components/dashboard/spendTrendCard";
 import { WidgetCard } from "@/components/dashboard/widgetCard";
 import { Money } from "@/components/ui/money";
-import { PrivacyProvider, usePrivacy } from "@/contexts/privacyContext";
+import { PrivacyProvider } from "@/contexts/privacyContext";
 import { useDataChanged } from "@/hooks/useDataRefresh";
 import { apiRequest } from "@/lib/auth";
 import { toActivities, type Activity } from "@/lib/activities";
@@ -127,17 +126,15 @@ function Dashboard() {
   const receitasMes = Number(dados?.comparativo?.receitas?.atual ?? 0);
 
   return (
-    <PageWrapper>
-      <GreetingHeader action={<PrivacyToggle />} />
+    <PageWrapper className="overflow-hidden">
+      <DashboardHero
+        saldo={Number(dados?.saldo ?? 0)}
+        entradas={receitasMes}
+        saidas={despesasMes}
+        carregando={carregando}
+      />
 
-      <div className="space-y-4">
-        <BalanceHero
-          saldo={Number(dados?.saldo ?? 0)}
-          entradas={receitasMes}
-          saidas={despesasMes}
-          carregando={carregando}
-        />
-
+      <div className="relative z-10 -mt-2 space-y-4 pb-5">
         {carregando ? (
           <div className="h-56 animate-pulse rounded-card bg-surface" />
         ) : (
@@ -175,6 +172,11 @@ function Dashboard() {
               }
               href="/cartoes"
               delay={120}
+              media={
+                <MetricIcon>
+                  <CreditCard className="h-4 w-4" aria-hidden="true" />
+                </MetricIcon>
+              }
             />
 
             <WidgetCard
@@ -210,6 +212,11 @@ function Dashboard() {
               sub="Em andamento"
               href="/cartoes"
               delay={240}
+              media={
+                <MetricIcon>
+                  <Layers3 className="h-4 w-4" aria-hidden="true" />
+                </MetricIcon>
+              }
             />
 
             <WidgetCard
@@ -217,6 +224,11 @@ function Dashboard() {
               value={<Money value={Number(dados?.saldoFuturo ?? 0)} />}
               sub="Já contando o que falta entrar e sair"
               delay={300}
+              media={
+                <MetricIcon>
+                  <Waves className="h-4 w-4" aria-hidden="true" />
+                </MetricIcon>
+              }
             />
           </div>
         )}
@@ -237,21 +249,11 @@ function Dashboard() {
   );
 }
 
-/** Botão do olho: some com os valores sem derrubar a sessão. */
-function PrivacyToggle() {
-  const { oculto, alternar } = usePrivacy();
-  const Icone = oculto ? EyeOff : Eye;
-
+function MetricIcon({ children }: { children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={alternar}
-      aria-pressed={oculto}
-      aria-label={oculto ? "Mostrar valores" : "Ocultar valores"}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-muted transition-colors hover:bg-elevated hover:text-fg"
-    >
-      <Icone className="h-[1.125rem] w-[1.125rem]" aria-hidden="true" />
-    </button>
+    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-elevated text-muted">
+      {children}
+    </span>
   );
 }
 

@@ -48,7 +48,7 @@ export function Modal({
       {trigger ? <Dialog.Trigger asChild>{trigger}</Dialog.Trigger> : null}
 
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in" />
+        <Dialog.Overlay className="nx-dialog-overlay fixed inset-0 z-[80] bg-[#030406]/82 backdrop-blur-[6px]" />
 
         <Dialog.Content
           // Sem <Dialog.Description>, o Radix avisa em dev. O escape oficial é
@@ -56,12 +56,12 @@ export function Modal({
           // spread condicional, e não um ternário (que passaria a chave sempre).
           {...(description ? {} : { "aria-describedby": undefined })}
           className={cn(
-            "fixed z-50 flex min-h-0 flex-col bg-surface shadow-2xl focus:outline-none",
+            "nx-dialog-content fixed z-[80] flex min-h-0 flex-col border border-white/[0.07] bg-[linear-gradient(160deg,#181b1f_0%,#111316_62%)] shadow-[0_28px_80px_rgba(0,0,0,.62)] focus:outline-none",
             // celular: folha ancorada embaixo
-            "inset-x-0 bottom-0 max-h-[92dvh] rounded-t-3xl",
+            "inset-x-0 bottom-0 max-h-[92dvh] rounded-t-[1.75rem]",
             // sm+: card centralizado
             "sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100%-2rem)]",
-            "sm:max-h-[88dvh] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl",
+            "sm:max-h-[88dvh] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[1.75rem]",
             SIZES[size],
             className
           )}
@@ -69,12 +69,16 @@ export function Modal({
           {/* Alça: afirma que dá para arrastar/fechar. Só no celular. */}
           <div
             aria-hidden="true"
-            className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-line sm:hidden"
+            className="mx-auto mt-3 h-[3px] w-10 shrink-0 rounded-full bg-brand/80 shadow-[0_0_14px_rgba(212,255,0,.3)] sm:hidden"
           />
 
-          <div className="flex shrink-0 items-start justify-between gap-4 px-6 pb-4 pt-5">
+          <div className="relative flex shrink-0 items-start justify-between gap-4 px-6 pb-4 pt-5">
+            <span
+              aria-hidden="true"
+              className="absolute left-6 top-0 hidden h-px w-14 bg-brand/80 shadow-[0_0_14px_rgba(212,255,0,.35)] sm:block"
+            />
             <div className="min-w-0">
-              <Dialog.Title className="font-display text-xl font-bold tracking-tight text-fg">
+              <Dialog.Title className="font-display text-xl font-bold tracking-[-0.025em] text-fg">
                 {title}
               </Dialog.Title>
               {description ? (
@@ -89,7 +93,7 @@ export function Modal({
                 type="button"
                 aria-label="Fechar"
                 data-radix-dialog-close
-                className="-mr-1 -mt-1 shrink-0 rounded-xl p-2 text-muted transition-colors hover:bg-elevated hover:text-fg"
+                className="-mr-1 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/[0.06] bg-elevated/70 text-muted transition-[background-color,color,transform] duration-200 hover:bg-line hover:text-fg active:scale-95"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -117,7 +121,7 @@ export function ModalActions({
   className?: string;
 }) {
   return (
-    <div className={cn("flex gap-3 pt-5", className)}>{children}</div>
+    <div className={cn("sticky bottom-0 -mx-1 flex gap-3 bg-gradient-to-t from-[#111316] via-[#111316] to-transparent px-1 pt-6", className)}>{children}</div>
   );
 }
 
@@ -126,7 +130,7 @@ export function ModalCancelButton({ children = "Cancelar" }: { children?: React.
     <Dialog.Close asChild>
       <button
         type="button"
-        className="flex-1 rounded-xl border border-line px-4 py-3 font-medium text-muted transition-colors hover:bg-elevated hover:text-fg"
+        className="min-h-12 flex-1 rounded-[14px] border border-line bg-transparent px-4 py-3 font-semibold text-muted transition-[background-color,color,transform] duration-200 hover:bg-elevated hover:text-fg active:scale-[.98]"
       >
         {children}
       </button>
@@ -151,7 +155,7 @@ export function ModalSubmitButton({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className="flex-1 rounded-xl bg-brand px-4 py-3 font-semibold text-bg transition-opacity glow-sm hover:opacity-90 disabled:opacity-50 disabled:shadow-none"
+      className="min-h-12 flex-1 rounded-[14px] bg-brand px-4 py-3 font-semibold text-bg transition-[opacity,transform,box-shadow] duration-200 glow-sm hover:opacity-90 active:scale-[.98] disabled:opacity-50 disabled:shadow-none"
     >
       {children}
     </button>

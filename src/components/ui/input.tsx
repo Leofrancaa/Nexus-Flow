@@ -6,10 +6,10 @@ const Input = React.forwardRef<
   React.InputHTMLAttributes<HTMLInputElement>
 >(({ className, type = "text", ...props }, ref) => {
   const classes = cn(
-    "flex h-14 w-full rounded-xl border border-line bg-elevated px-4 py-3",
+    "flex h-14 w-full rounded-[14px] border border-line bg-elevated px-4 py-3",
     // 16px no celular evita o zoom automático do iOS ao focar o campo.
     "text-base text-fg placeholder-subtle md:text-sm",
-    "transition-colors focus:border-brand/60 focus:outline-none focus:ring-2 focus:ring-brand/25",
+    "transition-[border-color,box-shadow,background-color] duration-200 focus:border-brand/60 focus:bg-[#1d2024] focus:outline-none focus:ring-2 focus:ring-brand/20",
     "disabled:cursor-not-allowed disabled:opacity-50"
   );
 

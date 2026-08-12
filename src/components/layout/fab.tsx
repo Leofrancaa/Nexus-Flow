@@ -49,7 +49,7 @@ export function Fab() {
           type="button"
           aria-label="Fechar ações"
           onClick={() => setExpanded(false)}
-          className="fixed inset-0 z-40 bg-bg/60 backdrop-blur-sm"
+          className="fixed inset-0 z-40 bg-[#030406]/72 backdrop-blur-[5px] motion-safe:animate-[nx-overlay-in_180ms_ease-out_both]"
         />
       )}
 
@@ -78,7 +78,7 @@ export function Fab() {
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
           aria-label={expanded ? "Fechar ações" : "Novo lançamento"}
-          className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand text-bg transition-transform glow hover:opacity-90 active:scale-95"
+          className="pointer-events-auto relative flex h-14 w-14 items-center justify-center rounded-full border border-brand/60 bg-brand text-bg transition-[transform,box-shadow,opacity] duration-200 glow hover:opacity-90 active:scale-95"
         >
           <Plus
             className={cn(
@@ -135,7 +135,7 @@ function FabAction({
       type="button"
       onClick={onClick}
       style={{ animationDelay: `${delay}ms` }}
-      className="rise flex items-center gap-3 rounded-full bg-elevated py-2.5 pl-4 pr-3 text-sm font-semibold text-fg shadow-lg"
+      className="rise flex items-center gap-3 rounded-full border border-white/[0.07] bg-[linear-gradient(145deg,#1b1e22_0%,#121417_100%)] py-2.5 pl-4 pr-3 text-sm font-semibold text-fg shadow-[0_18px_42px_rgba(0,0,0,.4)] transition-transform active:scale-[.98]"
     >
       {label}
       <span

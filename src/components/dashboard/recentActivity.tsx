@@ -35,7 +35,7 @@ export function RecentActivity({ itens, limite = 4 }: RecentActivityProps) {
 
   if (itens.length === 0) {
     return (
-      <section className="rounded-card bg-surface p-6 text-center">
+      <section className="rounded-card border border-white/[0.045] bg-surface p-6 text-center">
         <p className="text-sm text-muted">Nenhum lançamento este mês.</p>
         <p className="mt-1 text-xs text-subtle">
           Toque no + para registrar o primeiro.
@@ -62,7 +62,7 @@ export function RecentActivity({ itens, limite = 4 }: RecentActivityProps) {
         </Link>
       </div>
 
-      <ul className="overflow-hidden rounded-card bg-surface">
+      <ul className="overflow-hidden rounded-card border border-white/[0.045] bg-[linear-gradient(145deg,#17191d_0%,#121417_100%)]">
         {recentes.map((item, i) => (
           <li key={item.key}>
             <Link

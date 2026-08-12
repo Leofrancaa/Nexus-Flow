@@ -116,7 +116,7 @@ export function DatePicker({ value, onChange, placeholder = "Selecione uma data"
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2.5 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--card-text)] text-left flex items-center justify-between hover:border-[var(--card-border)]/80 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+        className="flex h-14 w-full items-center justify-between rounded-[14px] border border-line bg-elevated px-4 py-3 text-left text-fg transition-[border-color,box-shadow,background-color] duration-200 hover:border-line/80 focus:border-brand/60 focus:outline-none focus:ring-2 focus:ring-brand/20"
       >
         <span className={value ? "text-[var(--card-text)]" : "text-[var(--card-text)]/50"}>
           {formatDisplayDate(value)}
@@ -126,7 +126,7 @@ export function DatePicker({ value, onChange, placeholder = "Selecione uma data"
 
       {/* Calendar Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full sm:min-w-[320px] p-4 rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] shadow-2xl left-0 right-0">
+        <div className="absolute left-0 right-0 z-[110] mt-2 w-full rounded-[18px] border border-white/[0.07] bg-[linear-gradient(160deg,#1a1d21_0%,#111316_100%)] p-4 shadow-[0_24px_60px_rgba(0,0,0,.58)] sm:min-w-[320px]">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <button
@@ -180,9 +180,9 @@ export function DatePicker({ value, onChange, placeholder = "Selecione uma data"
                   className={`
                     aspect-square rounded-lg text-sm font-medium transition-all
                     ${selected
-                      ? 'bg-gradient-to-r from-[#2256FF] via-[#00D4AA] to-[#00D4D4] text-white shadow-lg'
+                      ? 'bg-brand text-bg shadow-[0_0_18px_rgba(212,255,0,.18)]'
                       : today
-                        ? 'bg-blue-500/20 text-blue-500 hover:bg-blue-500/30'
+                        ? 'bg-brand/10 text-brand hover:bg-brand/15'
                         : 'text-[var(--card-text)] hover:bg-[var(--hover-bg)]'
                     }
                   `}

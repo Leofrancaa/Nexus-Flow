@@ -13,19 +13,19 @@ export default function AddButton({
   ...props
 }: ButtonProps) {
   const base =
-    "flex justify-center lg:justify-between items-center rounded-xl font-semibold transition-all py-6 text-lg cursor-pointer text-[16px] px-4";
+    "flex min-h-12 cursor-pointer items-center justify-center rounded-[14px] px-5 py-3.5 text-base font-semibold transition-[background-color,color,opacity,transform,box-shadow] duration-200 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50";
 
   const variants = {
     primary:
-      "bg-gradient-to-r from-[#2256FF] via-[#00D4AA] to-[#00D4D4] text-white hover:opacity-90",
-    secondary: "bg-[#1F2937] text-white hover:bg-[#374151]",
+      "bg-brand text-bg glow-sm hover:opacity-90",
+    secondary: "bg-elevated text-fg hover:bg-line",
     ghost:
-      "bg-transparent border border-[#4B5563] text-[#D1D5DB] hover:bg-[#1F2937]",
+      "border border-line bg-transparent text-muted hover:bg-elevated hover:text-fg",
   };
 
   return (
     <button className={cn(base, variants[variant], className)} {...props}>
-      <Plus className="mr-2" />
+      <Plus className="mr-2 h-4 w-4" />
       {children}
     </button>
   );

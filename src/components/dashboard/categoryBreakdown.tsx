@@ -33,7 +33,7 @@ export function CategoryBreakdown({
 
   if (segmentos.length === 0) {
     return (
-      <section className="rise rounded-card bg-surface p-5">
+      <section className="rise rounded-card border border-white/[0.045] bg-surface p-5">
         <div className="flex items-center gap-2">
           <PieChart className="h-4 w-4 text-subtle" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-fg">
@@ -54,7 +54,7 @@ export function CategoryBreakdown({
   const ocultas = segmentos.length - naLegenda.length;
 
   return (
-    <section className="rise rounded-card bg-surface p-5">
+    <section className="rise rounded-card border border-white/[0.045] bg-[linear-gradient(145deg,#17191d_0%,#121417_100%)] p-5">
       <Link
         href="/categorias"
         className="group flex items-start justify-between gap-2"

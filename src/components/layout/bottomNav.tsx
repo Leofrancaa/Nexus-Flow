@@ -60,7 +60,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-bg/80 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.07] bg-bg/92 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
     >
       <ul className="mx-auto flex max-w-[430px] items-stretch">
         {TABS.map((tab) => {
@@ -73,14 +73,14 @@ export function BottomNav() {
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-16 flex-col items-center justify-center gap-1 transition-colors",
+                  "relative flex h-16 flex-col items-center justify-center gap-1 transition-colors",
                   active ? "text-brand" : "text-subtle hover:text-muted"
                 )}
               >
                 <span
                   className={cn(
                     "flex h-8 w-12 items-center justify-center rounded-full transition-all",
-                    active && "bg-brand/12 glow-sm"
+                    active && "bg-brand/10 glow-sm"
                   )}
                 >
                   <Icon
@@ -97,6 +97,12 @@ export function BottomNav() {
                 >
                   {tab.label}
                 </span>
+                {active ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute top-0 h-px w-12 bg-brand shadow-[0_0_12px_rgba(212,255,0,.55)]"
+                  />
+                ) : null}
               </Link>
             </li>
           );
