@@ -51,7 +51,7 @@ export function DashboardHero({
   const iniciais = nome ? nome.slice(0, 2).toUpperCase() : "NX";
 
   return (
-    <section className="relative -mx-5 min-h-[34rem] overflow-hidden bg-bg">
+    <section className="relative -mx-5 min-h-[28.5rem] overflow-hidden bg-bg">
       <Image
         src="/nexus-observatory.png"
         alt="Observatório de concreto iluminado em uma montanha durante a noite"
@@ -63,14 +63,14 @@ export function DashboardHero({
 
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,13,.03)_0%,rgba(8,10,13,.12)_34%,rgba(8,10,13,.72)_70%,#080a0d_100%)]"
+        className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,13,.02)_0%,rgba(8,10,13,.07)_34%,rgba(8,10,13,.38)_72%,rgba(8,10,13,.9)_100%)]"
       />
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,10,13,.56)_0%,rgba(8,10,13,.18)_54%,rgba(8,10,13,.08)_100%)]"
       />
 
-      <div className="relative z-10 flex min-h-[34rem] flex-col px-5 pb-7 pt-[max(2rem,env(safe-area-inset-top))]">
+      <div className="relative z-10 flex min-h-[28.5rem] flex-col px-5 pb-7 pt-[max(2rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
           <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-bg/35 text-xs font-bold tracking-[0.08em] text-fg backdrop-blur-md">
             <span
@@ -95,7 +95,7 @@ export function DashboardHero({
           </button>
         </div>
 
-        <div className="mt-20 rise">
+        <div className="mt-12 rise">
           <p className="text-base text-fg/65">
             {hora === null ? "Olá" : saudacao(hora)},
           </p>
@@ -104,7 +104,7 @@ export function DashboardHero({
           </h1>
         </div>
 
-        <div className="mt-auto">
+        <div className="mt-10 rise [animation-delay:110ms]">
           <p className="text-sm text-fg/70">Saldo atual</p>
           {carregando ? (
             <div className="mt-2 h-12 w-56 animate-pulse rounded-xl bg-white/10" />
@@ -116,23 +116,23 @@ export function DashboardHero({
           )}
 
           <div className="relative mt-5 h-8" aria-hidden="true">
-            <svg
-              viewBox="0 0 390 32"
-              preserveAspectRatio="none"
-              className="absolute inset-0 h-full w-full overflow-visible"
-            >
-              <path
-                d="M0 21 C54 21 94 21 132 21 C167 21 172 5 205 9 C235 13 237 25 269 18 C303 10 326 8 390 7"
-                pathLength="1"
-                fill="none"
-                stroke="var(--color-brand)"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-                className="nx-pulse-path"
-              />
-            </svg>
-            <span className="glow-sm absolute right-0 top-[3px] h-2.5 w-2.5 rounded-full bg-brand motion-safe:animate-[nx-signal-breathe_2.8s_ease-in-out_infinite]" />
+            <div className="nx-signal-reveal absolute inset-0">
+              <svg
+                viewBox="0 0 390 32"
+                preserveAspectRatio="none"
+                className="h-full w-full overflow-visible"
+              >
+                <path
+                  d="M0 21 C54 21 94 21 132 21 C167 21 172 5 205 9 C235 13 237 25 269 18 C303 10 326 8 390 7"
+                  fill="none"
+                  stroke="var(--color-brand)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+            </div>
+            <span className="nx-signal-node glow-sm absolute right-0 top-[3px] h-2.5 w-2.5 rounded-full bg-brand motion-safe:animate-[nx-signal-breathe_2.8s_ease-in-out_infinite]" />
           </div>
 
           <div className="mt-1 flex items-center gap-5 text-xs">

@@ -220,30 +220,27 @@
   }
 }
 
-@keyframes nx-trace {
+@keyframes nx-signal-reveal {
   from {
-    stroke-dashoffset: 1;
+    opacity: 0.45;
+    clip-path: inset(0 100% 0 0);
   }
   to {
-    stroke-dashoffset: 0;
+    opacity: 1;
+    clip-path: inset(0);
   }
 }
 
-@keyframes nx-area-reveal {
-  from { opacity: 0; }
-  to { opacity: 1; }
+/* Revela o gráfico como uma superfície única. Assim o traço continua sólido
+   em qualquer densidade de tela, sem artefatos de stroke-dasharray. */
+.nx-signal-reveal {
+  animation: nx-signal-reveal 760ms cubic-bezier(0.16, 1, 0.3, 1) 180ms both;
 }
 
-.nx-pulse-path,
-.nx-trend-path {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: nx-trace 720ms cubic-bezier(0.16, 1, 0.3, 1) 180ms forwards;
-}
-
-.nx-trend-area {
+.nx-signal-node {
   opacity: 0;
-  animation: nx-area-reveal 480ms ease-out 430ms forwards;
+  animation-delay: 760ms !important;
+  animation-fill-mode: both !important;
 }
 
 @keyframes nx-overlay-in {
@@ -273,6 +270,74 @@
   }
 }
 
+@keyframes nx-overlay-out {
+  to { opacity: 0; }
+}
+
+@keyframes nx-sheet-out {
+  to {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@keyframes nx-dialog-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.985);
+  }
+}
+
+@keyframes nx-modal-signal-in {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes nx-modal-node-in {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes nx-confirm-icon-in {
+  from { opacity: 0; transform: scale(0.76); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.nx-dialog-content {
+  --nx-modal-accent: var(--color-brand);
+}
+
+.nx-confirm-dialog {
+  --nx-modal-accent: var(--color-negative);
+}
+
+.nx-dialog-content::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: -1px;
+  left: 1.5rem;
+  width: 4.5rem;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--nx-modal-accent));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--nx-modal-accent) 32%, transparent);
+  transform-origin: left;
+}
+
+.nx-dialog-content::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  top: -3px;
+  left: calc(6rem - 4px);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--nx-modal-accent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--nx-modal-accent) 48%, transparent);
+}
+
 .nx-dialog-overlay[data-state="open"] {
   animation: nx-overlay-in 220ms ease-out both;
 }
@@ -281,10 +346,82 @@
   animation: nx-sheet-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.nx-dialog-overlay[data-state="closed"] {
+  animation: nx-overlay-out 160ms ease-in both;
+}
+
+.nx-dialog-content[data-state="closed"] {
+  animation: nx-sheet-out 180ms ease-in both;
+}
+
+.nx-dialog-content[data-state="open"]::before {
+  animation: nx-modal-signal-in 520ms cubic-bezier(0.16, 1, 0.3, 1) 110ms both;
+}
+
+.nx-dialog-content[data-state="open"]::after {
+  animation: nx-modal-node-in 240ms cubic-bezier(0.16, 1, 0.3, 1) 500ms both;
+}
+
+.nx-dialog-content[data-state="open"] .nx-dialog-header,
+.nx-dialog-content[data-state="open"] .nx-dialog-body {
+  animation: nx-rise 420ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+
+.nx-dialog-content[data-state="open"] .nx-dialog-body {
+  animation-delay: 130ms;
+}
+
+.nx-dialog-content[data-state="open"] .nx-confirm-icon {
+  animation: nx-confirm-icon-in 360ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+
 @media (min-width: 640px) {
   .nx-dialog-content[data-state="open"] {
     animation-name: nx-dialog-in;
   }
+
+  .nx-dialog-content[data-state="closed"] {
+    animation-name: nx-dialog-out;
+  }
+}
+
+@keyframes nx-toast-signal {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes nx-toast-loading-signal {
+  0%, 100% { transform: translateX(-70%) scaleX(.28); }
+  50% { transform: translateX(70%) scaleX(.52); }
+}
+
+.nx-toast {
+  --nx-toast-accent: var(--color-brand);
+  position: relative;
+  overflow: hidden;
+}
+
+.nx-toast-error {
+  --nx-toast-accent: var(--color-negative);
+}
+
+.nx-toast::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14px;
+  width: 48px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--nx-toast-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--nx-toast-accent) 38%, transparent);
+  transform-origin: left;
+  animation: nx-toast-signal 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.nx-toast-loading::after {
+  width: 58px;
+  animation: nx-toast-loading-signal 1.5s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

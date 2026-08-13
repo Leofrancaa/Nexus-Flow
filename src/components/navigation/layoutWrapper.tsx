@@ -45,6 +45,7 @@ export default function LayoutWrapper({
         }}
         toastOptions={{
           duration: 4000,
+          className: "nx-toast",
           style: {
             background: "linear-gradient(145deg, #1A1D21 0%, #111316 100%)",
             color: "#F5F7F8",
@@ -60,22 +61,25 @@ export default function LayoutWrapper({
           },
           success: {
             duration: 3000,
+            className: "nx-toast nx-toast-success",
             icon: <Check className="h-4 w-4 text-brand" />,
             style: {
               border: "1px solid rgba(212,255,0,.22)",
-              boxShadow: "0 22px 54px rgba(0,0,0,.5), inset 3px 0 0 #D4FF00",
+              boxShadow: "0 22px 54px rgba(0,0,0,.5), 0 0 24px rgba(212,255,0,.06)",
             },
           },
           error: {
             duration: 5000,
+            className: "nx-toast nx-toast-error",
             icon: <TriangleAlert className="h-4 w-4 text-negative" />,
             style: {
               border: "1px solid rgba(242,100,112,.24)",
-              boxShadow: "0 22px 54px rgba(0,0,0,.5), inset 3px 0 0 #F26470",
+              boxShadow: "0 22px 54px rgba(0,0,0,.5), 0 0 24px rgba(242,100,112,.06)",
             },
           },
           loading: {
             duration: Infinity,
+            className: "nx-toast nx-toast-loading",
             icon: <LoaderCircle className="h-4 w-4 animate-spin text-brand" />,
             style: {
               border: "1px solid rgba(212,255,0,.18)",

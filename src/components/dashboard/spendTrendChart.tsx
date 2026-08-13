@@ -57,48 +57,48 @@ export function SpendTrendChart({ values, className }: SpendTrendChartProps) {
 
   return (
     <div className={cn("relative", className)}>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
-        className="h-full w-full"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <defs>
-          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop
-              offset="0%"
-              stopColor="var(--color-brand)"
-              stopOpacity="0.32"
-            />
-            <stop
-              offset="100%"
-              stopColor="var(--color-brand)"
-              stopOpacity="0"
-            />
-          </linearGradient>
-        </defs>
+      <div className="nx-signal-reveal h-full w-full">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          className="h-full w-full"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop
+                offset="0%"
+                stopColor="var(--color-brand)"
+                stopOpacity="0.32"
+              />
+              <stop
+                offset="100%"
+                stopColor="var(--color-brand)"
+                stopOpacity="0"
+              />
+            </linearGradient>
+          </defs>
 
-        <path d={area} fill={`url(#${gradId})`} className="nx-trend-area" />
-        <path
-          d={linha}
-          pathLength="1"
-          fill="none"
-          stroke="var(--color-brand)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          // Mantém a espessura uniforme apesar do esticamento do viewBox.
-          vectorEffect="non-scaling-stroke"
-          className="nx-trend-path"
-        />
-      </svg>
+          <path d={area} fill={`url(#${gradId})`} />
+          <path
+            d={linha}
+            fill="none"
+            stroke="var(--color-brand)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            // Mantém a espessura uniforme apesar do esticamento do viewBox.
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      </div>
 
       {/* Ponta da curva: é o "você está aqui" do gráfico. O halo vem do
           utilitário de marca, para o verde emitir luz em vez de só preencher. */}
       <span
         aria-hidden="true"
-        className="glow-sm absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand motion-safe:animate-[nx-signal-breathe_2.8s_ease-in-out_infinite]"
+        className="nx-signal-node glow-sm absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand motion-safe:animate-[nx-signal-breathe_2.8s_ease-in-out_infinite]"
         style={{ left: "100%", top: `${ultimoY}%` }}
       />
     </div>
