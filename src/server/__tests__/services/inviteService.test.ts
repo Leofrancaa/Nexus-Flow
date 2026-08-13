@@ -26,8 +26,8 @@ describe('InviteService', () => {
 
   it('lista os códigos com info de quem usou', async () => {
     const [user] = await db
-      .insert(schema.users)
-      .values({ nome: 'Fulano', email: 'fulano@x.com', senha: 'h' })
+      .insert(schema.profiles)
+      .values({ nome: 'Fulano', email: 'fulano@x.com' })
       .returning()
     await db.insert(schema.inviteCodes).values({
       code: 'USEDCODE',
@@ -58,8 +58,8 @@ describe('InviteService', () => {
 
   it('lista usuários', async () => {
     await db
-      .insert(schema.users)
-      .values({ nome: 'Ana', email: 'ana@x.com', senha: 'h' })
+      .insert(schema.profiles)
+      .values({ nome: 'Ana', email: 'ana@x.com' })
     const users = await InviteService.listUsers()
     expect(users.length).toBeGreaterThan(0)
     expect(users[0]).toHaveProperty('email')

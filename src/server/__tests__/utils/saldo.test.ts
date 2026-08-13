@@ -15,8 +15,8 @@ function diasAPartirDeHoje(dias: number): Date {
 
 async function seedUser() {
   await db
-    .insert(schema.users)
-    .values({ id: USER_ID, nome: 'Teste', email: 'teste@nexus.dev', senha: 'x' })
+    .insert(schema.profiles)
+    .values({ id: USER_ID, nome: 'Teste', email: 'teste@nexus.dev' })
 }
 
 /**

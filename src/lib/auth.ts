@@ -18,6 +18,12 @@ export const login = async (data: { email: string; senha: string }) => {
     email: data.email.trim(),
     password: data.senha,
   })
+  if (error?.code === 'email_not_confirmed') {
+    throw new LoginError('Confirme seu e-mail antes de entrar.')
+  }
+  if (error?.code === 'over_request_rate_limit') {
+    throw new LoginError('Muitas tentativas. Aguarde alguns minutos e tente novamente.')
+  }
   if (error) throw new LoginError('E-mail ou senha incorretos.')
   return { success: true, message: 'Login realizado com sucesso.' }
 }

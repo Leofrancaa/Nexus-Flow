@@ -41,5 +41,9 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims()
   const claims = data?.claims
 
+  // Respostas que podem renovar cookies de sessão nunca devem ser servidas do
+  // cache de uma CDN para outra pessoa.
+  response.headers.set('Cache-Control', 'private, no-store')
+
   return { response, claims }
 }

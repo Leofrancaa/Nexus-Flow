@@ -4,7 +4,6 @@ import type { Metadata, Viewport } from "next";
 import { Manrope, Bricolage_Grotesque } from "next/font/google";
 import LayoutWrapper from "../components/navigation/layoutWrapper";
 import { DateProvider } from "../contexts/dateContext";
-import AuthGuard from "@/components/authGuard";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -19,8 +18,8 @@ const bricolage = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
-  title: "Nexus - Gestão Financeira",
-  description: "Plataforma completa de gestão financeira pessoal para controlar suas finanças de forma simples e eficiente",
+  title: "Nexus · Finanças pessoais",
+  description: "Uma visão privada e precisa da sua vida financeira.",
   applicationName: "Nexus",
   appleWebApp: {
     capable: true,
@@ -53,7 +52,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   // Colore a barra do navegador/PWA — acompanha o fundo do app.
-  themeColor: "#0A0A0A",
+  themeColor: "#080A0D",
   viewportFit: "cover", // libera env(safe-area-inset-*) para a bottom nav
 };
 
@@ -65,11 +64,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${manrope.variable} ${bricolage.variable}`}>
       <body className="antialiased min-h-screen font-sans">
-        <AuthGuard>
-          <DateProvider>
-            <LayoutWrapper>{children}</LayoutWrapper>
-          </DateProvider>
-        </AuthGuard>
+        <DateProvider>
+          <LayoutWrapper>{children}</LayoutWrapper>
+        </DateProvider>
       </body>
     </html>
   );

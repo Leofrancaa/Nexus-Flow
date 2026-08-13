@@ -36,6 +36,7 @@ const TABLES = [
   'chat_messages',
   'pluggy_accounts',
   'pluggy_items',
+  'profiles',
   'users',
 ]
 
@@ -55,6 +56,20 @@ export async function applySchema(): Promise<void> {
   }
 
   await client.exec(`
+    -- A produção usa auth.users + public.profiles com UUID. As migrações
+    -- históricas do PGlite ainda usam ids inteiros; esta tabela mantém o
+    -- contrato atual dos services sem tentar reproduzir o schema auth.
+    CREATE TABLE IF NOT EXISTS profiles (
+      id serial PRIMARY KEY,
+      nome text NOT NULL,
+      email text NOT NULL UNIQUE,
+      currency text DEFAULT 'BRL' NOT NULL,
+      accepted_terms boolean DEFAULT false NOT NULL,
+      accepted_terms_at timestamp,
+      created_at timestamp DEFAULT now() NOT NULL,
+      updated_at timestamp DEFAULT now() NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS expense_history (
       id serial PRIMARY KEY,
       expense_id integer NOT NULL,

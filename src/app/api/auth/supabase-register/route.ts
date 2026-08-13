@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
     if (!nome || !normalizedEmail || !senha || !aceitouTermos) {
       return NextResponse.json({ success: false, error: 'Preencha todos os dados e aceite os termos para continuar.' }, { status: 400 })
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || senha.length < 6) {
-      return NextResponse.json({ success: false, error: 'Informe um e-mail válido e uma senha de ao menos 6 caracteres.' }, { status: 400 })
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || senha.length < 8) {
+      return NextResponse.json({ success: false, error: 'Informe um e-mail válido e uma senha de ao menos 8 caracteres.' }, { status: 400 })
     }
 
     const [profileCount, inviteCount] = await Promise.all([
@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     )
+    response.headers.set('Cache-Control', 'private, no-store')
     const supabase = createServerClient(url, publishableKey, {
       cookies: {
         getAll: () => request.cookies.getAll(),
@@ -69,6 +70,16 @@ export async function POST(request: NextRequest) {
     })
     if (error || !data.user) {
       return NextResponse.json({ success: false, error: error?.message || 'Não foi possível criar a conta.' }, { status: 400 })
+    }
+
+    // Com confirmação por e-mail, o Supabase pode devolver um usuário
+    // ofuscado para um endereço já cadastrado. Não consumimos o convite nesse
+    // caso e mantemos uma mensagem neutra para não expor contas existentes.
+    if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Não foi possível criar a conta com estes dados.' },
+        { status: 400, headers: { 'Cache-Control': 'private, no-store' } }
+      )
     }
 
     if (!isBootstrap && normalizedInviteCode) {

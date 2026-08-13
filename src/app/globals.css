@@ -208,6 +208,37 @@
   }
 }
 
+@keyframes nx-auth-image-settle {
+  from {
+    opacity: 0;
+    transform: scale(1.055);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+}
+
+@keyframes nx-auth-form-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nx-auth-image {
+  transform: scale(1.015);
+  animation: nx-auth-image-settle 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.nx-auth-form {
+  animation: nx-auth-form-in 520ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+
 @keyframes nx-signal-breathe {
   0%,
   100% {

@@ -16,9 +16,10 @@ export async function middleware(request: NextRequest) {
     .getAll()
     .some((cookie) => cookie.name.startsWith('sb-') && cookie.name.includes('-auth-token'))
 
-  // Login, cadastro e recuperação devem continuar rápidos mesmo sem sessão.
-  // O cliente resolve o redirecionamento se alguém já estiver autenticado.
-  if (isPublic && !hasSessionCookie) return NextResponse.next()
+  // As telas de autenticação também funcionam como troca e recuperação de
+  // acesso. Elas precisam continuar acessíveis mesmo quando já existe uma
+  // sessão válida; apenas as rotas privadas exigem autenticação.
+  if (isPublic) return NextResponse.next()
   if (!isProtected && pathname !== '/' && !hasSessionCookie) return NextResponse.next()
   if ((isProtected || pathname === '/') && !hasSessionCookie) {
     return NextResponse.redirect(new URL('/login', request.url))
@@ -34,7 +35,6 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isProtected && !isAuthenticated) return redirect('/login')
-  if (isPublic && isAuthenticated) return redirect('/dashboard')
   if (pathname === '/') return redirect(isAuthenticated ? '/dashboard' : '/login')
 
   return response
