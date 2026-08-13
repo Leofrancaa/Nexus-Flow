@@ -3,7 +3,7 @@ import { updateSession } from '@/utils/supabase/middleware'
 
 const PROTECTED_ROUTES = [
   '/dashboard', '/atividades', '/cartoes', '/assistente', '/perfil',
-  '/categorias', '/limites', '/planos', '/configuracoes', '/manual',
+  '/categorias', '/limites', '/planos', '/configuracoes', '/manual', '/open-finance',
   '/receitas', '/despesas',
 ]
 const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password']
