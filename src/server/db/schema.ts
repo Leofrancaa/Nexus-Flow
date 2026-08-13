@@ -240,6 +240,19 @@ export const pluggyAccounts = pgTable('pluggy_accounts', {
   ...timestamps,
 })
 
+// Caixa de entrada idempotente dos webhooks. A Pluggy repete entregas quando
+// não recebe 2xx; o event_id único impede processar a mesma mudança duas vezes.
+export const pluggyWebhookEvents = pgTable('pluggy_webhook_events', {
+  id: serial('id').primaryKey(),
+  event_id: text('event_id').notNull().unique(),
+  event: text('event').notNull(),
+  item_id: text('item_id'),
+  status: text('status').default('received').notNull(),
+  error: text('error'),
+  processed_at: timestamp('processed_at', { mode: 'date' }),
+  created_at: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+})
+
 export const inviteCodes = pgTable('invite_codes', {
   id: serial('id').primaryKey(),
   code: varchar('code').notNull().unique(),

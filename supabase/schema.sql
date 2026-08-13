@@ -61,11 +61,14 @@ alter table public.thresholds enable row level security;
 alter table public.chat_messages enable row level security;
 alter table public.pluggy_items enable row level security;
 alter table public.pluggy_accounts enable row level security;
+alter table public.pluggy_webhook_events enable row level security;
 alter table public.invite_codes enable row level security;
 
 grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
+revoke all on table public.pluggy_webhook_events from anon, authenticated;
+revoke all on sequence public.pluggy_webhook_events_id_seq from anon, authenticated;
 
 create policy "profile owner manages profile" on public.profiles for all to authenticated using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 create policy "categories belong to user" on public.categories for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);

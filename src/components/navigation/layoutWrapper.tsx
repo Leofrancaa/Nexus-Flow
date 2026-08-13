@@ -12,7 +12,7 @@ const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-passwor
  * Telas em que o FAB atrapalharia mais do que ajudaria: o assistente já tem
  * um campo fixo no rodapé, e o perfil é hub de navegação, não de lançamento.
  */
-const routesWithoutFab = ["/assistente", "/perfil"];
+const routesWithoutFab = ["/assistente", "/perfil", "/open-finance"];
 
 export default function LayoutWrapper({
   children,

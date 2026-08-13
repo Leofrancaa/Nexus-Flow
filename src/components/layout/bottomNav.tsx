@@ -36,7 +36,7 @@ const TABS: Tab[] = [
     icon: User,
     // O hub do perfil é a porta de entrada destas telas; sem isso a barra
     // ficaria sem nenhuma aba acesa ao navegar para dentro delas.
-    owns: ["/categorias", "/limites", "/planos", "/configuracoes", "/manual"],
+    owns: ["/categorias", "/limites", "/planos", "/configuracoes", "/manual", "/open-finance"],
   },
 ];
 

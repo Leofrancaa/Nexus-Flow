@@ -61,7 +61,7 @@ const nextConfig = {
     },
 
     // Webpack customizations para otimizar bundle
-    webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    webpack: (config, { dev, isServer }) => {
         // Otimizações para produção
         if (!dev && !isServer) {
             // Reduzir tamanho do bundle

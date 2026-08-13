@@ -86,11 +86,11 @@ export function IncomeByCategoryPieChart({ mes, ano, refreshKey }: Props) {
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: number, name: string) => [
-                `R$ ${value.toLocaleString("pt-BR", {
+              formatter={(value, name) => [
+                `R$ ${Number(value ?? 0).toLocaleString("pt-BR", {
                   minimumFractionDigits: 2,
                 })}`,
-                name,
+                String(name ?? ""),
               ]}
               contentStyle={{
                 backgroundColor: "var(--chart-tooltip-bg)",

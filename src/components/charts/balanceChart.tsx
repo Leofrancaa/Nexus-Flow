@@ -114,8 +114,8 @@ export default function BalanceChart({ refreshKey = 0 }: Props) {
               borderRadius: 8,
             }}
             labelStyle={{ color: "var(--chart-tooltip-label)" }}
-            formatter={(value: number) =>
-              value.toLocaleString("pt-BR", {
+            formatter={(value) =>
+              Number(value ?? 0).toLocaleString("pt-BR", {
                 style: "currency",
                 currency: "BRL",
               })

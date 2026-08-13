@@ -8,6 +8,7 @@ import {
   ChevronRight,
   FolderKanban,
   Gauge,
+  Landmark,
   LogOut,
   Settings,
   Target,
@@ -25,6 +26,12 @@ interface ItemHub {
 }
 
 const ITENS: ItemHub[] = [
+  {
+    label: "Open Finance",
+    descricao: "Conecte bancos e sincronize transações",
+    href: "/open-finance",
+    icon: Landmark,
+  },
   {
     label: "Categorias",
     descricao: "Organize entradas e saídas",
