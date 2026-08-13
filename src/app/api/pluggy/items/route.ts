@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, ne, sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
 import { pluggyAccounts, pluggyItems } from '@/server/db/schema'
 import { getAuthUser, unauthorizedResponse } from '@/server/lib/auth'
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       })
       .from(pluggyItems)
       .leftJoin(pluggyAccounts, eq(pluggyAccounts.item_id, pluggyItems.item_id))
-      .where(eq(pluggyItems.user_id, user.id))
+      .where(and(eq(pluggyItems.user_id, user.id), ne(pluggyItems.status, 'DELETED')))
       .groupBy(pluggyItems.id)
       .orderBy(desc(pluggyItems.created_at))
     return ok(items)

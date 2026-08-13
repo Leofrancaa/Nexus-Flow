@@ -226,6 +226,36 @@ export async function deletePluggyTransactions(ids: string[]) {
   ])
 }
 
+export async function deletePluggyItemData(itemId: string, expectedUserId?: string) {
+  const itemCondition = expectedUserId
+    ? and(eq(pluggyItems.item_id, itemId), eq(pluggyItems.user_id, expectedUserId))
+    : eq(pluggyItems.item_id, itemId)
+  const accountCondition = expectedUserId
+    ? and(eq(pluggyAccounts.item_id, itemId), eq(pluggyAccounts.user_id, expectedUserId))
+    : eq(pluggyAccounts.item_id, itemId)
+
+  await db.transaction(async (tx) => {
+    const accountRows = await tx
+      .select({ id: pluggyAccounts.account_id, userId: pluggyAccounts.user_id })
+      .from(pluggyAccounts)
+      .where(accountCondition)
+
+    for (const account of accountRows) {
+      const expenseCondition = expectedUserId
+        ? and(eq(expenses.pluggy_account_id, account.id), eq(expenses.user_id, expectedUserId))
+        : eq(expenses.pluggy_account_id, account.id)
+      const incomeCondition = expectedUserId
+        ? and(eq(incomes.pluggy_account_id, account.id), eq(incomes.user_id, expectedUserId))
+        : eq(incomes.pluggy_account_id, account.id)
+      await tx.delete(expenses).where(expenseCondition)
+      await tx.delete(incomes).where(incomeCondition)
+    }
+
+    await tx.delete(pluggyAccounts).where(accountCondition)
+    await tx.delete(pluggyItems).where(itemCondition)
+  })
+}
+
 export async function markWebhookProcessed(eventId: string, error?: unknown) {
   await db
     .update(pluggyWebhookEvents)

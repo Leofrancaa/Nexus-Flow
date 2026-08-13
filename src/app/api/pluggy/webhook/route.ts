@@ -3,7 +3,12 @@ import { timingSafeEqual } from 'node:crypto'
 import { eq } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
 import { pluggyItems, pluggyWebhookEvents } from '@/server/db/schema'
-import { deletePluggyTransactions, markWebhookProcessed, syncPluggyItem } from '@/server/services/pluggySyncService'
+import {
+  deletePluggyItemData,
+  deletePluggyTransactions,
+  markWebhookProcessed,
+  syncPluggyItem,
+} from '@/server/services/pluggySyncService'
 
 type PluggyWebhook = {
   event?: string
@@ -24,7 +29,9 @@ function validSecret(received: string | null): boolean {
 
 async function processWebhook(payload: PluggyWebhook) {
   try {
-    if (payload.event === 'transactions/deleted') {
+    if (payload.event === 'item/deleted' && payload.itemId) {
+      await deletePluggyItemData(payload.itemId)
+    } else if (payload.event === 'transactions/deleted') {
       await deletePluggyTransactions(payload.transactionIds ?? [])
     } else if (payload.itemId && ['item/created', 'item/updated', 'transactions/created', 'transactions/updated'].includes(payload.event ?? '')) {
       await syncPluggyItem(payload.itemId, payload.clientUserId)
