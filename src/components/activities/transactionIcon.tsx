@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
 
 const BRAND_MATCHES = [
   { terms: ["ifood"], slug: "ifood", color: "#ea1d2c" },
-  { terms: ["subway"], slug: "subway", color: "#008c15" },
+  { terms: ["subway"], asset: "/merchant-logos/subway.svg", color: "#008c15", wide: true },
+  { terms: ["byd auto", "salario byd", "salário byd", "byd"], asset: "/merchant-logos/byd.svg", color: "#d70c19", wide: true },
   { terms: ["google"], slug: "google", color: "#ffffff" },
   { terms: ["amazon"], slug: "amazon", color: "#ff9900" },
   { terms: ["uber"], slug: "uber", color: "#ffffff" },
@@ -103,10 +104,14 @@ export function TransactionIcon({
       >
         {brand && !brandFailed ? (
           <Image
-            src={`https://cdn.simpleicons.org/${brand.slug}/${brand.color.slice(1)}`}
+            src={
+              "asset" in brand
+                ? brand.asset
+                : `https://cdn.simpleicons.org/${brand.slug}/${brand.color.slice(1)}`
+            }
             alt=""
-            width={26}
-            height={26}
+            width={"wide" in brand && brand.wide ? 36 : 26}
+            height={"wide" in brand && brand.wide ? 20 : 26}
             unoptimized
             onError={() => setBrandFailed(true)}
           />

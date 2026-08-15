@@ -299,6 +299,8 @@ export interface CreateThresholdRequest {
 export interface DashboardData {
     saldo: number
     saldoFuturo: number
+    saldoOrigem: 'contas' | 'lancamentos'
+    saldoInvestimentos: number
     totaisMensais: MonthlyTotal[]
     resumoAnual: AnnualSummary[]
     comparativo: MonthlyComparison

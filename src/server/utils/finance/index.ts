@@ -1,4 +1,5 @@
 export { getSaldoAtual } from './getSaldoAtual'
+export { getSaldoConectado } from './getSaldoConectado'
 export { getSaldoFuturo } from './getSaldoFuturo'
 export { getTotaisMensais } from './getTotaisMensais'
 export { getComparativoMensal } from './getComparativoMensal'

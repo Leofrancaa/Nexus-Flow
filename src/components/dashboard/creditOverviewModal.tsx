@@ -41,12 +41,12 @@ export function CreditOverviewModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Crédito e faturas"
-      description="Limites e fatura atual de cada cartão conectado."
+      description="Fatura em aberto separada do limite total comprometido."
       className="sm:max-w-md"
     >
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl bg-elevated px-4 py-3">
-          <p className="text-xs text-muted">Faturas atuais</p>
+          <p className="text-xs text-muted">Em aberto neste ciclo</p>
           <Money value={totalInvoice} className="mt-1 block text-lg font-bold text-fg" />
         </div>
         <div className="rounded-2xl bg-elevated px-4 py-3">
@@ -59,6 +59,7 @@ export function CreditOverviewModal({
         {cards.map((card) => {
           const limit = Number(card.limite);
           const available = Number(card.limite_disponivel);
+          const used = Math.max(limit - available, 0);
           const usedRatio = limit > 0 ? Math.min(Math.max((limit - available) / limit, 0), 1) : 0;
 
           return (
@@ -82,7 +83,7 @@ export function CreditOverviewModal({
 
               <div className="mt-4 flex items-end justify-between gap-3">
                 <div>
-                  <p className="text-xs text-muted">Fatura atual</p>
+                  <p className="text-xs text-muted">Fatura em aberto</p>
                   <Money value={Number(card.total_gasto)} className="mt-0.5 block text-lg font-bold text-fg" />
                 </div>
                 <p className="flex items-center gap-1 text-xs text-subtle">
@@ -94,7 +95,7 @@ export function CreditOverviewModal({
               {limit > 0 ? (
                 <div className="mt-3">
                   <div className="mb-1.5 flex justify-between text-[11px] text-subtle">
-                    <span>{Math.round(usedRatio * 100)}% usado</span>
+                    <span>{Math.round(usedRatio * 100)}% do limite usado</span>
                     <span><Money value={available} /> livres</span>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-line">
@@ -103,6 +104,9 @@ export function CreditOverviewModal({
                       style={{ width: `${usedRatio * 100}%` }}
                     />
                   </div>
+                  <p className="mt-1.5 text-[11px] text-subtle">
+                    <Money value={used} /> comprometidos, incluindo parcelas futuras
+                  </p>
                 </div>
               ) : (
                 <p className="mt-3 text-xs text-warning">A instituição ainda não informou o limite deste cartão.</p>
@@ -112,10 +116,15 @@ export function CreditOverviewModal({
         })}
       </ul>
 
+      <p className="mt-3 rounded-2xl bg-elevated px-4 py-3 text-xs leading-relaxed text-muted">
+        O limite comprometido pode reunir várias faturas e parcelas futuras. Ele não é usado como
+        valor da fatura em aberto.
+      </p>
+
       <button
         type="button"
         onClick={onSync}
-        className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-line px-4 font-semibold text-fg transition-[background-color,transform] hover:bg-elevated active:scale-[.98]"
+        className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-line px-4 font-semibold text-fg transition-[background-color,transform] hover:bg-elevated active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
       >
         <RefreshCw className="h-4 w-4 text-brand" aria-hidden="true" />
         Atualizar dados dos cartões

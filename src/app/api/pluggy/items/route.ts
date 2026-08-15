@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
         connectorName: pluggyItems.connector_name,
         status: pluggyItems.status,
         lastSyncedAt: pluggyItems.last_synced_at,
-        accountCount: sql<number>`count(${pluggyAccounts.id})::int`,
-        balance: sql<string>`coalesce(sum(case when ${pluggyAccounts.type} = 'BANK' then ${pluggyAccounts.saldo} else 0 end), 0)`,
+        accountCount: sql<number>`count(${pluggyAccounts.id}) filter (where ${pluggyAccounts.type} in ('BANK', 'CREDIT'))::int`,
+        balance: sql<string>`coalesce(sum(case when ${pluggyAccounts.type} in ('BANK', 'INVESTMENT') then ${pluggyAccounts.saldo} else 0 end), 0)`,
       })
       .from(pluggyItems)
       .leftJoin(pluggyAccounts, eq(pluggyAccounts.item_id, pluggyItems.item_id))

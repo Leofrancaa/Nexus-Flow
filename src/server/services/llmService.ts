@@ -19,7 +19,7 @@ const DEFAULT_MODEL = 'openai/gpt-oss-120b'
 const FALLBACK_MODEL = 'llama-3.3-70b-versatile'
 
 export function isLlmConfigured(): boolean {
-  return Boolean(process.env.GROQ_API_KEY)
+  return Boolean(process.env.GROQ_API_KEY?.trim())
 }
 
 interface ChatOptions {
@@ -54,7 +54,7 @@ async function callChat(
   maxTokens: number,
   temperature = 0.3
 ): Promise<string> {
-  const apiKey = process.env.GROQ_API_KEY
+  const apiKey = process.env.GROQ_API_KEY?.trim()
   if (!apiKey) throw new Error('GROQ_API_KEY não configurada.')
 
   const baseUrl = process.env.GROQ_BASE_URL || DEFAULT_BASE_URL

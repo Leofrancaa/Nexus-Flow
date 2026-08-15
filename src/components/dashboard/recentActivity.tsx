@@ -4,8 +4,9 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
 import { Money } from "@/components/ui/money";
+import { TransactionIcon } from "@/components/activities/transactionIcon";
 import { cn } from "@/lib/utils";
-import { iniciais, tituloDoDia, type Activity } from "@/lib/activities";
+import { tituloDoDia, type Activity } from "@/lib/activities";
 
 interface RecentActivityProps {
   itens: Activity[] | null;
@@ -52,7 +53,7 @@ export function RecentActivity({ itens, limite = 4 }: RecentActivityProps) {
         <h2 className="text-sm font-semibold text-fg">Atividade recente</h2>
         <Link
           href="/atividades"
-          className="group flex items-center gap-0.5 text-xs font-semibold text-muted transition-colors hover:text-fg"
+          className="group flex items-center gap-0.5 rounded-md text-xs font-semibold text-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
         >
           Ver tudo
           <ChevronRight
@@ -68,20 +69,17 @@ export function RecentActivity({ itens, limite = 4 }: RecentActivityProps) {
             <Link
               href="/atividades"
               className={cn(
-                "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-elevated",
+                "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/70",
                 i > 0 && "border-t border-line"
               )}
             >
-              <span
-                aria-hidden="true"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[0.6875rem] font-bold"
-                style={{
-                  backgroundColor: `${item.cor ?? "#a1a1aa"}22`,
-                  color: item.cor ?? "#a1a1aa",
-                }}
-              >
-                {iniciais(item)}
-              </span>
+              <TransactionIcon
+                description={item.descricao}
+                category={item.categoria}
+                color={item.cor}
+                connectorId={item.instituicaoId}
+                institution={item.instituicao}
+              />
 
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium text-fg">

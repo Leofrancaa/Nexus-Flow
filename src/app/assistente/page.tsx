@@ -12,6 +12,10 @@ interface Message {
   content: string;
 }
 
+interface AssistantStatus {
+  configured: boolean;
+}
+
 const SUGGESTIONS = [
   "Qual foi meu maior gasto este mês?",
   "Quanto posso gastar por dia até o fim do mês?",
@@ -27,6 +31,7 @@ export default function AssistantPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [status, setStatus] = useState<AssistantStatus | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,6 +46,7 @@ export default function AssistantPage() {
       if (res.ok) {
         const data = await res.json();
         setMessages(data.data?.messages ?? []);
+        setStatus(data.data?.status ?? null);
       }
     } catch {
       /* silencioso */
@@ -104,16 +110,35 @@ export default function AssistantPage() {
               Pergunte sobre suas finanças
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-brand/15 px-3 py-1.5 text-xs font-semibold text-brand">
-            Sem limite interno
+          <span
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
+              status?.configured
+                ? "bg-brand/15 text-brand"
+                : status
+                  ? "bg-warning/15 text-warning"
+                  : "bg-elevated text-muted"
+            }`}
+          >
+            {status?.configured
+              ? "Groq ativo"
+              : status
+                ? "Configuração pendente"
+                : "Verificando…"}
           </span>
         </header>
+
+        {status && !status.configured ? (
+          <p className="mb-2 rounded-2xl border border-warning/20 bg-warning/10 px-4 py-3 text-xs leading-relaxed text-warning" role="status">
+            Perguntas com IA aguardam a chave do Groq no Vercel. Você ainda pode registrar
+            lançamentos, por exemplo: “gastei 50 no mercado”.
+          </p>
+        ) : null}
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain py-2">
           {messages.length === 0 && (
             <div className="mt-8 text-center">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/12">
-                <Sparkles className="h-6 w-6 text-brand" />
+                <Sparkles className="h-6 w-6 text-brand" aria-hidden="true" />
               </div>
               <p className="text-sm text-muted">
                 Pergunte algo sobre suas finanças para começar.
@@ -121,10 +146,11 @@ export default function AssistantPage() {
               <div className="mt-5 flex flex-col gap-2">
                 {SUGGESTIONS.map((s) => (
                   <button
+                    type="button"
                     key={s}
                     onClick={() => send(s)}
                     disabled={sending}
-                    className="rounded-2xl bg-surface px-4 py-3 text-left text-sm text-muted transition-colors hover:bg-elevated hover:text-fg disabled:opacity-50"
+                    className="rounded-2xl bg-surface px-4 py-3 text-left text-sm text-muted transition-colors hover:bg-elevated hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 disabled:opacity-50"
                   >
                     {s}
                   </button>
@@ -175,13 +201,16 @@ export default function AssistantPage() {
           }}
           className="shrink-0 pb-3 pt-3"
         >
-          <div className="flex items-end gap-2 rounded-2xl bg-surface p-2">
+          <div className="flex items-end gap-2 rounded-2xl bg-surface p-2 focus-within:ring-2 focus-within:ring-brand/70">
             <div className="min-w-0 flex-1">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value.slice(0, MAX_LEN))}
                 maxLength={MAX_LEN}
-                placeholder="Pergunte ou registre um lançamento..."
+                name="assistant-message"
+                aria-label="Mensagem para o assistente"
+                autoComplete="off"
+                placeholder="Pergunte ou registre um lançamento…"
                 disabled={sending}
                 className="w-full bg-transparent px-3 py-2.5 text-base text-fg outline-none placeholder:text-subtle disabled:opacity-50"
               />
@@ -199,9 +228,9 @@ export default function AssistantPage() {
               type="submit"
               aria-label="Enviar"
               disabled={sending || !input.trim()}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand text-bg transition-opacity glow-sm hover:opacity-90 disabled:opacity-40 disabled:shadow-none"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand text-bg transition-opacity glow-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:shadow-none"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </form>

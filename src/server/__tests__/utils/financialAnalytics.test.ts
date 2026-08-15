@@ -5,6 +5,7 @@ import * as schema from "@/server/db/schema";
 import { getComparativoMensal } from "@/server/utils/finance/getComparativoMensal";
 import { getGastosPorCategoria } from "@/server/utils/finance/getGastosPorCategoria";
 import { getSaldoFuturo } from "@/server/utils/finance/getSaldoFuturo";
+import { getSaldoAtual } from "@/server/utils/finance/getSaldoAtual";
 
 const USER_ID = 1;
 const SERVICE_USER_ID = USER_ID as unknown as string;
@@ -62,11 +63,16 @@ describe("financial analytics", () => {
       },
     ]);
 
-    const [comparison, categories, futureBalance] = await Promise.all([
+    const [comparison, categories, currentBalance] = await Promise.all([
       getComparativoMensal(SERVICE_USER_ID, 8, 2026),
       getGastosPorCategoria(SERVICE_USER_ID, 8, 2026),
-      getSaldoFuturo(SERVICE_USER_ID),
+      getSaldoAtual(SERVICE_USER_ID),
     ]);
+    const futureBalance = await getSaldoFuturo(
+      SERVICE_USER_ID,
+      currentBalance,
+      new Date("2026-08-15T12:00:00Z")
+    );
 
     expect(comparison.receitas.atual).toBe(3000);
     expect(comparison.despesas.atual).toBe(200);

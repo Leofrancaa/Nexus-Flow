@@ -5,6 +5,7 @@ import { createErrorResponse, formatCurrency } from '@/server/utils/helper'
 import { chatText, isLlmConfigured, ChatMessage } from '@/server/services/llmService'
 import { tryHandleChatAction } from '@/server/services/chatActionService'
 import { getSaldoAtual } from '@/server/utils/finance/getSaldoAtual'
+import { getSaldoConectado } from '@/server/utils/finance/getSaldoConectado'
 import { getGastosPorCategoria } from '@/server/utils/finance/getGastosPorCategoria'
 import { getComparativoMensal } from '@/server/utils/finance/getComparativoMensal'
 import { expenseCountsForAnalytics, incomeCountsForAnalytics } from '@/server/utils/finance/analyticsFilters'
@@ -19,6 +20,7 @@ interface ChatStatus {
   remaining: null
   limit: null
   unlimited: true
+  configured: boolean
 }
 
 interface StoredMessage {
@@ -45,7 +47,13 @@ export class ChatService {
 
   static async getStatus(userId: string): Promise<ChatStatus> {
     const used = await this.messagesUsedToday(userId)
-    return { used, remaining: null, limit: null, unlimited: true }
+    return {
+      used,
+      remaining: null,
+      limit: null,
+      unlimited: true,
+      configured: isLlmConfigured(),
+    }
   }
 
   static async getHistory(userId: string, limit = 50): Promise<StoredMessage[]> {
@@ -67,6 +75,7 @@ export class ChatService {
     const [
       monthComparison,
       saldoAtual,
+      saldoConectado,
       topCategorias,
       biggestResult,
       userPlans,
@@ -77,6 +86,7 @@ export class ChatService {
     ] = await Promise.all([
       getComparativoMensal(userId, mes, ano),
       getSaldoAtual(userId),
+      getSaldoConectado(userId),
       getGastosPorCategoria(userId, mes, ano),
       db.execute(sql`
         SELECT e.tipo, e.quantidade, e.data
@@ -155,7 +165,9 @@ export class ChatService {
       `Receitas do mês: ${formatCurrency(monthIncome)}.`,
       `Despesas do mês: ${formatCurrency(monthExpense)}.`,
       `Saldo do mês: ${formatCurrency(monthIncome - monthExpense)}.`,
-      `Saldo acumulado (todas as movimentações): ${formatCurrency(saldoAtual)}.`,
+      saldoConectado.produtos > 0
+        ? `Saldo conectado em contas e investimentos: ${formatCurrency(saldoConectado.total)}.`
+        : `Saldo calculado pelos lançamentos: ${formatCurrency(saldoAtual)}.`,
     ]
 
     if (biggest) {
@@ -196,7 +208,7 @@ export class ChatService {
     if (dueCards.length > 0) {
       const cardsLine = dueCards
         .map((card) =>
-          `${card.nome}: fatura ${formatCurrency(Number(card.total_gasto))}, ` +
+          `${card.nome}: fatura em aberto ${formatCurrency(Number(card.total_gasto))}, ` +
           `limite disponível ${formatCurrency(Number(card.limite_disponivel))}`
         )
         .join('; ')
@@ -229,15 +241,17 @@ export class ChatService {
     if (text.length > MAX_MESSAGE_LENGTH) {
       throw createErrorResponse(`Mensagem muito longa (máx. ${MAX_MESSAGE_LENGTH} caracteres).`, 400)
     }
-    if (!isLlmConfigured()) {
-      throw createErrorResponse('O assistente de IA não está configurado no momento.', 503)
+    // Comandos de lançamento ("gastei 50 no mercado") são executados de
+    // verdade e respondidos com confirmação mesmo sem depender do provedor.
+    const actionReply = await tryHandleChatAction(userId, text)
+    if (!actionReply && !isLlmConfigured()) {
+      throw createErrorResponse(
+        'A IA aguarda a chave do Groq na produção. Configure GROQ_API_KEY no Vercel para fazer perguntas; comandos de lançamento continuam disponíveis.',
+        503
+      )
     }
 
     const used = await this.messagesUsedToday(userId)
-
-    // Comandos de lançamento ("gastei 50 no mercado") são executados de
-    // verdade e respondidos com confirmação — sem passar pelo chat livre.
-    const actionReply = await tryHandleChatAction(userId, text)
     const reply = actionReply ?? (await this.conversationalReply(userId, text))
 
     // Persiste a mensagem do usuário e a resposta.
@@ -253,6 +267,7 @@ export class ChatService {
         remaining: null,
         limit: null,
         unlimited: true,
+        configured: isLlmConfigured(),
       },
     }
   }

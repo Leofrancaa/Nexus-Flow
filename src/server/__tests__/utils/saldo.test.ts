@@ -3,6 +3,7 @@ import { db } from '../mocks/db'
 import * as schema from '@/server/db/schema'
 import { getSaldoAtual } from '@/server/utils/finance/getSaldoAtual'
 import { getSaldoFuturo } from '@/server/utils/finance/getSaldoFuturo'
+import { getSaldoConectado } from '@/server/utils/finance/getSaldoConectado'
 
 const USER_ID = 1
 
@@ -19,39 +20,25 @@ async function seedUser() {
     .values({ id: USER_ID, nome: 'Teste', email: 'teste@nexus.dev' })
 }
 
-/**
- * Os dois saldos já foram byte-idênticos: ambos somavam tudo, sem recorte de
- * data, e o dashboard mostrava dois números que nunca podiam divergir. Este
- * arquivo existe para travar a diferença entre eles.
- */
 describe('saldo atual x saldo futuro', () => {
-  it('o saldo atual ignora lançamento datado para a frente; o futuro o inclui', async () => {
+  it('a projeção inclui só o restante do mês, nunca todo o histórico futuro', async () => {
     await seedUser()
 
     await db.insert(schema.incomes).values([
-      { user_id: USER_ID, tipo: 'Salário', quantidade: '5000', data: diasAPartirDeHoje(-5) },
-      { user_id: USER_ID, tipo: 'Bônus', quantidade: '1000', data: diasAPartirDeHoje(20) },
+      { user_id: USER_ID, tipo: 'Bônus', quantidade: '1000', data: new Date('2026-08-20') },
+      { user_id: USER_ID, tipo: 'Bônus distante', quantidade: '5000', data: new Date('2026-09-20') },
     ])
     await db.insert(schema.expenses).values([
       {
         user_id: USER_ID,
-        tipo: 'Aluguel',
-        metodo_pagamento: 'pix',
-        quantidade: '1800',
-        data: diasAPartirDeHoje(-3),
-      },
-      {
-        // Parcela que o app já gravou com data futura.
-        user_id: USER_ID,
         tipo: 'Notebook 2/3',
         metodo_pagamento: 'cartao de credito',
         quantidade: '700',
-        data: diasAPartirDeHoje(30),
+        data: new Date('2026-08-25'),
       },
     ])
 
-    expect(await getSaldoAtual(USER_ID)).toBe(5000 - 1800)
-    expect(await getSaldoFuturo(USER_ID)).toBe(5000 + 1000 - 1800 - 700)
+    expect(await getSaldoFuturo(USER_ID, 3200, new Date('2026-08-15T12:00:00Z'))).toBe(3500)
   })
 
   it('lançamento de hoje conta no saldo atual', async () => {
@@ -69,5 +56,38 @@ describe('saldo atual x saldo futuro', () => {
 
     expect(await getSaldoAtual(USER_ID)).toBe(0)
     expect(await getSaldoFuturo(USER_ID)).toBe(0)
+  })
+
+  it('saldo conectado soma contas e cofrinhos, mas nunca dívida do cartão', async () => {
+    await seedUser()
+    await db.insert(schema.pluggyAccounts).values([
+      {
+        user_id: USER_ID,
+        item_id: 'mercado-pago',
+        account_id: 'bank-1',
+        type: 'BANK',
+        saldo: '2.64',
+      },
+      {
+        user_id: USER_ID,
+        item_id: 'mercado-pago',
+        account_id: 'investment:pot-1',
+        type: 'INVESTMENT',
+        saldo: '1033',
+      },
+      {
+        user_id: USER_ID,
+        item_id: 'nubank',
+        account_id: 'credit-1',
+        type: 'CREDIT',
+        saldo: '4594.26',
+      },
+    ])
+
+    expect(await getSaldoConectado(USER_ID)).toEqual({
+      total: 1035.64,
+      investimentos: 1033,
+      produtos: 2,
+    })
   })
 })

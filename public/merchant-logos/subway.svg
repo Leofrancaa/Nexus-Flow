@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 42" role="img" aria-label="Subway">
+  <path fill="#ffc600" d="M7 33V9h16V3L36 13 23 23v-6h-7v16z"/>
+  <text x="18" y="31" font-family="Arial Black,Arial,sans-serif" font-size="29" font-weight="900" letter-spacing="-2.2">
+    <tspan fill="#ffc600">SUB</tspan><tspan fill="#009743">WAY</tspan>
+  </text>
+  <path fill="#009743" d="M142 9h11V3l7 10-7 10v-6h-11z"/>
+</svg>

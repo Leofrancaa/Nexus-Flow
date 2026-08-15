@@ -45,6 +45,7 @@ type ConnectSession = {
 
 const STATUS_LABELS: Record<string, string> = {
   UPDATED: "Atualizada",
+  PARTIAL_SUCCESS: "Atualizada com ressalvas",
   UPDATING: "Sincronizando",
   WAITING_USER_INPUT: "Ação necessária",
   WAITING_USER_ACTION: "Aguardando banco",
@@ -77,7 +78,7 @@ export default function OpenFinancePage() {
   }, [loadConnections]);
 
   const openConnect = async (itemId?: string) => {
-    const toastId = toast.loading(itemId ? "Preparando reconexão..." : "Abrindo ambiente seguro...");
+    const toastId = toast.loading(itemId ? "Preparando reconexão…" : "Abrindo ambiente seguro…");
     try {
       const response = await apiRequest("/api/pluggy/connect-token", {
         method: "POST",
@@ -94,7 +95,7 @@ export default function OpenFinancePage() {
 
   const handleSuccess = async ({ item }: { item: Item }) => {
     setSession(null);
-    const toastId = toast.loading("Importando saldos e transações...");
+    const toastId = toast.loading("Importando saldos e transações…");
     try {
       const response = await apiRequest("/api/pluggy/items", {
         method: "POST",
@@ -111,7 +112,7 @@ export default function OpenFinancePage() {
 
   const sync = async (itemId: string) => {
     setBusyId(itemId);
-    const toastId = toast.loading("Buscando os dados mais recentes...");
+    const toastId = toast.loading("Buscando os dados mais recentes…");
     try {
       const response = await apiRequest(`/api/pluggy/items/${itemId}/sync`, { method: "POST" });
       const body = await response.json().catch(() => ({}));
@@ -137,7 +138,7 @@ export default function OpenFinancePage() {
     if (!removeId) return;
     const itemId = removeId;
     setBusyId(itemId);
-    const toastId = toast.loading("Removendo conexão e dados importados...");
+    const toastId = toast.loading("Removendo conexão e dados importados…");
     try {
       const response = await apiRequest(`/api/pluggy/items/${itemId}`, { method: "DELETE" });
       const body = await response.json().catch(() => ({}));
@@ -163,7 +164,8 @@ export default function OpenFinancePage() {
             <p className="mb-1 text-xs font-bold uppercase tracking-[.18em] text-brand">Open Finance</p>
             <h1 className="font-display text-3xl font-bold tracking-tight text-fg">Suas contas, juntas.</h1>
             <p className="mt-2 max-w-sm text-sm leading-6 text-muted">
-              Conecte instituições para trazer saldos e movimentações automaticamente ao Nexus.
+              Conecte instituições para trazer saldos, cofrinhos, investimentos e movimentações
+              automaticamente ao Nexus.
             </p>
           </div>
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-brand/20 bg-brand/10 text-brand glow-sm">
@@ -194,6 +196,13 @@ export default function OpenFinancePage() {
         <span className="text-xs text-subtle">{connections.length} conectada{connections.length === 1 ? "" : "s"}</span>
       </div>
 
+      {connections.length > 0 ? (
+        <p className="mb-3 rounded-2xl border border-brand/15 bg-brand/[0.06] px-4 py-3 text-xs leading-5 text-muted">
+          Saldo sem cofrinho? Toque em <strong className="text-fg">Reconectar</strong> uma vez e
+          autorize também <strong className="text-fg">Investimentos</strong> no banco.
+        </p>
+      ) : null}
+
       {loading ? (
         <div className="flex min-h-36 items-center justify-center rounded-2xl bg-surface text-muted">
           <LoaderCircle className="h-5 w-5 animate-spin" />
@@ -208,7 +217,7 @@ export default function OpenFinancePage() {
         <ul className="space-y-3">
           {connections.map((connection) => {
             const busy = busyId === connection.id;
-            const needsAttention = connection.status !== "UPDATED";
+            const needsAttention = !["UPDATED", "PARTIAL_SUCCESS"].includes(connection.status);
             return (
               <li key={connection.id} className="rounded-[1.5rem] border border-white/[0.07] bg-surface p-5">
                 <div className="flex items-start gap-3">
@@ -230,7 +239,7 @@ export default function OpenFinancePage() {
                     </div>
                     <div className="mt-4 flex items-end justify-between border-t border-line pt-4">
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-subtle">Saldo em contas</p>
+                        <p className="text-[10px] uppercase tracking-wider text-subtle">Saldo conectado</p>
                         <p className="mt-0.5 font-display text-xl font-bold text-fg">{money(connection.balance)}</p>
                       </div>
                       <ArrowDownLeft className="h-4 w-4 text-brand" />
@@ -238,13 +247,13 @@ export default function OpenFinancePage() {
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2">
-                  <button disabled={busy} onClick={() => sync(connection.id)} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-elevated px-3 text-xs font-bold text-fg transition hover:bg-line disabled:opacity-50">
+                  <button type="button" disabled={busy} onClick={() => sync(connection.id)} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-elevated px-3 text-xs font-bold text-fg transition hover:bg-line focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 disabled:opacity-50">
                     <RefreshCw className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} /> Sincronizar
                   </button>
-                  <button disabled={busy} onClick={() => openConnect(connection.id)} className="min-h-11 rounded-xl border border-line px-3 text-xs font-bold text-muted transition hover:bg-elevated hover:text-fg disabled:opacity-50">
+                  <button type="button" disabled={busy} onClick={() => openConnect(connection.id)} className="min-h-11 rounded-xl border border-line px-3 text-xs font-bold text-muted transition hover:bg-elevated hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 disabled:opacity-50">
                     Reconectar
                   </button>
-                  <button aria-label={`Remover ${connection.connectorName || "instituição"}`} disabled={busy} onClick={() => setRemoveId(connection.id)} className="flex h-11 w-11 items-center justify-center rounded-xl border border-negative/15 text-negative transition hover:bg-negative/10 disabled:opacity-50">
+                  <button type="button" aria-label={`Remover ${connection.connectorName || "instituição"}`} disabled={busy} onClick={() => setRemoveId(connection.id)} className="flex h-11 w-11 items-center justify-center rounded-xl border border-negative/15 text-negative transition hover:bg-negative/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-negative/70 disabled:opacity-50">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -261,7 +270,7 @@ export default function OpenFinancePage() {
           updateItem={session.itemId}
           language="pt"
           theme="dark"
-          products={["ACCOUNTS", "CREDIT_CARDS", "TRANSACTIONS"]}
+          products={["ACCOUNTS", "CREDIT_CARDS", "TRANSACTIONS", "INVESTMENTS"]}
           allowConnectInBackground
           onSuccess={handleSuccess}
           onClose={() => setSession(null)}

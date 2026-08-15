@@ -94,7 +94,7 @@ function Dashboard() {
     if (sincronizando) return;
 
     setSincronizando(true);
-    const toastId = toast.loading("Localizando suas contas conectadas...");
+    const toastId = toast.loading("Localizando suas contas conectadas…");
 
     try {
       const availableConnections = connections.length > 0 ? connections : await carregarConexoes();
@@ -114,7 +114,7 @@ function Dashboard() {
       for (const [index, connection] of availableConnections.entries()) {
         setProgressoSincronizacao({ atual: index + 1, total: availableConnections.length });
         toast.loading(
-          `Atualizando ${connection.connectorName || "instituição"} (${index + 1}/${availableConnections.length})...`,
+          `Atualizando ${connection.connectorName || "instituição"} (${index + 1}/${availableConnections.length})…`,
           { id: toastId }
         );
 
@@ -170,7 +170,7 @@ function Dashboard() {
       if (sincronizando || busyConnectionId) return;
 
       setBusyConnectionId(connection.id);
-      const toastId = toast.loading(`Atualizando ${connection.connectorName || "instituição"}...`);
+      const toastId = toast.loading(`Atualizando ${connection.connectorName || "instituição"}…`);
       try {
         const response = await apiRequest(`/api/pluggy/items/${connection.id}/sync`, {
           method: "POST",
@@ -282,6 +282,7 @@ function Dashboard() {
     <PageWrapper className="overflow-hidden">
       <DashboardHero
         saldo={Number(dados?.saldo ?? 0)}
+        saldoOrigem={dados?.saldoOrigem ?? "lancamentos"}
         entradas={receitasMes}
         saidas={despesasMes}
         carregando={carregando}
@@ -391,9 +392,13 @@ function Dashboard() {
             />
 
             <WidgetCard
-              label="Saldo previsto"
+              label="Saldo no fim do mês"
               value={<Money value={Number(dados?.saldoFuturo ?? 0)} />}
-              sub="Já contando o que falta entrar e sair"
+              sub={
+                dados?.saldoOrigem === "contas"
+                  ? "Saldo conectado + lançamentos futuros do mês"
+                  : "Lançamentos até o fim deste mês"
+              }
               delay={300}
               media={
                 <MetricIcon>

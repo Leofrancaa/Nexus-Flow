@@ -1,5 +1,5 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
-import type { Account, Item } from 'pluggy-js'
+import type { Account, Investment, Item } from 'pluggy-js'
 import db from '@/server/db/drizzle'
 import {
   categories,
@@ -17,6 +17,10 @@ import {
   transactionDateInBrazil,
   transactionDirection,
 } from '@/server/utils/pluggy/transaction'
+import {
+  calculateCurrentInvoice,
+  type PluggyCardBill,
+} from '@/server/utils/pluggy/currentInvoice'
 
 type PluggyTransaction = {
   id: string
@@ -24,15 +28,28 @@ type PluggyTransaction = {
   date: string
   description: string
   amount: number
+  status?: string | null
   type?: 'DEBIT' | 'CREDIT' | string | null
   category?: string | null
   operationType?: string | null
   merchant?: { name?: string | null; businessName?: string | null } | null
   currencyCode?: string
-  creditCardMetadata?: { totalInstallments?: number | null } | null
+  creditCardMetadata?: {
+    totalInstallments?: number | null
+    installmentNumber?: number | null
+    billId?: string | null
+    billForecastDate?: string | null
+  } | null
 }
 
 type CursorResponse<T> = { results: T[]; next?: string | null }
+type SyncedInvestment = {
+  id: string
+  type: string
+  name: string
+  number: string | null
+  balance: number
+}
 const WRITE_BATCH_SIZE = 250
 const AI_CATEGORY_BATCH_SIZE = 20
 const UPDATE_POLL_INTERVAL_MS = 2_000
@@ -101,6 +118,30 @@ async function listTransactions(accountId: string): Promise<PluggyTransaction[]>
   return all
 }
 
+async function optionalPluggyList<T>(path: string): Promise<T[]> {
+  try {
+    const response = await pluggyRequest<{ results: T[] }>(path)
+    return response.results ?? []
+  } catch (error) {
+    // Nem todo conector oferece faturas/investimentos. Ausência de produto ou
+    // de consentimento não pode impedir contas e transações de sincronizarem.
+    if (error instanceof PluggyApiError && [400, 403, 404, 422].includes(error.status)) return []
+    throw error
+  }
+}
+
+function listBills(accountId: string): Promise<PluggyCardBill[]> {
+  return optionalPluggyList<PluggyCardBill>(
+    `/bills?accountId=${encodeURIComponent(accountId)}`
+  )
+}
+
+function listInvestments(itemId: string): Promise<Investment[]> {
+  return optionalPluggyList<Investment>(
+    `/investments?itemId=${encodeURIComponent(itemId)}&pageSize=500`
+  )
+}
+
 async function resolveOwner(item: Item, expectedUserId?: string): Promise<string> {
   if (expectedUserId) {
     if (item.clientUserId !== expectedUserId) {
@@ -148,6 +189,12 @@ function itemUpdatedAfter(item: Item, previousLastUpdatedAt: Date | null): boole
   return new Date(item.lastUpdatedAt).getTime() > previousLastUpdatedAt.getTime()
 }
 
+function itemHasUsableData(item: Item): boolean {
+  // O SDK ainda não tipa PARTIAL_SUCCESS, embora a API regulada o devolva
+  // quando só um produto (ex.: investimentos) falha e os demais estão válidos.
+  return ['UPDATED', 'PARTIAL_SUCCESS'].includes(String(item.status))
+}
+
 function wait(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
@@ -159,27 +206,75 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
 
   await saveItemMetadata(item, userId)
 
-  if (item.status !== 'UPDATED') {
+  if (!itemHasUsableData(item)) {
     const result = { itemId: item.id, status: item.status, accounts: 0, transactions: 0 }
     console.info('[pluggy-sync] skipped', result)
     return result
   }
 
-  const accountResponse = await pluggyRequest<{ results: Account[] }>(
-    `/accounts?itemId=${encodeURIComponent(item.id)}`
-  )
+  const [accountResponse, investmentRows] = await Promise.all([
+    pluggyRequest<{ results: Account[] }>(`/accounts?itemId=${encodeURIComponent(item.id)}`),
+    listInvestments(item.id),
+  ])
   const accountRows = accountResponse.results
+  const investments: SyncedInvestment[] = investmentRows
+    .filter(
+      (investment) =>
+        investment.status !== 'TOTAL_WITHDRAWAL' && Number.isFinite(Number(investment.balance))
+    )
+    .map((investment) => ({
+      id: investment.id,
+      type: investment.type,
+      name: investment.name,
+      number: investment.number,
+      balance: Number(investment.balance),
+    }))
+
+  // Alguns conectores antigos não expõem o produto Investments, mas informam
+  // o saldo aplicado automaticamente dentro da própria conta bancária.
+  if (investments.length === 0) {
+    for (const account of accountRows) {
+      const bankData = account.bankData as
+        | (typeof account.bankData & { automaticallyInvestedBalance?: number | null })
+        | null
+      const automaticallyInvested = Number(bankData?.automaticallyInvestedBalance ?? 0)
+      if (account.type !== 'BANK' || automaticallyInvested <= 0) continue
+      investments.push({
+        id: `automatic:${account.id}`,
+        type: 'FIXED_INCOME',
+        name: `${account.marketingName || account.name || 'Conta'} · saldo aplicado`,
+        number: account.number,
+        balance: automaticallyInvested,
+      })
+    }
+  }
+  // As contas são independentes. Ler transações e faturas em paralelo reduz o
+  // tempo do botão “Sincronizar” sem misturar gravações concorrentes no banco.
+  const accountData = await Promise.all(
+    accountRows.map(async (account) => ({
+      account,
+      transactions: await listTransactions(account.id),
+      bills: account.type === 'CREDIT' ? await listBills(account.id) : [],
+    }))
+  )
   const cardIdsByAccount = new Map<string, number>()
 
-  for (const account of accountRows) {
+  for (const { account, transactions, bills } of accountData) {
     let cardId: number | null = null
 
     if (account.type === 'CREDIT') {
-      const dueDate = safeDate(account.creditData?.balanceDueDate)
-      const closeDate = safeDate(account.creditData?.balanceCloseDate)
+      const informedDueDate = safeDate(account.creditData?.balanceDueDate)
+      const informedCloseDate = safeDate(account.creditData?.balanceCloseDate)
       const creditLimit = Math.max(Number(account.creditData?.creditLimit ?? 0), 0)
       const availableLimit = Math.max(Number(account.creditData?.availableCreditLimit ?? 0), 0)
-      const currentInvoice = Math.abs(Number(account.balance ?? 0))
+      const currentInvoice = calculateCurrentInvoice({
+        transactions,
+        bills,
+        dueDate: informedDueDate,
+        closeDate: informedCloseDate,
+      })
+      const dueDate = currentInvoice.dueDate ?? informedDueDate
+      const closeDate = currentInvoice.closeDate ?? informedCloseDate
       const number = (account.number ?? '').replace(/\D/g, '').slice(-4) || '0000'
 
       const [syncedCard] = await db
@@ -197,7 +292,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           pluggy_account_id: account.id,
           instituicao: item.connector?.name,
           bandeira: account.creditData?.brand,
-          fatura_atual: String(currentInvoice),
+          fatura_atual: String(currentInvoice.amount),
           fechamento_em: closeDate,
           vencimento_em: dueDate,
           sincronizado: true,
@@ -214,7 +309,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
             dias_fechamento_antes: daysBetween(dueDate, closeDate),
             instituicao: item.connector?.name,
             bandeira: account.creditData?.brand,
-            fatura_atual: String(currentInvoice),
+            fatura_atual: String(currentInvoice.amount),
             fechamento_em: closeDate,
             vencimento_em: dueDate,
             sincronizado: true,
@@ -254,21 +349,52 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
       })
   }
 
+  // Cofrinhos, CDBs e outros investimentos são produtos separados na Pluggy.
+  // Guardá-los como contas sintéticas permite compor o patrimônio disponível
+  // sem criar uma migração e sem confundir esses valores com conta corrente.
+  await db
+    .delete(pluggyAccounts)
+    .where(
+      and(
+        eq(pluggyAccounts.user_id, userId),
+        eq(pluggyAccounts.item_id, item.id),
+        eq(pluggyAccounts.type, 'INVESTMENT')
+      )
+    )
+
+  for (const investment of investments) {
+    await db
+      .insert(pluggyAccounts)
+      .values({
+        user_id: userId,
+        item_id: item.id,
+        account_id: `investment:${investment.id}`,
+        type: 'INVESTMENT',
+        subtype: investment.type,
+        nome: investment.name,
+        numero: investment.number,
+        saldo: String(investment.balance),
+        card_id: null,
+      })
+      .onConflictDoUpdate({
+        target: pluggyAccounts.account_id,
+        set: {
+          subtype: investment.type,
+          nome: investment.name,
+          numero: investment.number,
+          saldo: String(investment.balance),
+          updated_at: new Date(),
+        },
+      })
+  }
+
   await ensureDefaultCategories(userId)
   const userCategories = await db
     .select({ id: categories.id, nome: categories.nome, tipo: categories.tipo })
     .from(categories)
     .where(eq(categories.user_id, userId))
 
-  // As contas são independentes. Buscar em paralelo evita uma cascata de
-  // chamadas à Pluggy; as gravações seguintes são feitas em lotes no PG.
-  const accountTransactions = await Promise.all(
-    accountRows.map(async (account) => ({
-      account,
-      transactions: await listTransactions(account.id),
-    }))
-  )
-  const transactionCount = accountTransactions.reduce(
+  const transactionCount = accountData.reduce(
     (total, result) => total + result.transactions.length,
     0
   )
@@ -281,7 +407,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
     apply: (categoryId: number | null) => void
   }> = []
 
-  for (const { account, transactions } of accountTransactions) {
+  for (const { account, transactions } of accountData) {
     for (const transaction of transactions) {
       if (!Number.isFinite(transaction.amount) || transaction.amount === 0) continue
 
@@ -438,6 +564,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
     itemId: item.id,
     status: item.status,
     accounts: accountRows.length,
+    investments: investments.length,
     transactions: transactionCount,
     expenses: expenseRows.length,
     incomes: incomeRows.length,
@@ -490,7 +617,7 @@ export async function refreshPluggyItem(itemId: string, expectedUserId: string) 
 
   await saveItemMetadata(requestedItem, userId)
 
-  if (requestedItem.status === 'UPDATED') {
+  if (itemHasUsableData(requestedItem)) {
     const synchronized = await syncPluggyItem(itemId, userId)
     return {
       ...synchronized,
@@ -517,7 +644,7 @@ export async function refreshPluggyItem(itemId: string, expectedUserId: string) 
     const polledItem = await pluggyRequest<Item>(path)
     await saveItemMetadata(polledItem, userId)
 
-    if (polledItem.status === 'UPDATED' && itemUpdatedAfter(polledItem, previousLastUpdatedAt)) {
+    if (itemHasUsableData(polledItem) && itemUpdatedAfter(polledItem, previousLastUpdatedAt)) {
       const synchronized = await syncPluggyItem(itemId, userId)
       return {
         ...synchronized,

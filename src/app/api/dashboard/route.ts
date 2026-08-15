@@ -3,6 +3,8 @@ import { getAuthUser, unauthorizedResponse } from '@/server/lib/auth'
 import { ok, apiError } from '@/server/lib/apiResponse'
 import {
     getSaldoFuturo,
+    getSaldoAtual,
+    getSaldoConectado,
     getTotaisMensais,
     getComparativoMensal,
     getGastosPorCategoria,
@@ -29,7 +31,8 @@ export async function GET(request: NextRequest) {
     const ano = now.getFullYear()
 
     const [
-      saldoFuturo,
+      saldoLancamentos,
+      saldoConectado,
       totaisMensais,
       comparativo,
       porCategoria,
@@ -41,7 +44,8 @@ export async function GET(request: NextRequest) {
       resumoAnual,
       assinaturas
     ] = await Promise.all([
-      getSaldoFuturo(user.id),
+      getSaldoAtual(user.id),
+      getSaldoConectado(user.id),
       getTotaisMensais(user.id, ano),
       getComparativoMensal(user.id, mes, ano),
       getGastosPorCategoria(user.id, mes, ano),
@@ -54,13 +58,15 @@ export async function GET(request: NextRequest) {
       getAssinaturasDoMes(user.id, mes, ano)
     ])
 
-    // O destaque e os rótulos de entradas/saídas precisam falar da mesma
-    // competência. Antes, o saldo era histórico enquanto os totais eram do mês.
-    const saldo = comparativo.receitas.atual - comparativo.despesas.atual
+    const temSaldoConectado = saldoConectado.produtos > 0
+    const saldo = temSaldoConectado ? saldoConectado.total : saldoLancamentos
+    const saldoFuturo = await getSaldoFuturo(user.id, saldo)
 
     const dashboardData: DashboardData = {
       saldo,
       saldoFuturo,
+      saldoOrigem: temSaldoConectado ? 'contas' : 'lancamentos',
+      saldoInvestimentos: saldoConectado.investimentos,
       totaisMensais: totaisMensais.receitas.map((receita, index) => ({
         mes: receita.mes,
         receitas: receita.total,
