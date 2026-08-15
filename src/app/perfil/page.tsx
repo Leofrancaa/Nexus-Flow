@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
+  Check,
   ChevronRight,
   FolderKanban,
   Gauge,
@@ -15,9 +16,12 @@ import {
   Target,
   type LucideIcon,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 import { PageWrapper } from "@/components/layout/pageWrapper";
-import { getUserData, logout } from "@/lib/auth";
+import { UserAvatar } from "@/components/profile/userAvatar";
+import { apiRequest, getUserData, logout } from "@/lib/auth";
+import { AVATAR_OPTIONS, DEFAULT_AVATAR, type AvatarId } from "@/lib/avatars";
 
 interface ItemHub {
   label: string;
@@ -76,12 +80,16 @@ export default function PerfilPage() {
   const router = useRouter();
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [avatar, setAvatar] = useState<AvatarId>(DEFAULT_AVATAR);
+  const [salvandoAvatar, setSalvandoAvatar] = useState(false);
 
   useEffect(() => {
     getUserData()
       .then((user) => {
         if (user?.nome) setNome(user.nome);
         if (user?.email) setEmail(user.email);
+        const avatarSalvo = AVATAR_OPTIONS.find((option) => option.id === user?.avatar);
+        if (avatarSalvo) setAvatar(avatarSalvo.id);
       })
       .catch(() => {
         /* o hub continua útil sem os dados do usuário */
@@ -93,13 +101,28 @@ export default function PerfilPage() {
     router.push("/login");
   };
 
-  const iniciais = nome
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase();
+  const escolherAvatar = async (novoAvatar: AvatarId) => {
+    if (salvandoAvatar || novoAvatar === avatar) return;
+
+    const avatarAnterior = avatar;
+    setAvatar(novoAvatar);
+    setSalvandoAvatar(true);
+
+    try {
+      const response = await apiRequest("/api/users/me", {
+        method: "PATCH",
+        body: JSON.stringify({ avatar: novoAvatar }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "Não foi possível salvar o avatar.");
+      toast.success("Avatar atualizado.");
+    } catch (error) {
+      setAvatar(avatarAnterior);
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o avatar.");
+    } finally {
+      setSalvandoAvatar(false);
+    }
+  };
 
   return (
     <PageWrapper className="pt-8">
@@ -113,11 +136,8 @@ export default function PerfilPage() {
           className="pointer-events-none absolute -right-12 -top-16 -z-10 h-40 w-40 rounded-full bg-brand/15 blur-3xl"
         />
         <div className="flex items-center gap-4">
-          <span
-            aria-hidden="true"
-            className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-brand/20 bg-brand/10 font-display text-lg font-bold text-brand shadow-[inset_0_0_24px_rgba(190,255,0,.08)]"
-          >
-            {iniciais || "•"}
+          <span className="relative shrink-0">
+            <UserAvatar avatar={avatar} size="lg" />
             <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-surface bg-brand" />
           </span>
           <div className="min-w-0">
@@ -131,6 +151,45 @@ export default function PerfilPage() {
           </div>
         </div>
       </header>
+
+      <section
+        aria-labelledby="avatar-title"
+        className="mb-6 rounded-[1.5rem] border border-white/[0.07] bg-surface p-4"
+      >
+        <div className="mb-4 px-1">
+          <h2 id="avatar-title" className="font-display text-base font-bold text-fg">
+            Escolha seu avatar
+          </h2>
+          <p className="mt-1 text-xs text-muted">
+            Ele aparecerá ao lado do seu nome na tela principal.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-4 gap-3" aria-busy={salvandoAvatar}>
+          {AVATAR_OPTIONS.map((option) => {
+            const selecionado = option.id === avatar;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => escolherAvatar(option.id)}
+                disabled={salvandoAvatar}
+                aria-label={`Usar avatar ${option.label}`}
+                aria-pressed={selecionado}
+                title={option.label}
+                className="relative flex min-h-16 touch-manipulation items-center justify-center rounded-2xl bg-elevated transition-[background-color,transform,opacity] hover:bg-line active:scale-[.96] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
+              >
+                <UserAvatar avatar={option.id} size="md" />
+                {selecionado ? (
+                  <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand text-bg shadow-sm">
+                    <Check className="h-3 w-3" aria-hidden="true" />
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <nav aria-label="Ajustes" className="relative z-10">
         <div className="mb-3 flex items-center justify-between px-1">

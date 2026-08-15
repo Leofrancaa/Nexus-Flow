@@ -12,6 +12,7 @@ import {
   uuid,
   unique,
   uniqueIndex,
+  check,
 } from 'drizzle-orm/pg-core'
 
 // Colunas que a sincronização da Pluggy acrescenta a `expenses` e `incomes`.
@@ -36,16 +37,26 @@ const timestamps = {
     .$onUpdate(() => new Date()),
 }
 
-export const profiles = pgTable('profiles', {
-  // Este é o UUID emitido por auth.users. Não há senha ou token local.
-  id: uuid('id').primaryKey(),
-  nome: text('nome').notNull(),
-  email: text('email').notNull().unique(),
-  currency: text('currency').default('BRL').notNull(),
-  accepted_terms: boolean('accepted_terms').default(false).notNull(),
-  accepted_terms_at: timestamp('accepted_terms_at', { mode: 'date' }),
-  ...timestamps,
-})
+export const profiles = pgTable(
+  'profiles',
+  {
+    // Este é o UUID emitido por auth.users. Não há senha ou token local.
+    id: uuid('id').primaryKey(),
+    nome: text('nome').notNull(),
+    email: text('email').notNull().unique(),
+    avatar: text('avatar').default('panther').notNull(),
+    currency: text('currency').default('BRL').notNull(),
+    accepted_terms: boolean('accepted_terms').default(false).notNull(),
+    accepted_terms_at: timestamp('accepted_terms_at', { mode: 'date' }),
+    ...timestamps,
+  },
+  (table) => [
+    check(
+      'profiles_avatar_check',
+      sql`${table.avatar} in ('panther', 'fox', 'panda', 'wolf', 'lion', 'owl', 'alien', 'robot')`
+    ),
+  ]
+)
 
 export const categories = pgTable('categories', {
   id: serial('id').primaryKey(),

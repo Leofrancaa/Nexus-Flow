@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     success: true,
     data: {
-      user: { id: user.id, nome: user.nome, email: user.email }
+      user: { id: user.id, nome: user.nome, email: user.email, avatar: user.avatar }
     }
   })
 }

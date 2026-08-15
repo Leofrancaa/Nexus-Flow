@@ -63,6 +63,7 @@ export async function applySchema(): Promise<void> {
       id serial PRIMARY KEY,
       nome text NOT NULL,
       email text NOT NULL UNIQUE,
+      avatar text DEFAULT 'panther' NOT NULL CHECK (avatar IN ('panther', 'fox', 'panda', 'wolf', 'lion', 'owl', 'alien', 'robot')),
       currency text DEFAULT 'BRL' NOT NULL,
       accepted_terms boolean DEFAULT false NOT NULL,
       accepted_terms_at timestamp,

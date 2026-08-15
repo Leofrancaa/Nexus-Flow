@@ -10,6 +10,7 @@ export interface AuthUser {
   id: string
   nome: string
   email: string
+  avatar: string
 }
 
 export function isAdmin(user: Pick<AuthUser, 'email'> | null): boolean {
@@ -35,7 +36,12 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
   if (error || !userId) return null
 
   const [profile] = await db
-    .select({ id: profiles.id, nome: profiles.nome, email: profiles.email })
+    .select({
+      id: profiles.id,
+      nome: profiles.nome,
+      email: profiles.email,
+      avatar: profiles.avatar,
+    })
     .from(profiles)
     .where(eq(profiles.id, userId))
     .limit(1)

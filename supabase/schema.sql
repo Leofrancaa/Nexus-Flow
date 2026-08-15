@@ -2,6 +2,24 @@
 -- O trigger mantém public.profiles sincronizado sem expor qualquer chave admin.
 
 alter table public.profiles
+  add column if not exists avatar text default 'panther' not null;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'profiles_avatar_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles
+      add constraint profiles_avatar_check
+      check (avatar in ('panther', 'fox', 'panda', 'wolf', 'lion', 'owl', 'alien', 'robot'));
+  end if;
+end
+$$;
+
+alter table public.profiles
   add constraint profiles_id_fkey
   foreign key (id) references auth.users(id) on delete cascade;
 

@@ -4,6 +4,13 @@ const API_URL = '/api'
 
 export class LoginError extends Error {}
 
+export interface UserData {
+  id: string
+  nome: string
+  email: string
+  avatar: string
+}
+
 export const hasActiveSession = async (): Promise<boolean> => {
   try {
     const { data, error } = await createSupabaseClient().auth.getClaims()
@@ -49,7 +56,7 @@ export const logout = async (): Promise<void> => {
   await createSupabaseClient().auth.signOut()
 }
 
-export const getUserData = async () => {
+export const getUserData = async (): Promise<UserData | null> => {
   const response = await fetch(`${API_URL}/auth/me`)
   if (!response.ok) return null
   const json = await response.json()

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, Eye, EyeOff, RefreshCw } from "lucide-react";
 
 import { Money } from "@/components/ui/money";
+import { UserAvatar } from "@/components/profile/userAvatar";
 import { usePrivacy } from "@/contexts/privacyContext";
 import { getUserData } from "@/lib/auth";
 
@@ -42,6 +43,7 @@ export function DashboardHero({
   onSincronizarContas,
 }: DashboardHeroProps) {
   const [nome, setNome] = useState("");
+  const [avatar, setAvatar] = useState("panther");
   const [hora, setHora] = useState<number | null>(null);
   const { oculto, alternar } = usePrivacy();
 
@@ -49,12 +51,11 @@ export function DashboardHero({
     setHora(new Date().getHours());
     getUserData()
       .then((user) => {
-        if (user?.nome) setNome(user.nome.split(" ")[0]);
+        if (user?.nome) setNome(user.nome.trim().split(/\s+/)[0]);
+        if (user?.avatar) setAvatar(user.avatar);
       })
       .catch(() => undefined);
   }, []);
-
-  const iniciais = nome ? nome.slice(0, 2).toUpperCase() : "NX";
 
   return (
     <section className="relative -mx-5 min-h-[28.5rem] overflow-hidden bg-bg">
@@ -76,14 +77,13 @@ export function DashboardHero({
         className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,10,13,.56)_0%,rgba(8,10,13,.18)_54%,rgba(8,10,13,.08)_100%)]"
       />
 
-      <div className="relative z-10 flex min-h-[28.5rem] flex-col px-5 pb-7 pt-[max(2rem,env(safe-area-inset-top))]">
-        <div className="flex items-center justify-between">
-          <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-bg/35 text-xs font-bold tracking-[0.08em] text-fg backdrop-blur-md">
-            <span
-              aria-hidden="true"
-              className="absolute inset-[-2px] rounded-full border border-brand/75 [clip-path:polygon(0_0,58%_0,58%_18%,0_18%)]"
-            />
-            {iniciais}
+      <div className="fixed inset-x-0 top-0 z-50 mx-auto w-full max-w-[430px] border-b border-white/[0.07] bg-bg/78 px-5 pb-3 pt-[max(.75rem,env(safe-area-inset-top))] backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <UserAvatar avatar={avatar} size="md" />
+            <span className="truncate font-display text-base font-bold text-fg">
+              {nome || "Olá"}
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -92,7 +92,7 @@ export function DashboardHero({
               onClick={onSincronizarContas}
               disabled={sincronizando}
               aria-label="Sincronizar todas as contas"
-              className="flex h-12 items-center justify-center gap-2 rounded-full border border-white/15 bg-bg/35 px-3.5 text-xs font-bold text-fg backdrop-blur-md transition-[background-color,transform,border-color,opacity] duration-200 hover:border-brand/35 hover:bg-bg/55 active:scale-[.96] disabled:cursor-wait disabled:opacity-70"
+              className="flex h-12 touch-manipulation items-center justify-center gap-2 rounded-full border border-white/15 bg-bg/55 px-3.5 text-xs font-bold text-fg transition-[background-color,transform,border-color,opacity] duration-200 hover:border-brand/35 hover:bg-bg/75 active:scale-[.96] disabled:cursor-wait disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
             >
               <RefreshCw
                 className={`h-4 w-4 text-brand ${sincronizando ? "animate-spin" : ""}`}
@@ -108,7 +108,7 @@ export function DashboardHero({
               onClick={alternar}
               aria-pressed={oculto}
               aria-label={oculto ? "Mostrar valores" : "Ocultar valores"}
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-bg/35 text-fg backdrop-blur-md transition-[background-color,transform,border-color] duration-200 hover:border-brand/35 hover:bg-bg/55 active:scale-[.96]"
+              className="flex h-12 w-12 touch-manipulation items-center justify-center rounded-full border border-white/15 bg-bg/55 text-fg transition-[background-color,transform,border-color] duration-200 hover:border-brand/35 hover:bg-bg/75 active:scale-[.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
             >
               {oculto ? (
                 <EyeOff className="h-5 w-5" aria-hidden="true" />
@@ -118,6 +118,10 @@ export function DashboardHero({
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="relative z-10 flex min-h-[28.5rem] flex-col px-5 pb-7 pt-[max(2rem,env(safe-area-inset-top))]">
+        <div className="h-12" aria-hidden="true" />
 
         <div className="mt-12 rise">
           <p className="text-base text-fg/65">
