@@ -85,6 +85,17 @@ describe("financial analytics", () => {
       },
       {
         metodo_pagamento: "Cartão de crédito",
+        tipo: "Parcela futura com data original da compra",
+        quantidade: "777",
+        data: new Date("2026-07-27T12:00:00"),
+        competencia_mes: 9,
+        competencia_ano: 2026,
+        category_id: shoppingCategory.id,
+        observacoes: "Lançamento previsto de cartão · Sincronizado via Open Finance",
+        user_id: USER_ID,
+      },
+      {
+        metodo_pagamento: "Cartão de crédito",
         tipo: "Parcela futura",
         quantidade: "888",
         data: new Date("2026-08-20T12:00:00"),

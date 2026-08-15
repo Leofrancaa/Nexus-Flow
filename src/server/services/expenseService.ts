@@ -1,6 +1,6 @@
-import { and, eq, gte, lte, desc, sql, count } from 'drizzle-orm'
+import { and, eq, gte, sql, count } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
-import { expenses, cards, cardInvoicesPayments, categories } from '@/server/db/schema'
+import { expenses, cards, cardInvoicesPayments } from '@/server/db/schema'
 import {
     Expense,
     CreateExpenseRequest,
@@ -12,7 +12,10 @@ import {
     calculateCompetencia,
     createErrorResponse
 } from '@/server/utils/helper'
-import { expenseCountsForAnalytics } from '@/server/utils/finance/analyticsFilters'
+import {
+    expenseCountsForAnalytics,
+    expenseIsRealized,
+} from '@/server/utils/finance/analyticsFilters'
 
 interface ExpenseWithCategory extends Expense {
     categoria_nome?: string
@@ -372,7 +375,7 @@ export class ExpenseService {
             WHERE e.user_id = ${userId}
               AND EXTRACT(MONTH FROM e.data) = ${month}
               AND EXTRACT(YEAR FROM e.data) = ${year}
-              AND e.data <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
+              AND ${expenseIsRealized}
             ORDER BY e.data DESC
         `)
 
@@ -388,29 +391,32 @@ export class ExpenseService {
         startDate: string,
         endDate: string
     ): Promise<ExpenseWithCategory[]> {
-        const rows = await db
-            .select({
-                expense: expenses,
-                categoria_nome: categories.nome,
-                cor_categoria: categories.cor,
-            })
-            .from(expenses)
-            .leftJoin(categories, eq(expenses.category_id, categories.id))
-            .where(
-                and(
-                    eq(expenses.user_id, userId),
-                    gte(expenses.data, new Date(`${startDate}T00:00:00`)),
-                    lte(expenses.data, new Date(`${endDate}T23:59:59`))
-                )
-            )
-            .orderBy(desc(expenses.data))
+        const queryResult = await db.execute(sql`
+            SELECT
+                e.*,
+                c.nome AS categoria_nome,
+                c.cor AS cor_categoria,
+                pa.nome AS conta_nome,
+                pi.connector_name AS instituicao_nome,
+                pi.connector_id AS instituicao_id
+            FROM expenses e
+            LEFT JOIN categories c ON e.category_id = c.id
+            LEFT JOIN pluggy_accounts pa
+              ON pa.account_id = e.pluggy_account_id AND pa.user_id = e.user_id
+            LEFT JOIN pluggy_items pi
+              ON pi.item_id = pa.item_id AND pi.user_id = e.user_id
+            WHERE e.user_id = ${userId}
+              AND e.data >= ${startDate}::date
+              AND e.data <= ${endDate}::date
+              AND ${expenseIsRealized}
+            ORDER BY e.data DESC
+        `)
 
-        return rows.map((r) => ({
-            ...this.mapToExpense(r.expense as unknown as Record<string, unknown>),
-            category_id: r.expense.category_id ?? undefined,
-            categoria_nome: r.categoria_nome ?? undefined,
-            cor_categoria: r.cor_categoria ?? undefined,
-        }))
+        return (queryResult.rows as Array<Record<string, unknown>>).map((row) => ({
+            ...row,
+            quantidade: Number(row.quantidade),
+            data: row.data instanceof Date ? formatDate(row.data as Date) : row.data,
+        })) as ExpenseWithCategory[]
     }
 
     static async getMonthlyTotal(userId: string, month: number, year: number): Promise<number> {

@@ -29,6 +29,45 @@ async function expensesOf(userId = USER_ID) {
   return db.select().from(schema.expenses).where(eq(schema.expenses.user_id, userId))
 }
 
+describe('ExpenseService — atividades realizadas', () => {
+  it('não exibe parcela PENDING de competência futura na data original da compra', async () => {
+    await db.insert(schema.expenses).values([
+      {
+        metodo_pagamento: 'Cartão de crédito',
+        tipo: 'Compra efetivada',
+        quantidade: '50',
+        data: new Date('2000-01-10T12:00:00'),
+        competencia_mes: 1,
+        competencia_ano: 2000,
+        observacoes: 'Sincronizado via Open Finance',
+        user_id: USER_ID,
+      },
+      {
+        metodo_pagamento: 'Cartão de crédito',
+        tipo: 'Parcela ainda futura',
+        quantidade: '75',
+        data: new Date('2000-01-09T12:00:00'),
+        competencia_mes: 1,
+        competencia_ano: 9999,
+        observacoes: 'Lançamento previsto de cartão · Sincronizado via Open Finance',
+        user_id: USER_ID,
+      },
+    ])
+
+    const [monthly, range] = await Promise.all([
+      ExpenseService.getExpensesByMonthYear(USER_ID as unknown as string, 1, 2000),
+      ExpenseService.getExpensesByDateRange(
+        USER_ID as unknown as string,
+        '2000-01-01',
+        '2000-01-31'
+      ),
+    ])
+
+    expect(monthly.map((expense) => expense.tipo)).toEqual(['Compra efetivada'])
+    expect(range.map((expense) => expense.tipo)).toEqual(['Compra efetivada'])
+  })
+})
+
 describe('ExpenseService.createExpense — débito simples', () => {
   it('cria despesa de débito sem afetar cartões', async () => {
     const result = await ExpenseService.createExpense(

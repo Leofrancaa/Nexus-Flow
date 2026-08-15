@@ -43,6 +43,37 @@ const INCOME_CARD_LEDGER_ADJUSTMENT = sql`
   COALESCE(i.nota, '') ILIKE '%movimento neutro de cartão%'
 `;
 
+/**
+ * Uma parcela PENDING pode trazer a data original da compra, embora pertença
+ * a uma fatura futura. Ela continua disponível para projeções, mas ainda não
+ * é uma atividade realizada nem pode entrar nos totais do período.
+ */
+export const expenseIsRealized = sql`
+  e.data <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
+  AND NOT (
+    COALESCE(e.observacoes, '') ILIKE '%lançamento previsto de cartão%'
+    AND e.competencia_ano IS NOT NULL
+    AND e.competencia_mes IS NOT NULL
+    AND (
+      e.competencia_ano > EXTRACT(
+        YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo'
+      )
+      OR (
+        e.competencia_ano = EXTRACT(
+          YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo'
+        )
+        AND e.competencia_mes > EXTRACT(
+          MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo'
+        )
+      )
+    )
+  )
+`;
+
+export const incomeIsRealized = sql`
+  i.data <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
+`;
+
 /** Movimentos reais/projetados, sem pagamentos e ajustes neutros. */
 export const expenseCountsForForecast = sql`
   NOT (
@@ -100,10 +131,10 @@ export const incomeCountsForForecast = sql`
 /** Totais realizados nunca incluem dias que ainda não chegaram no Brasil. */
 export const expenseCountsForAnalytics = sql`
   ${expenseCountsForForecast}
-  AND e.data <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
+  AND ${expenseIsRealized}
 `;
 
 export const incomeCountsForAnalytics = sql`
   ${incomeCountsForForecast}
-  AND i.data <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
+  AND ${incomeIsRealized}
 `;

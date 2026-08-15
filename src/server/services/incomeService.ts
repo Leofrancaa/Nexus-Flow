@@ -1,6 +1,6 @@
-import { and, eq, gte, lte, desc, sql } from 'drizzle-orm'
+import { and, eq, gte, sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
-import { incomes, categories } from '@/server/db/schema'
+import { incomes } from '@/server/db/schema'
 import {
     Income,
     CreateIncomeRequest,
@@ -10,7 +10,10 @@ import {
     getLastDayOfMonth,
     createErrorResponse
 } from '@/server/utils/helper'
-import { incomeCountsForAnalytics } from '@/server/utils/finance/analyticsFilters'
+import {
+    incomeCountsForAnalytics,
+    incomeIsRealized,
+} from '@/server/utils/finance/analyticsFilters'
 
 interface IncomeWithCategory extends Income {
     categoria_nome?: string
@@ -114,28 +117,32 @@ export class IncomeService {
         startDate: string,
         endDate: string
     ): Promise<IncomeWithCategory[]> {
-        const rows = await db
-            .select({
-                income: incomes,
-                categoria_nome: categories.nome,
-                cor_categoria: categories.cor,
-            })
-            .from(incomes)
-            .leftJoin(categories, eq(incomes.category_id, categories.id))
-            .where(
-                and(
-                    eq(incomes.user_id, userId),
-                    gte(incomes.data, new Date(`${startDate}T00:00:00`)),
-                    lte(incomes.data, new Date(`${endDate}T23:59:59`))
-                )
-            )
-            .orderBy(desc(incomes.data))
+        const queryResult = await db.execute(sql`
+            SELECT
+                i.*,
+                c.nome AS categoria_nome,
+                c.cor AS cor_categoria,
+                pa.nome AS conta_nome,
+                pi.connector_name AS instituicao_nome,
+                pi.connector_id AS instituicao_id
+            FROM incomes i
+            LEFT JOIN categories c ON i.category_id = c.id
+            LEFT JOIN pluggy_accounts pa
+              ON pa.account_id = i.pluggy_account_id AND pa.user_id = i.user_id
+            LEFT JOIN pluggy_items pi
+              ON pi.item_id = pa.item_id AND pi.user_id = i.user_id
+            WHERE i.user_id = ${userId}
+              AND i.data >= ${startDate}::date
+              AND i.data <= ${endDate}::date
+              AND ${incomeIsRealized}
+            ORDER BY i.data DESC
+        `)
 
-        return rows.map((r) => ({
-            ...this.mapToIncome(r.income as unknown as Record<string, unknown>),
-            categoria_nome: r.categoria_nome ?? undefined,
-            cor_categoria: r.cor_categoria ?? undefined,
-        }))
+        return (queryResult.rows as Array<Record<string, unknown>>).map((row) => ({
+            ...row,
+            quantidade: Number(row.quantidade),
+            data: row.data instanceof Date ? formatDate(row.data as Date) : row.data,
+        })) as IncomeWithCategory[]
     }
 
     static async getIncomesByMonthYear(
@@ -160,7 +167,7 @@ export class IncomeService {
             WHERE i.user_id = ${userId}
               AND EXTRACT(MONTH FROM i.data) = ${month}
               AND EXTRACT(YEAR FROM i.data) = ${year}
-              AND i.data <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
+              AND ${incomeIsRealized}
             ORDER BY i.data DESC
         `)
 
