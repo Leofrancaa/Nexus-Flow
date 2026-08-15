@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server'
 import { getAuthUser, unauthorizedResponse } from '@/server/lib/auth'
 import { ok, apiError } from '@/server/lib/apiResponse'
 import {
-    getSaldoAtual,
     getSaldoFuturo,
     getTotaisMensais,
     getComparativoMensal,
@@ -16,9 +15,6 @@ import {
 } from '@/server/utils/finance/index'
 import { DashboardData } from '@/server/types/index'
 import { ensureDefaultCategories } from '@/server/services/defaultCategoryService'
-import { syncStalePluggyItems } from '@/server/services/pluggySyncService'
-
-export const maxDuration = 60
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,20 +22,12 @@ export async function GET(request: NextRequest) {
     if (!user) return unauthorizedResponse()
 
     await ensureDefaultCategories(user.id)
-    const refreshedItems = await syncStalePluggyItems(user.id)
-    if (refreshedItems.length > 0) {
-      console.info('[dashboard] Open Finance refreshed before totals', {
-        userId: user.id,
-        items: refreshedItems.length,
-      })
-    }
 
     const now = new Date()
     const mes = now.getMonth() + 1
     const ano = now.getFullYear()
 
     const [
-      saldo,
       saldoFuturo,
       totaisMensais,
       comparativo,
@@ -51,7 +39,6 @@ export async function GET(request: NextRequest) {
       parcelasPendentes,
       resumoAnual
     ] = await Promise.all([
-      getSaldoAtual(user.id),
       getSaldoFuturo(user.id),
       getTotaisMensais(user.id),
       getComparativoMensal(user.id, mes, ano),
@@ -63,6 +50,10 @@ export async function GET(request: NextRequest) {
       getParcelasPendentes(user.id),
       getResumoAnual(user.id, ano)
     ])
+
+    // O destaque e os rótulos de entradas/saídas precisam falar da mesma
+    // competência. Antes, o saldo era histórico enquanto os totais eram do mês.
+    const saldo = comparativo.receitas.atual - comparativo.despesas.atual
 
     const dashboardData: DashboardData = {
       saldo,

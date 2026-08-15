@@ -117,7 +117,15 @@ export default function OpenFinancePage() {
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || "Não foi possível sincronizar.");
       await loadConnections();
-      toast.success("Dados bancários sincronizados.", { id: toastId });
+      if (body.data?.refreshLimited) {
+        toast.success("A instituição limitou uma nova consulta agora. Importei os dados disponíveis; tente novamente mais tarde.", { id: toastId });
+      } else if (body.data?.synchronized) {
+        toast.success("Dados novos recebidos e importados.", { id: toastId });
+      } else if (body.data?.requiresUserInput) {
+        toast.error("O banco pediu uma nova autorização. Use Reconectar para concluir.", { id: toastId });
+      } else {
+        toast.success("Atualização iniciada. Os lançamentos aparecerão automaticamente ao concluir.", { id: toastId });
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao sincronizar.", { id: toastId });
     } finally {

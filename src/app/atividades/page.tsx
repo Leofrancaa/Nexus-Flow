@@ -69,9 +69,6 @@ function Atividades() {
     const carregar = async () => {
       setItens(null);
       try {
-        // Repara conexões antigas antes de montar a lista. A rota só consulta
-        // a Pluggy quando o último sync está realmente desatualizado.
-        await apiRequest("/api/pluggy/sync-stale", { method: "POST" });
         const query = `mes=${selectedMonth}&ano=${selectedYear}`;
         const [resDespesas, resReceitas] = await Promise.all([
           apiRequest(`/api/expenses?${query}`),

@@ -33,7 +33,8 @@ type PluggyTransaction = {
 
 type CursorResponse<T> = { results: T[]; next?: string | null }
 const WRITE_BATCH_SIZE = 250
-const DEFAULT_STALE_AFTER_MS = 6 * 60 * 60 * 1000
+const UPDATE_POLL_INTERVAL_MS = 2_000
+const UPDATE_POLL_TIMEOUT_MS = 20_000
 
 function batches<T>(items: T[], size = WRITE_BATCH_SIZE): T[][] {
   const result: T[][] = []
@@ -86,11 +87,7 @@ async function resolveOwner(item: Item, expectedUserId?: string): Promise<string
   return stored.userId
 }
 
-export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
-  console.info('[pluggy-sync] started', { itemId, expectedUserId })
-  const item = await pluggyRequest<Item>(`/items/${encodeURIComponent(itemId)}`)
-  const userId = await resolveOwner(item, expectedUserId)
-
+async function saveItemMetadata(item: Item, userId: string) {
   await db
     .insert(pluggyItems)
     .values({
@@ -111,6 +108,24 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
         updated_at: new Date(),
       },
     })
+}
+
+function itemUpdatedAfter(item: Item, previousLastUpdatedAt: Date | null): boolean {
+  if (!item.lastUpdatedAt) return false
+  if (!previousLastUpdatedAt) return true
+  return new Date(item.lastUpdatedAt).getTime() > previousLastUpdatedAt.getTime()
+}
+
+function wait(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
+}
+
+export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
+  console.info('[pluggy-sync] started', { itemId, expectedUserId })
+  const item = await pluggyRequest<Item>(`/items/${encodeURIComponent(itemId)}`)
+  const userId = await resolveOwner(item, expectedUserId)
+
+  await saveItemMetadata(item, userId)
 
   if (item.status !== 'UPDATED') {
     const result = { itemId: item.id, status: item.status, accounts: 0, transactions: 0 }
@@ -268,7 +283,13 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
 
   await db
     .update(pluggyItems)
-    .set({ status: item.status, last_synced_at: new Date(), updated_at: new Date() })
+    .set({
+      status: item.status,
+      // Este campo representa a última coleta da instituição, não o momento
+      // em que o Nexus releu o cache da Pluggy.
+      last_synced_at: item.lastUpdatedAt ? new Date(item.lastUpdatedAt) : null,
+      updated_at: new Date(),
+    })
     .where(and(eq(pluggyItems.item_id, item.id), eq(pluggyItems.user_id, userId)))
 
   const result = {
@@ -284,49 +305,107 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
 }
 
 /**
- * Rede de segurança para webhooks atrasados ou conexões que não foram
- * sincronizadas depois de uma mudança de regra. É chamada antes de montar o
- * dashboard e só consulta novamente itens realmente antigos.
+ * Solicita à Pluggy uma nova coleta na instituição. O PATCH é o passo que
+ * realmente conversa com o banco; ler /items, /accounts e /transactions só
+ * devolve o último cache disponível.
  */
-export async function syncStalePluggyItems(
-  userId: string,
-  staleAfterMs = DEFAULT_STALE_AFTER_MS
-) {
-  const cutoff = Date.now() - staleAfterMs
-  const storedItems = await db
-    .select({ itemId: pluggyItems.item_id, lastSyncedAt: pluggyItems.last_synced_at })
-    .from(pluggyItems)
-    .where(eq(pluggyItems.user_id, userId))
-  const staleItems = storedItems.filter(
-    (item) => !item.lastSyncedAt || item.lastSyncedAt.getTime() < cutoff
-  )
+export async function refreshPluggyItem(itemId: string, expectedUserId: string) {
+  const path = `/items/${encodeURIComponent(itemId)}`
+  const currentItem = await pluggyRequest<Item>(path)
+  const userId = await resolveOwner(currentItem, expectedUserId)
+  const previousLastUpdatedAt = currentItem.lastUpdatedAt
+    ? new Date(currentItem.lastUpdatedAt)
+    : null
 
-  if (staleItems.length === 0) return []
-  console.info('[pluggy-auto-sync] stale items found', {
+  console.info('[pluggy-refresh] requesting institution update', {
+    itemId,
     userId,
-    count: staleItems.length,
+    previousLastUpdatedAt,
   })
 
-  const results = []
-  for (const item of staleItems) {
-    try {
-      results.push(await syncPluggyItem(item.itemId, userId))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      console.error('[pluggy-auto-sync] item failed', {
-        itemId: item.itemId,
-        error: message,
-      })
-      results.push({
-        itemId: item.itemId,
-        status: 'ERROR',
-        accounts: 0,
-        transactions: 0,
-        error: message,
-      })
+  let requestedItem: Item
+  try {
+    requestedItem = await pluggyRequest<Item>(path, {
+      method: 'PATCH',
+      body: JSON.stringify({}),
+    })
+  } catch (error) {
+    // A Pluggy limita a frequência de atualização por instituição. Mesmo
+    // quando a nova coleta ainda não é permitida, reaplicamos o cache mais
+    // recente para reparar webhooks atrasados sem dizer que o banco atualizou.
+    if (error instanceof PluggyApiError && error.status === 409) {
+      const cached = await syncPluggyItem(itemId, userId)
+      console.info('[pluggy-refresh] update rate limited; cached data imported', { itemId })
+      return {
+        ...cached,
+        updateRequested: false,
+        synchronized: true,
+        refreshLimited: true,
+      }
+    }
+    throw error
+  }
+
+  await saveItemMetadata(requestedItem, userId)
+
+  if (requestedItem.status === 'UPDATED') {
+    const synchronized = await syncPluggyItem(itemId, userId)
+    return {
+      ...synchronized,
+      updateRequested: true,
+      synchronized: true,
+      refreshLimited: false,
     }
   }
-  return results
+
+  if (requestedItem.status !== 'UPDATING') {
+    return {
+      itemId,
+      status: requestedItem.status,
+      updateRequested: true,
+      synchronized: false,
+      refreshLimited: false,
+      requiresUserInput: requestedItem.status === 'WAITING_USER_INPUT',
+    }
+  }
+
+  const deadline = Date.now() + UPDATE_POLL_TIMEOUT_MS
+  while (Date.now() < deadline) {
+    await wait(UPDATE_POLL_INTERVAL_MS)
+    const polledItem = await pluggyRequest<Item>(path)
+    await saveItemMetadata(polledItem, userId)
+
+    if (polledItem.status === 'UPDATED' && itemUpdatedAfter(polledItem, previousLastUpdatedAt)) {
+      const synchronized = await syncPluggyItem(itemId, userId)
+      return {
+        ...synchronized,
+        updateRequested: true,
+        synchronized: true,
+        refreshLimited: false,
+      }
+    }
+
+    if (polledItem.status !== 'UPDATING') {
+      return {
+        itemId,
+        status: polledItem.status,
+        updateRequested: true,
+        synchronized: false,
+        refreshLimited: false,
+        requiresUserInput: polledItem.status === 'WAITING_USER_INPUT',
+      }
+    }
+  }
+
+  console.info('[pluggy-refresh] update still processing; webhook will import it', { itemId })
+  return {
+    itemId,
+    status: 'UPDATING',
+    updateRequested: true,
+    synchronized: false,
+    refreshLimited: false,
+    requiresUserInput: false,
+  }
 }
 
 export async function deletePluggyTransactions(ids: string[]) {
