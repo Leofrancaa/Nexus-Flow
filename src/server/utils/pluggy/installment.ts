@@ -2,6 +2,22 @@ export type PluggyInstallmentMetadata = {
   installmentNumber?: number | null
   totalInstallments?: number | null
   billForecastDate?: string | null
+  purchaseDate?: string | null
+}
+
+function civilDateParts(value?: string | null) {
+  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (year < 2000 || month < 1 || month > 12 || day < 1 || day > 31) return null
+  return { year, month, day }
+}
+
+function dateInMonth(year: number, month: number, day: number) {
+  const lastDay = new Date(Date.UTC(year, month, 0, 12)).getUTCDate()
+  return new Date(Date.UTC(year, month - 1, Math.min(day, lastDay), 12))
 }
 
 /** Exibe a parcela devolvida pela Pluggy sem duplicar sufixos já presentes. */
@@ -26,16 +42,32 @@ export function installmentDescription(
  */
 export function installmentAccountingDate(
   transactionDate: Date,
-  metadata?: PluggyInstallmentMetadata | null
+  metadata?: PluggyInstallmentMetadata | null,
+  billDueDate?: string | null
 ): Date {
   const forecast = metadata?.billForecastDate?.match(/^(\d{4})-(\d{2})/)
-  if (!forecast) return transactionDate
+  if (forecast) {
+    const year = Number(forecast[1])
+    const month = Number(forecast[2])
+    if (year >= 2000 && month >= 1 && month <= 12) {
+      return dateInMonth(year, month, transactionDate.getUTCDate())
+    }
+  }
 
-  const year = Number(forecast[1])
-  const month = Number(forecast[2])
-  if (year < 2000 || month < 1 || month > 12) return transactionDate
+  const bill = civilDateParts(billDueDate)
+  if (bill) return dateInMonth(bill.year, bill.month, transactionDate.getUTCDate())
 
-  const lastDay = new Date(Date.UTC(year, month, 0, 12)).getUTCDate()
-  const day = Math.min(transactionDate.getUTCDate(), lastDay)
-  return new Date(Date.UTC(year, month - 1, day, 12))
+  // Alguns conectores removem billForecastDate assim que a parcela é lançada,
+  // mas mantêm purchaseDate + installmentNumber. Reconstituir a competência
+  // evita que todas as parcelas já postadas caiam juntas no mês da compra.
+  const purchase = civilDateParts(metadata?.purchaseDate)
+  const installmentNumber = metadata?.installmentNumber
+  if (purchase && installmentNumber && installmentNumber > 0) {
+    const monthIndex = purchase.month - 1 + installmentNumber - 1
+    const year = purchase.year + Math.floor(monthIndex / 12)
+    const month = (monthIndex % 12) + 1
+    return dateInMonth(year, month, purchase.day)
+  }
+
+  return transactionDate
 }

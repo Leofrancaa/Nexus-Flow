@@ -35,10 +35,19 @@ const CARD_PAYMENT = sql`
   )
 `;
 
+const EXPENSE_CARD_LEDGER_ADJUSTMENT = sql`
+  COALESCE(e.observacoes, '') ILIKE '%movimento neutro de cartão%'
+`;
+
+const INCOME_CARD_LEDGER_ADJUSTMENT = sql`
+  COALESCE(i.nota, '') ILIKE '%movimento neutro de cartão%'
+`;
+
 /** Despesas de consumo: exclui pagamento de fatura e transferências internas pareadas. */
 export const expenseCountsForAnalytics = sql`
   NOT (
     ${CARD_PAYMENT}
+    OR ${EXPENSE_CARD_LEDGER_ADJUSTMENT}
     OR (
       ${EXPENSE_TRANSFER_CANDIDATE}
       AND EXISTS (
@@ -65,8 +74,10 @@ export const expenseCountsForAnalytics = sql`
 /** Receitas reais: exclui a entrada que é contraparte de transferência interna. */
 export const incomeCountsForAnalytics = sql`
   NOT (
-    ${INCOME_TRANSFER_CANDIDATE}
-    AND EXISTS (
+    ${INCOME_CARD_LEDGER_ADJUSTMENT}
+    OR (
+      ${INCOME_TRANSFER_CANDIDATE}
+      AND EXISTS (
       SELECT 1
       FROM expenses paired_expense
       WHERE paired_expense.user_id = i.user_id
@@ -82,6 +93,7 @@ export const incomeCountsForAnalytics = sql`
             ARRAY['%same person transfer%', '%transferencia%', '%transferência%', '%pix enviado%', '%ted enviada%']::text[]
           )
         )
+      )
     )
   )
 `;

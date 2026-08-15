@@ -11,6 +11,7 @@ interface MovementLike {
   valor: number;
   data: string;
   categoria?: string;
+  financeNeutral?: boolean;
 }
 
 function normalizeText(value?: string): string {
@@ -69,7 +70,7 @@ export function classifyFinancialMovements<T extends MovementLike>(
   }));
 
   for (const item of classified) {
-    if (item.kind === "expense" && isCardPayment(item.descricao)) {
+    if (item.financeNeutral || (item.kind === "expense" && isCardPayment(item.descricao))) {
       item.natureza = "card_payment";
     }
   }

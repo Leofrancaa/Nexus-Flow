@@ -50,7 +50,7 @@ const KEYWORD_RULES: Array<{ keywords: string[]; category: string }> = [
   { keywords: ['imposto', 'ipva', 'iptu', 'receita federal', 'taxes', 'legal obligations'], category: 'impostos' },
   { keywords: ['tarifa', 'anuidade', 'juros', 'bank fees', 'account fees', 'credit card fees', 'encargos_juros'], category: 'taxas bancarias' },
   { keywords: ['seguro', 'insurance'], category: 'seguros' },
-  { keywords: ['transfer', 'pix enviado', 'ted enviada', 'doc enviado', 'boleto', 'credit card payment'], category: 'transferencias' },
+  { keywords: ['transfer', 'pix enviado', 'ted enviada', 'doc enviado', 'boleto', 'credit card payment', 'saldo em atraso'], category: 'transferencias' },
   { keywords: ['vivo', 'claro', 'tim', 'oi ', 'internet', 'telefone', 'celular', 'telecommunications', 'services'], category: 'servicos' },
   { keywords: ['cinema', 'show', 'bar ', 'steam', 'playstation', 'xbox', 'leisure', 'gambling', 'lottery'], category: 'lazer' },
 ]
@@ -60,7 +60,7 @@ const INCOME_RULES: Array<{ keywords: string[]; category: string }> = [
   { keywords: ['freelance', 'honorario', 'entrepreneurial activities'], category: 'freelance' },
   { keywords: ['rendimento', 'dividendo', 'juros recebidos', 'proceeds interests', 'fixed income', 'investment'], category: 'rendimentos' },
   { keywords: ['cashback', 'estorno', 'reembolso'], category: 'reembolsos' },
-  { keywords: ['pix recebido', 'transferencia recebida', 'ted recebida', 'doc recebida', 'same person transfer', 'transfers'], category: 'transferencias' },
+  { keywords: ['pix recebido', 'transferencia recebida', 'ted recebida', 'doc recebida', 'same person transfer', 'transfers', 'pagamento recebido', 'credito de atraso', 'encerramento de divida'], category: 'transferencias' },
 ]
 
 function resolveCategory(

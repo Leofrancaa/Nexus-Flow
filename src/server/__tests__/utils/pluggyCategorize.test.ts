@@ -10,6 +10,8 @@ const categories: UserCategory[] = [
   { id: 3, nome: 'Educação', tipo: 'despesa' },
   { id: 4, nome: 'Compras', tipo: 'despesa' },
   { id: 5, nome: 'Assinaturas', tipo: 'despesa' },
+  { id: 6, nome: 'Transferências', tipo: 'despesa' },
+  { id: 7, nome: 'Transferências', tipo: 'receita' },
 ]
 
 describe('categorização de transações Pluggy', () => {
@@ -41,6 +43,15 @@ describe('categorização de transações Pluggy', () => {
         categories
       )
     ).toBe(4)
+  })
+
+  it('classifica ajustes contábeis do cartão como movimentos neutros', () => {
+    expect(
+      categorizeByRules({ description: 'Saldo em atraso', type: 'expense' }, categories)
+    ).toBe(6)
+    expect(
+      categorizeByRules({ description: 'Pagamento recebido', type: 'income' }, categories)
+    ).toBe(7)
   })
 
   it('deixa nomes desconhecidos para a categorização por IA em lote', () => {

@@ -9,6 +9,7 @@ export interface CardInvoiceTransaction {
 }
 
 export interface PluggyCardBill {
+  id?: string | null
   totalAmount: number
   dueDate: string
   billClosingDate?: string | null

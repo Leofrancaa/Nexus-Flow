@@ -36,4 +36,26 @@ describe('parcelas de cartão Pluggy', () => {
     const purchaseDate = new Date('2026-08-12T12:00:00.000Z')
     expect(installmentAccountingDate(purchaseDate)).toBe(purchaseDate)
   })
+
+  it('reconstrói parcelas postadas a partir da data da compra', () => {
+    const providerDate = new Date('2026-08-12T12:00:00.000Z')
+    expect(
+      installmentAccountingDate(providerDate, {
+        installmentNumber: 8,
+        totalInstallments: 12,
+        purchaseDate: '2026-01-12',
+      }).toISOString()
+    ).toBe('2026-08-12T12:00:00.000Z')
+  })
+
+  it('prefere a fatura vinculada quando a previsão já foi removida', () => {
+    const providerDate = new Date('2026-01-12T12:00:00.000Z')
+    expect(
+      installmentAccountingDate(
+        providerDate,
+        { installmentNumber: 8, totalInstallments: 12 },
+        '2026-08-17'
+      ).toISOString()
+    ).toBe('2026-08-12T12:00:00.000Z')
+  })
 })

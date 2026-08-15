@@ -47,6 +47,8 @@ type PluggyTransaction = {
     installmentNumber?: number | null
     billId?: string | null
     billForecastDate?: string | null
+    purchaseDate?: string | null
+    totalAmount?: number | null
   } | null
 }
 
@@ -79,6 +81,17 @@ function normalized(value: string) {
 function institutionColor(name: string | null | undefined) {
   const key = normalized(name ?? '')
   return Object.entries(INSTITUTION_COLORS).find(([term]) => key.includes(term))?.[1] ?? '#52525b'
+}
+
+function isNeutralCreditCardLedger(
+  description: string,
+  direction: 'expense' | 'income'
+) {
+  const text = normalized(description)
+  return direction === 'expense'
+    ? text.includes('saldo em atraso')
+    : ['pagamento recebido', 'credito de atraso', 'encerramento de divida']
+        .some((term) => text.includes(term))
 }
 
 function safeDate(value: Date | string | null | undefined): Date | null {
@@ -415,7 +428,12 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
     apply: (categoryId: number | null) => void
   }> = []
 
-  for (const { account, transactions } of accountData) {
+  for (const { account, transactions, bills } of accountData) {
+    const billDueDateById = new Map(
+      bills
+        .filter((bill) => bill.id)
+        .map((bill) => [bill.id!, bill.dueDate] as const)
+    )
     for (const transaction of transactions) {
       if (!Number.isFinite(transaction.amount) || transaction.amount === 0) continue
 
@@ -432,12 +450,20 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
       )
       const originalTransactionDate = transactionDateInBrazil(transaction.date)
       const transactionDate = account.type === 'CREDIT'
-        ? installmentAccountingDate(originalTransactionDate, transaction.creditCardMetadata)
+        ? installmentAccountingDate(
+            originalTransactionDate,
+            transaction.creditCardMetadata,
+            transaction.creditCardMetadata?.billId
+              ? billDueDateById.get(transaction.creditCardMetadata.billId)
+              : null
+          )
         : originalTransactionDate
       const transactionDescription = installmentDescription(
         transaction.merchant?.name || transaction.description,
         transaction.creditCardMetadata
       )
+      const neutralCardLedger = account.type === 'CREDIT' &&
+        isNeutralCreditCardLedger(transactionDescription, direction)
       const quantity = Math.abs(transaction.amount).toFixed(2)
 
       if (direction === 'expense') {
@@ -455,7 +481,9 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           competencia_ano: transactionDate.getUTCFullYear(),
           card_id: cardIdsByAccount.get(account.id) ?? null,
           category_id: categoryId,
-          observacoes: 'Sincronizado via Open Finance',
+          observacoes: neutralCardLedger
+            ? 'Movimento neutro de cartão · Sincronizado via Open Finance'
+            : 'Sincronizado via Open Finance',
         }
         expenseRows.push(row)
         if (categoryId === null) {
@@ -477,7 +505,9 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           quantidade: quantity,
           data: transactionDate,
           fonte: account.marketingName || account.name || 'Open Finance',
-          nota: 'Sincronizado via Open Finance',
+          nota: neutralCardLedger
+            ? 'Movimento neutro de cartão · Sincronizado via Open Finance'
+            : 'Sincronizado via Open Finance',
           category_id: categoryId,
         }
         incomeRows.push(row)
@@ -545,6 +575,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           competencia_mes: sql`excluded.competencia_mes`,
           competencia_ano: sql`excluded.competencia_ano`,
           card_id: sql`excluded.card_id`,
+          observacoes: sql`excluded.observacoes`,
           category_id: sql`case when ${expenses.categoria_manual} then ${expenses.category_id} else excluded.category_id end`,
           updated_at: new Date(),
         },
@@ -561,6 +592,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           quantidade: sql`excluded.quantidade`,
           data: sql`excluded.data`,
           fonte: sql`excluded.fonte`,
+          nota: sql`excluded.nota`,
           category_id: sql`case when ${incomes.categoria_manual} then ${incomes.category_id} else excluded.category_id end`,
           updated_at: new Date(),
         },

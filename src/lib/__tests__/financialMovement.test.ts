@@ -60,4 +60,20 @@ describe("classifyFinancialMovements", () => {
     ]);
     expect(payment.natureza).toBe("card_payment");
   });
+
+  it("não soma ajustes internos marcados pelo sincronizador do cartão", () => {
+    const [adjustment] = classifyFinancialMovements([
+      {
+        key: "income-3",
+        kind: "income" as const,
+        descricao: "Pagamento recebido",
+        valor: 3307.49,
+        data: "2026-08-02",
+        financeNeutral: true,
+      },
+    ]);
+
+    expect(adjustment.natureza).toBe("card_payment");
+    expect(countsInCashFlow(adjustment.natureza)).toBe(false);
+  });
 });

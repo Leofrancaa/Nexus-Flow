@@ -35,6 +35,13 @@ describe("financial analytics", () => {
         category_id: incomeTransferCategory.id,
         user_id: USER_ID,
       },
+      {
+        tipo: "Pagamento recebido",
+        quantidade: "3307.49",
+        data: new Date("2026-08-02T12:00:00"),
+        nota: "Movimento neutro de cartão · Sincronizado via Open Finance",
+        user_id: USER_ID,
+      },
     ]);
 
     await db.insert(schema.expenses).values([
@@ -51,6 +58,14 @@ describe("financial analytics", () => {
         tipo: "Pagamento de fatura Nubank",
         quantidade: "1000",
         data: new Date("2026-08-15T12:00:00"),
+        user_id: USER_ID,
+      },
+      {
+        metodo_pagamento: "Cartão de crédito",
+        tipo: "Saldo em atraso",
+        quantidade: "3195.66",
+        data: new Date("2026-08-04T12:00:00"),
+        observacoes: "Movimento neutro de cartão · Sincronizado via Open Finance",
         user_id: USER_ID,
       },
       {

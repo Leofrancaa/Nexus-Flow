@@ -115,6 +115,7 @@ export function toActivities(
       instituicaoId: e.instituicao_id,
       fixo: e.fixo,
       origem: e.origem,
+      financeNeutral: e.observacoes?.includes("Movimento neutro de cartão"),
       expense: e,
     })),
     ...receitas.map((r) => ({
@@ -132,6 +133,7 @@ export function toActivities(
       instituicaoId: r.instituicao_id,
       fixo: r.fixo,
       origem: r.origem,
+      financeNeutral: r.nota?.includes("Movimento neutro de cartão"),
       income: r,
     })),
   ];
