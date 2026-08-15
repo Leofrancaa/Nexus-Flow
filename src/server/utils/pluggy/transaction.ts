@@ -6,21 +6,22 @@ type DirectionInput = {
 }
 
 /**
- * A Pluggy define `DEBIT` como saída e `CREDIT` como entrada. O sinal não é
- * confiável para isso: em cartão, uma compra é positiva e o pagamento da
- * fatura é negativo. O fallback por sinal só atende respostas legadas.
+ * Em contas bancárias, a Pluggy define `DEBIT` como saída e `CREDIT` como
+ * entrada. Em cartões, porém, a própria convenção da API é pelo sinal: compra
+ * positiva aumenta a fatura (saída) e crédito/pagamento negativo a reduz.
  */
 export function transactionDirection(
   transaction: DirectionInput,
   accountType: string
 ): PluggyTransactionDirection {
+  if (accountType.toUpperCase() === 'CREDIT') {
+    return transaction.amount >= 0 ? 'expense' : 'income'
+  }
+
   const type = transaction.type?.toUpperCase()
   if (type === 'DEBIT') return 'expense'
   if (type === 'CREDIT') return 'income'
 
-  if (accountType.toUpperCase() === 'CREDIT') {
-    return transaction.amount >= 0 ? 'expense' : 'income'
-  }
   return transaction.amount < 0 ? 'expense' : 'income'
 }
 

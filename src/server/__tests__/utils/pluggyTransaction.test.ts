@@ -5,10 +5,15 @@ import {
 } from '@/server/utils/pluggy/transaction'
 
 describe('normalização de transações Pluggy', () => {
-  it('usa DEBIT/CREDIT em vez do sinal', () => {
+  it('prioriza o sinal em cartão, mesmo quando o provedor marca a compra como CREDIT', () => {
     expect(transactionDirection({ type: 'DEBIT', amount: 95.99 }, 'CREDIT')).toBe('expense')
+    expect(transactionDirection({ type: 'CREDIT', amount: 602.15 }, 'CREDIT')).toBe('expense')
     expect(transactionDirection({ type: 'CREDIT', amount: -1500 }, 'CREDIT')).toBe('income')
+  })
+
+  it('usa DEBIT/CREDIT em contas bancárias', () => {
     expect(transactionDirection({ type: 'CREDIT', amount: -1500 }, 'BANK')).toBe('income')
+    expect(transactionDirection({ type: 'DEBIT', amount: 1500 }, 'BANK')).toBe('expense')
   })
 
   it('mantém compatibilidade com respostas antigas sem type', () => {

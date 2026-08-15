@@ -29,11 +29,11 @@ export interface CategorizableItem {
 // Palavra-chave (sem acento) -> nome genérico de categoria (pt-BR).
 const KEYWORD_RULES: Array<{ keywords: string[]; category: string }> = [
   { keywords: ['netflix', 'spotify', 'disney', 'hbo', 'prime video', 'globoplay', 'youtube premium', 'digital services', 'video streaming', 'music streaming'], category: 'assinaturas' },
-  { keywords: ['ifood', 'rappi', 'restaurante', 'lanchonete', 'padaria', 'mercado', 'supermercado', 'hortifruti', 'acougue', 'mc donalds', 'burger', 'pizza', 'groceries', 'food and drinks', 'eating out', 'food delivery'], category: 'alimentacao' },
-  { keywords: ['uber', '99 ', '99app', 'cabify', 'posto', 'shell', 'ipiranga', 'combustivel', 'estacionamento', 'metro', 'onibus', 'passagem', 'transportation', 'automotive', 'gas stations', 'parking', 'tolls'], category: 'transporte' },
+  { keywords: ['ifood', 'rappi', 'restaurante', 'lanchonete', 'padaria', 'mercado', 'supermercado', 'hiperideal', 'hortifruti', 'acougue', 'mc donalds', 'burger', 'pizza', 'groceries', 'food and drinks', 'eating out', 'food delivery'], category: 'alimentacao' },
+  { keywords: ['uber', '99 ', '99app', 'cabify', 'blablacar', 'posto', 'shell', 'ipiranga', 'combustivel', 'estacionamento', 'metro', 'onibus', 'passagem', 'transportation', 'automotive', 'gas stations', 'parking', 'tolls'], category: 'transporte' },
   { keywords: ['aluguel', 'condominio', 'luz', 'energia', 'agua', 'gas', 'enel', 'sabesp', 'imobiliaria', 'housing', 'utilities', 'rent', 'houseware'], category: 'moradia' },
   { keywords: ['farmacia', 'drogaria', 'hospital', 'clinica', 'medico', 'laboratorio', 'plano de saude', 'unimed', 'academia', 'healthcare', 'wellness', 'fitness', 'pharmacy'], category: 'saude' },
-  { keywords: ['escola', 'faculdade', 'curso', 'udemy', 'alura', 'coursera', 'livro', 'mensalidade', 'education', 'university', 'school', 'bookstore'], category: 'educacao' },
+  { keywords: ['escola', 'faculdade', 'curso', 'senai', 'matricula', 'udemy', 'alura', 'coursera', 'livro', 'mensalidade', 'education', 'university', 'school', 'bookstore'], category: 'educacao' },
   { keywords: ['amazon', 'mercado livre', 'mercadolivre', 'shopee', 'aliexpress', 'magazine', 'americanas', 'loja', 'shopping', 'electronics', 'clothing', 'pet supplies'], category: 'compras' },
   { keywords: ['hotel', 'airbnb', 'aereo', 'companhia aerea', 'travel', 'airport', 'airlines', 'accommodation', 'mileage'], category: 'viagens' },
   { keywords: ['imposto', 'ipva', 'iptu', 'receita federal', 'taxes', 'legal obligations'], category: 'impostos' },
