@@ -15,11 +15,24 @@ import {
     getResumoAnual,
 } from '@/server/utils/finance/index'
 import { DashboardData } from '@/server/types/index'
+import { ensureDefaultCategories } from '@/server/services/defaultCategoryService'
+import { syncStalePluggyItems } from '@/server/services/pluggySyncService'
+
+export const maxDuration = 60
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
+
+    await ensureDefaultCategories(user.id)
+    const refreshedItems = await syncStalePluggyItems(user.id)
+    if (refreshedItems.length > 0) {
+      console.info('[dashboard] Open Finance refreshed before totals', {
+        userId: user.id,
+        items: refreshedItems.length,
+      })
+    }
 
     const now = new Date()
     const mes = now.getMonth() + 1

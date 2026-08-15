@@ -33,6 +33,7 @@ type PluggyTransaction = {
 
 type CursorResponse<T> = { results: T[]; next?: string | null }
 const WRITE_BATCH_SIZE = 250
+const DEFAULT_STALE_AFTER_MS = 6 * 60 * 60 * 1000
 
 function batches<T>(items: T[], size = WRITE_BATCH_SIZE): T[][] {
   const result: T[][] = []
@@ -86,6 +87,7 @@ async function resolveOwner(item: Item, expectedUserId?: string): Promise<string
 }
 
 export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
+  console.info('[pluggy-sync] started', { itemId, expectedUserId })
   const item = await pluggyRequest<Item>(`/items/${encodeURIComponent(itemId)}`)
   const userId = await resolveOwner(item, expectedUserId)
 
@@ -111,7 +113,9 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
     })
 
   if (item.status !== 'UPDATED') {
-    return { itemId: item.id, status: item.status, accounts: 0, transactions: 0 }
+    const result = { itemId: item.id, status: item.status, accounts: 0, transactions: 0 }
+    console.info('[pluggy-sync] skipped', result)
+    return result
   }
 
   const accountResponse = await pluggyRequest<{ results: Account[] }>(
@@ -267,7 +271,62 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
     .set({ status: item.status, last_synced_at: new Date(), updated_at: new Date() })
     .where(and(eq(pluggyItems.item_id, item.id), eq(pluggyItems.user_id, userId)))
 
-  return { itemId: item.id, status: item.status, accounts: accountRows.length, transactions: transactionCount }
+  const result = {
+    itemId: item.id,
+    status: item.status,
+    accounts: accountRows.length,
+    transactions: transactionCount,
+    expenses: expenseRows.length,
+    incomes: incomeRows.length,
+  }
+  console.info('[pluggy-sync] completed', result)
+  return result
+}
+
+/**
+ * Rede de segurança para webhooks atrasados ou conexões que não foram
+ * sincronizadas depois de uma mudança de regra. É chamada antes de montar o
+ * dashboard e só consulta novamente itens realmente antigos.
+ */
+export async function syncStalePluggyItems(
+  userId: string,
+  staleAfterMs = DEFAULT_STALE_AFTER_MS
+) {
+  const cutoff = Date.now() - staleAfterMs
+  const storedItems = await db
+    .select({ itemId: pluggyItems.item_id, lastSyncedAt: pluggyItems.last_synced_at })
+    .from(pluggyItems)
+    .where(eq(pluggyItems.user_id, userId))
+  const staleItems = storedItems.filter(
+    (item) => !item.lastSyncedAt || item.lastSyncedAt.getTime() < cutoff
+  )
+
+  if (staleItems.length === 0) return []
+  console.info('[pluggy-auto-sync] stale items found', {
+    userId,
+    count: staleItems.length,
+  })
+
+  const results = []
+  for (const item of staleItems) {
+    try {
+      results.push(await syncPluggyItem(item.itemId, userId))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.error('[pluggy-auto-sync] item failed', {
+        itemId: item.itemId,
+        error: message,
+      })
+      results.push({
+        itemId: item.itemId,
+        status: 'ERROR',
+        accounts: 0,
+        transactions: 0,
+        error: message,
+      })
+    }
+  }
+  return results
 }
 
 export async function deletePluggyTransactions(ids: string[]) {

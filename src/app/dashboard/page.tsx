@@ -56,6 +56,9 @@ function Dashboard() {
       const query = `mes=${agora.getMonth() + 1}&ano=${agora.getFullYear()}`;
 
       try {
+        // Garante que totais, categorias e atividades sejam consultados só
+        // depois de uma eventual reparação do Open Finance.
+        await apiRequest("/api/pluggy/sync-stale", { method: "POST" });
         const [resPainel, resDespesas, resReceitas] = await Promise.all([
           apiRequest("/api/dashboard"),
           apiRequest(`/api/expenses?${query}`),
