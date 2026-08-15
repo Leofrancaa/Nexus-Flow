@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, Eye, EyeOff } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Eye, EyeOff, RefreshCw } from "lucide-react";
 
 import { Money } from "@/components/ui/money";
 import { usePrivacy } from "@/contexts/privacyContext";
@@ -13,6 +13,9 @@ interface DashboardHeroProps {
   entradas: number;
   saidas: number;
   carregando: boolean;
+  sincronizando: boolean;
+  progressoSincronizacao: { atual: number; total: number } | null;
+  onSincronizarContas: () => void;
 }
 
 function saudacao(hora: number): string {
@@ -34,6 +37,9 @@ export function DashboardHero({
   entradas,
   saidas,
   carregando,
+  sincronizando,
+  progressoSincronizacao,
+  onSincronizarContas,
 }: DashboardHeroProps) {
   const [nome, setNome] = useState("");
   const [hora, setHora] = useState<number | null>(null);
@@ -80,19 +86,37 @@ export function DashboardHero({
             {iniciais}
           </div>
 
-          <button
-            type="button"
-            onClick={alternar}
-            aria-pressed={oculto}
-            aria-label={oculto ? "Mostrar valores" : "Ocultar valores"}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-bg/35 text-fg backdrop-blur-md transition-[background-color,transform,border-color] duration-200 hover:border-brand/35 hover:bg-bg/55 active:scale-[.96]"
-          >
-            {oculto ? (
-              <EyeOff className="h-5 w-5" aria-hidden="true" />
-            ) : (
-              <Eye className="h-5 w-5" aria-hidden="true" />
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onSincronizarContas}
+              disabled={sincronizando}
+              aria-label="Sincronizar todas as contas"
+              className="flex h-12 items-center justify-center gap-2 rounded-full border border-white/15 bg-bg/35 px-3.5 text-xs font-bold text-fg backdrop-blur-md transition-[background-color,transform,border-color,opacity] duration-200 hover:border-brand/35 hover:bg-bg/55 active:scale-[.96] disabled:cursor-wait disabled:opacity-70"
+            >
+              <RefreshCw
+                className={`h-4 w-4 text-brand ${sincronizando ? "animate-spin" : ""}`}
+                aria-hidden="true"
+              />
+              {sincronizando && progressoSincronizacao
+                ? `${progressoSincronizacao.atual}/${progressoSincronizacao.total}`
+                : "Sincronizar"}
+            </button>
+
+            <button
+              type="button"
+              onClick={alternar}
+              aria-pressed={oculto}
+              aria-label={oculto ? "Mostrar valores" : "Ocultar valores"}
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-bg/35 text-fg backdrop-blur-md transition-[background-color,transform,border-color] duration-200 hover:border-brand/35 hover:bg-bg/55 active:scale-[.96]"
+            >
+              {oculto ? (
+                <EyeOff className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Eye className="h-5 w-5" aria-hidden="true" />
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="mt-12 rise">

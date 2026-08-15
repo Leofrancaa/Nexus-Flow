@@ -20,6 +20,17 @@ import { toActivities, type Activity } from "@/lib/activities";
 import { gastoAcumuladoPorDia } from "@/lib/spendTrend";
 import type { DashboardData } from "@/server/types/index";
 
+type PluggyConnection = {
+  id: string;
+  connectorName: string | null;
+};
+
+type PluggyRefreshResult = {
+  synchronized?: boolean;
+  requiresUserInput?: boolean;
+  refreshLimited?: boolean;
+};
+
 /**
  * Painel — a tela de relance.
  *
@@ -42,11 +53,95 @@ function Dashboard() {
   const [dados, setDados] = useState<DashboardData | null>(null);
   const [itens, setItens] = useState<Activity[] | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [sincronizando, setSincronizando] = useState(false);
+  const [progressoSincronizacao, setProgressoSincronizacao] = useState<{
+    atual: number;
+    total: number;
+  } | null>(null);
 
   const recarregar = useCallback(() => setRefreshKey((k) => k + 1), []);
   // O lançamento manual vive no FAB, no layout — o aviso de "criei algo"
   // chega por evento, não por prop.
   useDataChanged(recarregar);
+
+  const sincronizarTodasAsContas = useCallback(async () => {
+    if (sincronizando) return;
+
+    setSincronizando(true);
+    const toastId = toast.loading("Localizando suas contas conectadas...");
+
+    try {
+      const connectionsResponse = await apiRequest("/api/pluggy/items");
+      const connectionsBody = await connectionsResponse.json().catch(() => ({}));
+      if (!connectionsResponse.ok) {
+        throw new Error(connectionsBody.error || "Não foi possível carregar as contas.");
+      }
+
+      const connections = (connectionsBody.data ?? []) as PluggyConnection[];
+      if (connections.length === 0) {
+        toast.error("Nenhuma instituição conectada.", { id: toastId });
+        return;
+      }
+
+      setProgressoSincronizacao({ atual: 0, total: connections.length });
+      let atualizadas = 0;
+      let pendentes = 0;
+      let precisamReconectar = 0;
+      let falhas = 0;
+
+      // Uma chamada por vez evita disputar a coleta entre instituições e ainda
+      // entrega a experiência de sincronizar tudo com um único toque.
+      for (const [index, connection] of connections.entries()) {
+        setProgressoSincronizacao({ atual: index + 1, total: connections.length });
+        toast.loading(
+          `Atualizando ${connection.connectorName || "instituição"} (${index + 1}/${connections.length})...`,
+          { id: toastId }
+        );
+
+        try {
+          const response = await apiRequest(`/api/pluggy/items/${connection.id}/sync`, {
+            method: "POST",
+          });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.error || "Falha na atualização.");
+
+          const result = (body.data ?? {}) as PluggyRefreshResult;
+          if (result.requiresUserInput) precisamReconectar += 1;
+          else if (result.synchronized || result.refreshLimited) atualizadas += 1;
+          else pendentes += 1;
+        } catch {
+          falhas += 1;
+        }
+      }
+
+      recarregar();
+
+      if (falhas === connections.length) {
+        toast.error("Nenhuma instituição conseguiu atualizar agora.", { id: toastId });
+      } else if (precisamReconectar > 0) {
+        toast.error(
+          `${atualizadas} atualizada(s). ${precisamReconectar} precisa(m) ser reconectada(s) no Open Finance.`,
+          { id: toastId }
+        );
+      } else if (pendentes > 0) {
+        toast.success(
+          `${atualizadas} atualizada(s). ${pendentes} continua(m) processando em segundo plano.`,
+          { id: toastId }
+        );
+      } else if (falhas > 0) {
+        toast.success(`${atualizadas} atualizada(s); ${falhas} falhou(aram).`, { id: toastId });
+      } else {
+        toast.success(`${atualizadas} instituição(ões) sincronizada(s).`, { id: toastId });
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao sincronizar as contas.", {
+        id: toastId,
+      });
+    } finally {
+      setSincronizando(false);
+      setProgressoSincronizacao(null);
+    }
+  }, [recarregar, sincronizando]);
 
   useEffect(() => {
     let cancelado = false;
@@ -132,6 +227,9 @@ function Dashboard() {
         entradas={receitasMes}
         saidas={despesasMes}
         carregando={carregando}
+        sincronizando={sincronizando}
+        progressoSincronizacao={progressoSincronizacao}
+        onSincronizarContas={sincronizarTodasAsContas}
       />
 
       <div className="relative z-10 -mt-2 space-y-4 pb-5">
