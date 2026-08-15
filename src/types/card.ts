@@ -9,4 +9,10 @@ export interface CardType {
     dia_vencimento: number;
     gasto_total: number;
     proximo_vencimento: string;
+    fatura_atual?: number;
+    instituicao?: string | null;
+    bandeira?: string | null;
+    sincronizado?: boolean;
+    fechamento_em?: string | null;
+    vencimento_em?: string | null;
 }

@@ -8,6 +8,7 @@ interface SpendTrendChartProps {
   /** Série na ordem cronológica. Menos de dois pontos não vira curva. */
   values: number[];
   className?: string;
+  danger?: boolean;
 }
 
 const W = 100;
@@ -31,7 +32,7 @@ const PAD = 10;
  * círculo — por isso o ponto final é um elemento posicionado por cima, em
  * porcentagem, e não um <circle> dentro do SVG.
  */
-export function SpendTrendChart({ values, className }: SpendTrendChartProps) {
+export function SpendTrendChart({ values, className, danger = false }: SpendTrendChartProps) {
   // Um id por instância: dois gráficos na mesma tela não podem disputar o
   // mesmo gradiente, senão o segundo herda o do primeiro.
   const gradId = useId();
@@ -69,12 +70,12 @@ export function SpendTrendChart({ values, className }: SpendTrendChartProps) {
             <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
               <stop
                 offset="0%"
-                stopColor="var(--color-brand)"
+                stopColor={danger ? "var(--color-negative)" : "var(--color-brand)"}
                 stopOpacity="0.32"
               />
               <stop
                 offset="100%"
-                stopColor="var(--color-brand)"
+                stopColor={danger ? "var(--color-negative)" : "var(--color-brand)"}
                 stopOpacity="0"
               />
             </linearGradient>
@@ -84,7 +85,7 @@ export function SpendTrendChart({ values, className }: SpendTrendChartProps) {
           <path
             d={linha}
             fill="none"
-            stroke="var(--color-brand)"
+            stroke={danger ? "var(--color-negative)" : "var(--color-brand)"}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -98,7 +99,10 @@ export function SpendTrendChart({ values, className }: SpendTrendChartProps) {
           utilitário de marca, para o verde emitir luz em vez de só preencher. */}
       <span
         aria-hidden="true"
-        className="nx-signal-node glow-sm absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand motion-safe:animate-[nx-signal-breathe_2.8s_ease-in-out_infinite]"
+        className={cn(
+          "nx-signal-node absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full motion-safe:animate-[nx-signal-breathe_2.8s_ease-in-out_infinite]",
+          danger ? "bg-negative shadow-[0_0_18px_var(--color-negative)]" : "bg-brand glow-sm"
+        )}
         style={{ left: "100%", top: `${ultimoY}%` }}
       />
     </div>

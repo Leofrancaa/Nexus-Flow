@@ -3,6 +3,7 @@ import type { Account, Item } from 'pluggy-js'
 import db from '@/server/db/drizzle'
 import {
   categories,
+  cards,
   expenses,
   incomes,
   pluggyAccounts,
@@ -35,6 +36,36 @@ type CursorResponse<T> = { results: T[]; next?: string | null }
 const WRITE_BATCH_SIZE = 250
 const UPDATE_POLL_INTERVAL_MS = 2_000
 const UPDATE_POLL_TIMEOUT_MS = 20_000
+
+const INSTITUTION_COLORS: Record<string, string> = {
+  nubank: '#820ad1',
+  'mercado pago': '#009ee3',
+  itau: '#ec7000',
+}
+
+function normalized(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function institutionColor(name: string | null | undefined) {
+  const key = normalized(name ?? '')
+  return Object.entries(INSTITUTION_COLORS).find(([term]) => key.includes(term))?.[1] ?? '#52525b'
+}
+
+function safeDate(value: Date | string | null | undefined): Date | null {
+  if (!value) return null
+  const parsed = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function daysBetween(later: Date | null, earlier: Date | null) {
+  if (!later || !earlier) return 10
+  const days = Math.round((later.getTime() - earlier.getTime()) / 86_400_000)
+  return days >= 1 && days <= 31 ? days : 10
+}
 
 function batches<T>(items: T[], size = WRITE_BATCH_SIZE): T[][] {
   const result: T[][] = []
@@ -137,8 +168,64 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
     `/accounts?itemId=${encodeURIComponent(item.id)}`
   )
   const accountRows = accountResponse.results
+  const cardIdsByAccount = new Map<string, number>()
 
   for (const account of accountRows) {
+    let cardId: number | null = null
+
+    if (account.type === 'CREDIT') {
+      const dueDate = safeDate(account.creditData?.balanceDueDate)
+      const closeDate = safeDate(account.creditData?.balanceCloseDate)
+      const creditLimit = Math.max(Number(account.creditData?.creditLimit ?? 0), 0)
+      const availableLimit = Math.max(Number(account.creditData?.availableCreditLimit ?? 0), 0)
+      const currentInvoice = Math.abs(Number(account.balance ?? 0))
+      const number = (account.number ?? '').replace(/\D/g, '').slice(-4) || '0000'
+
+      const [syncedCard] = await db
+        .insert(cards)
+        .values({
+          user_id: userId,
+          nome: account.marketingName || account.name || item.connector?.name || 'Cartão',
+          tipo: 'crédito',
+          numero: number,
+          cor: institutionColor(item.connector?.name),
+          limite: String(creditLimit),
+          limite_disponivel: String(availableLimit),
+          dia_vencimento: dueDate?.getUTCDate() ?? 1,
+          dias_fechamento_antes: daysBetween(dueDate, closeDate),
+          pluggy_account_id: account.id,
+          instituicao: item.connector?.name,
+          bandeira: account.creditData?.brand,
+          fatura_atual: String(currentInvoice),
+          fechamento_em: closeDate,
+          vencimento_em: dueDate,
+          sincronizado: true,
+        })
+        .onConflictDoUpdate({
+          target: cards.pluggy_account_id,
+          set: {
+            nome: account.marketingName || account.name || item.connector?.name || 'Cartão',
+            numero: number,
+            cor: institutionColor(item.connector?.name),
+            limite: String(creditLimit),
+            limite_disponivel: String(availableLimit),
+            dia_vencimento: dueDate?.getUTCDate() ?? 1,
+            dias_fechamento_antes: daysBetween(dueDate, closeDate),
+            instituicao: item.connector?.name,
+            bandeira: account.creditData?.brand,
+            fatura_atual: String(currentInvoice),
+            fechamento_em: closeDate,
+            vencimento_em: dueDate,
+            sincronizado: true,
+            updated_at: new Date(),
+          },
+        })
+        .returning({ id: cards.id })
+
+      cardId = syncedCard.id
+      cardIdsByAccount.set(account.id, cardId)
+    }
+
     await db
       .insert(pluggyAccounts)
       .values({
@@ -150,6 +237,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
         nome: account.marketingName || account.name,
         numero: account.number,
         saldo: String(account.balance ?? 0),
+        card_id: cardId,
       })
       .onConflictDoUpdate({
         target: pluggyAccounts.account_id,
@@ -159,6 +247,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           nome: account.marketingName || account.name,
           numero: account.number,
           saldo: String(account.balance ?? 0),
+          card_id: cardId,
           updated_at: new Date(),
         },
       })
@@ -214,6 +303,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           quantidade: quantity,
           data: transactionDate,
           parcelas: transaction.creditCardMetadata?.totalInstallments ?? null,
+          card_id: cardIdsByAccount.get(account.id) ?? null,
           category_id: categoryId,
           observacoes: 'Sincronizado via Open Finance',
         })
@@ -258,6 +348,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           quantidade: sql`excluded.quantidade`,
           data: sql`excluded.data`,
           parcelas: sql`excluded.parcelas`,
+          card_id: sql`excluded.card_id`,
           category_id: sql`case when ${expenses.categoria_manual} then ${expenses.category_id} else excluded.category_id end`,
           updated_at: new Date(),
         },
@@ -426,7 +517,7 @@ export async function deletePluggyItemData(itemId: string, expectedUserId?: stri
 
   await db.transaction(async (tx) => {
     const accountRows = await tx
-      .select({ id: pluggyAccounts.account_id, userId: pluggyAccounts.user_id })
+      .select({ id: pluggyAccounts.account_id, userId: pluggyAccounts.user_id, cardId: pluggyAccounts.card_id })
       .from(pluggyAccounts)
       .where(accountCondition)
 
@@ -442,6 +533,12 @@ export async function deletePluggyItemData(itemId: string, expectedUserId?: stri
     }
 
     await tx.delete(pluggyAccounts).where(accountCondition)
+    const syncedCardIds = accountRows
+      .map((account) => account.cardId)
+      .filter((cardId): cardId is number => cardId !== null)
+    if (syncedCardIds.length > 0) {
+      await tx.delete(cards).where(inArray(cards.id, syncedCardIds))
+    }
     await tx.delete(pluggyItems).where(itemCondition)
   })
 }

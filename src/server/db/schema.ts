@@ -12,6 +12,7 @@ import {
   uuid,
   unique,
   uniqueIndex,
+  index,
   check,
 } from 'drizzle-orm/pg-core'
 
@@ -130,9 +131,21 @@ export const cards = pgTable('cards', {
     .notNull(),
   dia_vencimento: integer('dia_vencimento').default(1).notNull(),
   dias_fechamento_antes: integer('dias_fechamento_antes').default(10).notNull(),
+  // Metadados de cartões vindos do Open Finance. Permanecem nulos nos
+  // cartões cadastrados manualmente e são atualizados a cada sincronização.
+  pluggy_account_id: text('pluggy_account_id'),
+  instituicao: text('instituicao'),
+  bandeira: text('bandeira'),
+  fatura_atual: numeric('fatura_atual', { precision: 12, scale: 2 }).default('0').notNull(),
+  fechamento_em: date('fechamento_em', { mode: 'date' }),
+  vencimento_em: date('vencimento_em', { mode: 'date' }),
+  sincronizado: boolean('sincronizado').default(false).notNull(),
   user_id: uuid('user_id').notNull(),
   ...timestamps,
-})
+}, (table) => [
+  uniqueIndex('cards_pluggy_account_id_unique').on(table.pluggy_account_id),
+  index('cards_user_id_idx').on(table.user_id),
+])
 
 export const cardInvoicesPayments = pgTable(
   'card_invoices_payments',

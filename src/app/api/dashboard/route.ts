@@ -12,6 +12,7 @@ import {
     getCartoesAVencer,
     getParcelasPendentes,
     getResumoAnual,
+    getAssinaturasDoMes,
 } from '@/server/utils/finance/index'
 import { DashboardData } from '@/server/types/index'
 import { ensureDefaultCategories } from '@/server/services/defaultCategoryService'
@@ -37,7 +38,8 @@ export async function GET(request: NextRequest) {
       cartoesEstourados,
       cartoesAVencer,
       parcelasPendentes,
-      resumoAnual
+      resumoAnual,
+      assinaturas
     ] = await Promise.all([
       getSaldoFuturo(user.id),
       getTotaisMensais(user.id),
@@ -48,7 +50,8 @@ export async function GET(request: NextRequest) {
       getCartoesEstourados(user.id),
       getCartoesAVencer(user.id),
       getParcelasPendentes(user.id),
-      getResumoAnual(user.id, ano)
+      getResumoAnual(user.id, ano),
+      getAssinaturasDoMes(user.id, mes, ano)
     ])
 
     // O destaque e os rótulos de entradas/saídas precisam falar da mesma
@@ -70,7 +73,8 @@ export async function GET(request: NextRequest) {
       gastosPorCartao: porCartao,
       parcelasPendentes,
       cartoesEstourados,
-      cartoesAVencer
+      cartoesAVencer,
+      assinaturas
     }
 
     return ok(dashboardData, 'Dados do dashboard carregados com sucesso')

@@ -51,6 +51,13 @@ export function CardVisual({
     cor,
     proximo_vencimento,
     dias_fechamento_antes,
+    gasto_total: gastoTotalDaApi,
+    fatura_atual,
+    instituicao,
+    bandeira,
+    sincronizado,
+    fechamento_em,
+    vencimento_em,
   } = card as CardType & { dias_fechamento_antes?: number };
 
   const isCredito = (tipo || "").toLowerCase().includes("crédit");
@@ -60,9 +67,10 @@ export function CardVisual({
       : 10;
 
   // datas
-  const dueDate = new Date(proximo_vencimento);
-  const closeDate = new Date(dueDate);
-  closeDate.setDate(closeDate.getDate() - diasFechamento);
+  const parseBankDate = (value: string) => new Date(value.includes("T") ? value : `${value}T12:00:00`);
+  const dueDate = vencimento_em ? parseBankDate(vencimento_em) : new Date(proximo_vencimento);
+  const closeDate = fechamento_em ? parseBankDate(fechamento_em) : new Date(dueDate);
+  if (!fechamento_em) closeDate.setDate(closeDate.getDate() - diasFechamento);
 
   const hoje = new Date();
   const diasAteFechamento = differenceInDays(closeDate, hoje);
@@ -73,11 +81,14 @@ export function CardVisual({
 
   // limites (somente crédito)
   const gasto_total = isCredito
-    ? Math.max(0, Number(limite) - Number(limite_disponivel))
+    ? sincronizado
+      ? Number(fatura_atual ?? gastoTotalDaApi ?? 0)
+      : Number(gastoTotalDaApi ?? Math.max(0, Number(limite) - Number(limite_disponivel)))
     : 0;
+  const limiteUsado = Math.max(0, Number(limite) - Number(limite_disponivel));
   const percentualUsado =
     isCredito && Number(limite) > 0
-      ? Math.min((gasto_total / Number(limite)) * 100, 100)
+      ? Math.min((limiteUsado / Number(limite)) * 100, 100)
       : 0;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -160,6 +171,7 @@ export function CardVisual({
       >
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">{nome}</p>
+          {instituicao ? <p className="mt-0.5 text-xs text-white/75">{instituicao}</p> : null}
           <p className="text-lg font-semibold tracking-wider">
             **** **** **** {numero}
           </p>
@@ -173,7 +185,7 @@ export function CardVisual({
           )}
         </div>
         <span className="shrink-0 text-xs bg-white/20 px-2 py-1 rounded-md">
-          {tipo}
+          {sincronizado ? "Open Finance" : tipo}
         </span>
       </div>
 
@@ -200,12 +212,19 @@ export function CardVisual({
             </div>
 
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-300 mb-4">
-              <span className="text-[var(--card-text)]">
-                {formatCurrency(gasto_total)}
-              </span>
-              <span className="text-[var(--card-text)]">
-                {formatCurrency(limite)}
-              </span>
+              <span className="text-[var(--card-text)]">Usado {formatCurrency(limiteUsado)}</span>
+              <span className="text-[var(--card-text)]">Limite {formatCurrency(limite)}</span>
+            </div>
+
+            <div className="mb-5 grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-black/10 p-3 dark:bg-white/[0.04]">
+                <p className="text-xs text-[var(--card-text)]/60">Fatura atual</p>
+                <p className="mt-1 font-semibold text-[var(--card-text)]">{formatCurrency(gasto_total)}</p>
+              </div>
+              <div className="rounded-lg bg-black/10 p-3 dark:bg-white/[0.04]">
+                <p className="text-xs text-[var(--card-text)]/60">Limite disponível</p>
+                <p className="mt-1 font-semibold text-[var(--card-text)]">{formatCurrency(limite_disponivel)}</p>
+              </div>
             </div>
           </>
         )}
@@ -267,7 +286,7 @@ export function CardVisual({
     md:flex md:flex-wrap md:justify-end
   "
           >
-            {isCredito && (
+            {isCredito && !sincronizado && (
               <button
                 onClick={handlePayInvoice}
                 disabled={!fechamentoPassou || pagarLoading}
@@ -289,14 +308,18 @@ export function CardVisual({
             )}
 
             {/* Direita: Edit e Delete juntos */}
-            <div className="inline-flex items-center gap-2 flex-none justify-self-end md:justify-self-auto md:ml-2">
+            {!sincronizado ? <div className="inline-flex items-center gap-2 flex-none justify-self-end md:justify-self-auto md:ml-2">
               <EditButton
                 onClick={() => onEdit(card)}
                 title="Editar cartão"
                 size="md"
               />
               <DeleteButton onClick={() => setConfirmOpen(true)} />
-            </div>
+            </div> : (
+              <p className="col-span-2 text-right text-xs text-[var(--card-text)]/60">
+                {bandeira ? `${bandeira} · ` : ""}atualizado pelo banco
+              </p>
+            )}
           </div>
         </div>
       </div>

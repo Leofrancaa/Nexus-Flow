@@ -50,6 +50,10 @@ interface DisplaySlice {
   total: number;
 }
 
+interface GroupSlice extends DisplaySlice {
+  members: CategorySummary[];
+}
+
 const GROUPS = [
   {
     name: "Essenciais",
@@ -95,8 +99,8 @@ function iconFor(name: string) {
   return ICONS.find(({ terms }) => terms.some((term) => normalized.includes(term)))?.icon ?? Shapes;
 }
 
-function groupCategories(categories: CategorySummary[]): DisplaySlice[] {
-  const grouped = new Map<string, DisplaySlice>();
+function groupCategories(categories: CategorySummary[]): GroupSlice[] {
+  const grouped = new Map<string, GroupSlice>();
 
   for (const category of categories) {
     const normalized = normalize(category.nome);
@@ -110,6 +114,7 @@ function groupCategories(categories: CategorySummary[]): DisplaySlice[] {
       cor: matched?.color ?? "#38bdf8",
       quantidade: (current?.quantidade ?? 0) + category.quantidade,
       total: (current?.total ?? 0) + category.total,
+      members: [...(current?.members ?? []), category],
     });
   }
 
@@ -150,10 +155,67 @@ function SpendingDonut({ slices, total }: { slices: DisplaySlice[]; total: numbe
       </svg>
 
       <div className="absolute inset-0 flex flex-col items-center justify-center px-14 text-center">
-        <Money value={total} className="text-[2rem] font-bold leading-none text-fg" />
+        <Money
+          value={total}
+          className={cn("text-[2rem] font-bold leading-none", total > 3600 ? "text-negative" : "text-fg")}
+        />
         <span className="mt-2 text-sm text-muted">gastos este mês</span>
       </div>
     </div>
+  );
+}
+
+const BUBBLE_POSITIONS = [
+  { left: "50%", top: "47%", base: 142 },
+  { left: "20%", top: "27%", base: 108 },
+  { left: "79%", top: "28%", base: 96 },
+  { left: "22%", top: "72%", base: 86 },
+] as const;
+
+function GroupBubbleCloud({ groups, total }: { groups: GroupSlice[]; total: number }) {
+  const largest = Math.max(...groups.map((group) => group.total), 1);
+
+  return (
+    <section className="mt-5" aria-label="Distribuição por grupos">
+      <div className="relative mx-auto h-[19rem] w-full max-w-[23rem] overflow-hidden">
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-[12%] bottom-[8%] h-24 rounded-full bg-brand/[0.035] blur-2xl"
+        />
+        {groups.slice(0, 4).map((group, index) => {
+          const position = BUBBLE_POSITIONS[index];
+          const scale = 0.72 + (group.total / largest) * 0.28;
+          const size = Math.round(position.base * scale);
+          const Icon = iconFor(group.members[0]?.nome ?? group.nome);
+          const percentage = total > 0 ? (group.total / total) * 100 : 0;
+
+          return (
+            <div
+              key={group.key}
+              className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border text-center shadow-[inset_0_0_28px_rgba(255,255,255,.025),0_18px_40px_rgba(0,0,0,.2)]"
+              style={{
+                left: position.left,
+                top: position.top,
+                width: size,
+                height: size,
+                borderColor: `${group.cor}80`,
+                color: group.cor,
+                background: `radial-gradient(circle at 34% 28%, ${group.cor}35, ${group.cor}12 58%, ${group.cor}08)`,
+              }}
+            >
+              <Icon className="mb-1 h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
+              <span className="num text-xl font-bold">{Math.round(percentage)}%</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="text-sm text-muted">Gastos agrupados neste mês</p>
+      <Money
+        value={total}
+        className={cn("mt-0.5 block text-3xl font-bold", total > 3600 ? "text-negative" : "text-fg")}
+      />
+    </section>
   );
 }
 
@@ -213,8 +275,7 @@ function CategorySpending() {
     [selectedMonth, selectedYear, setMonth, setYear]
   );
 
-  const slices = useMemo<DisplaySlice[]>(() => {
-    if (view === "groups") return groupCategories(categories);
+  const categorySlices = useMemo<DisplaySlice[]>(() => {
     return categories.map((category) => ({
       key: `category-${category.id}`,
       nome: category.nome,
@@ -222,9 +283,14 @@ function CategorySpending() {
       quantidade: category.quantidade,
       total: category.total,
     }));
-  }, [categories, view]);
+  }, [categories]);
 
-  const total = useMemo(() => slices.reduce((sum, slice) => sum + slice.total, 0), [slices]);
+  const groups = useMemo(() => groupCategories(categories), [categories]);
+
+  const total = useMemo(
+    () => categorySlices.reduce((sum, slice) => sum + slice.total, 0),
+    [categorySlices]
+  );
   const monthLabel = useMemo(
     () =>
       new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(
@@ -280,8 +346,12 @@ function CategorySpending() {
 
       {loading ? (
         <div className="mx-auto mt-12 aspect-square w-full max-w-[20rem] animate-pulse rounded-full border-[2.25rem] border-elevated" />
-      ) : slices.length > 0 ? (
-        <SpendingDonut slices={slices} total={total} />
+      ) : categories.length > 0 ? (
+        view === "groups" ? (
+          <GroupBubbleCloud groups={groups} total={total} />
+        ) : (
+          <SpendingDonut slices={categorySlices} total={total} />
+        )
       ) : (
         <div className="mx-auto mt-12 flex aspect-square w-full max-w-[19rem] flex-col items-center justify-center rounded-full border-[1.15rem] border-elevated px-10 text-center">
           <Shapes className="h-7 w-7 text-subtle" aria-hidden="true" />
@@ -315,10 +385,11 @@ function CategorySpending() {
         </button>
       </div>
 
+      {view === "categories" ? (
       <ul className="mt-5 space-y-3">
-        {slices.map((slice) => {
+        {categorySlices.map((slice) => {
           const percentage = total > 0 ? (slice.total / total) * 100 : 0;
-          const Icon = view === "groups" ? Shapes : iconFor(slice.nome);
+          const Icon = iconFor(slice.nome);
           const isExpanded = expanded === slice.key;
           const average = slice.quantidade > 0 ? slice.total / slice.quantidade : 0;
 
@@ -366,6 +437,61 @@ function CategorySpending() {
           );
         })}
       </ul>
+      ) : (
+        <ul className="mt-5 space-y-3">
+          {groups.map((group) => {
+            const percentage = total > 0 ? (group.total / total) * 100 : 0;
+            const isExpanded = expanded === group.key;
+
+            return (
+              <li key={group.key} className="overflow-hidden rounded-[1.4rem] border border-white/[0.05] bg-surface">
+                <button
+                  type="button"
+                  onClick={() => setExpanded(isExpanded ? null : group.key)}
+                  aria-expanded={isExpanded}
+                  className="w-full touch-manipulation p-4 text-left transition-colors hover:bg-elevated/55"
+                >
+                  <span className="flex items-start gap-3">
+                    <span className="mt-1 h-11 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: group.cor }} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="truncate font-display text-base font-bold text-fg">{group.nome}</span>
+                        <Money value={group.total} className="shrink-0 text-base font-semibold text-fg" />
+                      </span>
+                      <span className="mt-1 flex items-center justify-between text-xs text-muted">
+                        <span>{group.members.length} {group.members.length === 1 ? "categoria" : "categorias"}</span>
+                        <span className="num">{Math.round(percentage)}%</span>
+                      </span>
+                      <span className="mt-3 block h-1.5 overflow-hidden rounded-full bg-elevated">
+                        <span
+                          className="block h-full rounded-full"
+                          style={{ width: `${percentage}%`, backgroundColor: group.cor }}
+                        />
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className={cn("mt-1 h-4 w-4 shrink-0 text-subtle transition-transform", isExpanded && "rotate-180")}
+                      aria-hidden="true"
+                    />
+                  </span>
+                </button>
+
+                {isExpanded ? (
+                  <ul className="border-t border-line px-4 py-2">
+                    {group.members.sort((a, b) => b.total - a.total).map((member) => (
+                      <li key={member.id} className="flex items-center gap-2 py-2 text-sm">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: member.cor }} aria-hidden="true" />
+                        <span className="min-w-0 flex-1 truncate text-muted">{member.nome}</span>
+                        <Money value={member.total} className="shrink-0 font-semibold text-fg" />
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </PageWrapper>
   );
 }

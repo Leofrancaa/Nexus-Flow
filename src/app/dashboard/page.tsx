@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CreditCard, Layers3, Waves } from "lucide-react";
+import { Layers3, Repeat2, Waves } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 import { PageWrapper } from "@/components/layout/pageWrapper";
@@ -257,17 +257,16 @@ function Dashboard() {
     const lista = dados?.cartoesAVencer ?? [];
     const limite = lista.reduce((soma, c) => soma + Number(c.limite), 0);
     const gasto = lista.reduce((soma, c) => soma + Number(c.total_gasto), 0);
-    const proximo = [...lista].sort(
-      (a, b) => a.dia_vencimento - b.dia_vencimento
-    )[0];
-
+    const disponivel = lista.reduce(
+      (soma, c) => soma + Number(c.limite_disponivel),
+      0
+    );
     return {
       quantidade: lista.length,
       limite,
       gasto,
-      disponivel: Math.max(limite - gasto, 0),
-      consumo: limite > 0 ? gasto / limite : 0,
-      proximo,
+      disponivel,
+      consumo: limite > 0 ? Math.max(limite - disponivel, 0) / limite : 0,
     };
   }, [dados]);
 
@@ -324,24 +323,14 @@ function Dashboard() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <WidgetCard
-              label={cartoes.proximo ? "Fatura atual" : "Cartões"}
-              value={
-                cartoes.quantidade > 0 ? (
-                  <Money value={cartoes.gasto} />
-                ) : (
-                  "Nenhum"
-                )
-              }
-              sub={
-                cartoes.proximo
-                  ? `Vence dia ${cartoes.proximo.dia_vencimento}`
-                  : "Cadastre um cartão"
-              }
-              href="/cartoes"
+              label="Assinaturas"
+              value={<Money value={Number(dados?.assinaturas?.total ?? 0)} />}
+              sub={`${dados?.assinaturas?.quantidade ?? 0} ${dados?.assinaturas?.quantidade === 1 ? "assinatura" : "assinaturas"}`}
+              href="/categorias/gastos"
               delay={120}
               media={
                 <MetricIcon>
-                  <CreditCard className="h-4 w-4" aria-hidden="true" />
+                  <Repeat2 className="h-4 w-4" aria-hidden="true" />
                 </MetricIcon>
               }
             />

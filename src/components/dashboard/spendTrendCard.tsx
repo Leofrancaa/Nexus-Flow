@@ -28,16 +28,17 @@ export function SpendTrendCard({
 }: SpendTrendCardProps) {
   const delta =
     anterior > 0 ? Math.round(((total - anterior) / anterior) * 100) : null;
+  const acimaDoLimite = total > 3600;
 
   return (
     <section className="rise overflow-hidden rounded-card border border-white/[0.045] bg-[linear-gradient(145deg,#17191d_0%,#111316_100%)] shadow-[0_20px_50px_rgba(0,0,0,.18)]">
       <Link href="/atividades?tipo=saidas" className="group block p-5 pb-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-sm text-muted">Gastos do mês</p>
+            <p className={cn("text-sm", acimaDoLimite ? "text-negative" : "text-muted")}>Gastos do mês</p>
             <Money
               value={total}
-              className="mt-0.5 block text-3xl font-bold text-fg"
+              className={cn("mt-0.5 block text-3xl font-bold", acimaDoLimite ? "text-negative" : "text-fg")}
             />
           </div>
           <ChevronRight
@@ -64,7 +65,7 @@ export function SpendTrendCard({
           fundo da superfície, então cortar antes só criaria uma faixa vazia.
           A margem à direita reserva o espaço do ponto final. */}
       <div className="mt-4 pr-3">
-        <SpendTrendChart values={serie} className="h-32 w-full" />
+        <SpendTrendChart values={serie} danger={acimaDoLimite} className="h-32 w-full" />
       </div>
     </section>
   );

@@ -79,7 +79,10 @@ export class CardService {
         const queryResult = await db.execute(sql`
             SELECT
                 c.*,
-                COALESCE(SUM(e.quantidade), 0) AS gasto_total
+                CASE
+                    WHEN c.sincronizado THEN c.fatura_atual
+                    ELSE COALESCE(SUM(e.quantidade), 0)
+                END AS gasto_total
             FROM cards c
             LEFT JOIN expenses e ON e.card_id = c.id
                 AND e.user_id = ${userId}
@@ -98,6 +101,7 @@ export class CardService {
                 ...card,
                 limite,
                 limite_disponivel: limiteDisponivel,
+                fatura_atual: Number(card.fatura_atual ?? 0),
                 gasto_total: gastoTotal,
                 proximo_vencimento: this.getProximoVencimento(Number(card.dia_vencimento)),
             }
@@ -356,6 +360,7 @@ export class CardService {
             ...card,
             limite: Number(card.limite),
             limite_disponivel: Number(card.limite_disponivel),
+            fatura_atual: Number(card.fatura_atual ?? 0),
         } as Card
     }
 }

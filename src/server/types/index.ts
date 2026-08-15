@@ -67,6 +67,13 @@ export interface Card {
     limite_disponivel: number
     dia_vencimento?: number
     dias_fechamento_antes?: number
+    pluggy_account_id?: string | null
+    instituicao?: string | null
+    bandeira?: string | null
+    fatura_atual?: number
+    fechamento_em?: Date | null
+    vencimento_em?: Date | null
+    sincronizado?: boolean
     user_id: string
     created_at: Date
     updated_at: Date
@@ -301,6 +308,7 @@ export interface DashboardData {
     parcelasPendentes: PendingInstallment[]
     cartoesEstourados: OverlimitCard[]
     cartoesAVencer: DueCard[]
+    assinaturas: SubscriptionSummary
 }
 
 export interface MonthlyTotal {
@@ -360,8 +368,14 @@ export interface DueCard {
     id: number
     nome: string
     limite: number
+    limite_disponivel: number
     total_gasto: number
     dia_vencimento: number
+}
+
+export interface SubscriptionSummary {
+    total: number
+    quantidade: number
 }
 
 // ===== API Response Types =====

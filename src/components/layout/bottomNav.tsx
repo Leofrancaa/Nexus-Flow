@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeftRight,
-  CreditCard,
   Home,
   Sparkles,
   User,
@@ -23,14 +22,13 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { label: "Home", href: "/dashboard", icon: Home, owns: ["/categorias/gastos"] },
+  { label: "Home", href: "/dashboard", icon: Home, owns: ["/categorias/gastos", "/cartoes"] },
   {
     label: "Atividades",
     href: "/atividades",
     icon: ArrowLeftRight,
     owns: ["/despesas", "/receitas"],
   },
-  { label: "Cartões", href: "/cartoes", icon: CreditCard },
   { label: "Assistente", href: "/assistente", icon: Sparkles },
   {
     label: "Perfil",
@@ -54,7 +52,7 @@ function isActive(pathname: string, tab: Tab): boolean {
 }
 
 /**
- * Navegação principal do app — cinco abas fixas no rodapé.
+ * Navegação principal do app — quatro abas fixas no rodapé.
  *
  * Fica sobre o conteúdo com `backdrop-blur` em vez de fundo opaco: a rolagem
  * continua visível por baixo, o que mantém a noção de que a lista continua.
