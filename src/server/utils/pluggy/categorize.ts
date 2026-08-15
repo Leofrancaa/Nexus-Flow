@@ -9,7 +9,7 @@ import { chatJson, isLlmConfigured } from '@/server/services/llmService'
  * fora. Passam a ser a base da categorização das transações da Pluggy, que
  * chegam com a mesma cara ("IFD*IFOOD", "PG *POSTO IPIRANGA").
  *
- * Ainda sem chamador: o `pluggySyncService` do bloco 5 é quem vai usá-las.
+ * O `pluggySyncService` aplica estas regras antes de recorrer à IA.
  */
 
 export interface UserCategory {
@@ -26,15 +26,26 @@ export interface CategorizableItem {
   merchantName?: string | null
 }
 
+// Comerciantes conhecidos têm precedência sobre a categoria genérica recebida
+// da instituição. Isso evita, por exemplo, Amazon/"Houseware" virar Moradia e
+// Mercado Livre virar Alimentação apenas porque contém a palavra "mercado".
+const MERCHANT_RULES: Array<{ keywords: string[]; category: string }> = [
+  { keywords: ['chatgpt', 'chatgp', 'openai', 'claude', 'anthropic'], category: 'assinaturas' },
+  { keywords: ['ifood', 'ifd*', 'ifd ', 'rappi', 'delivery', 'deliver', 'aiqfome', 'ze delivery'], category: 'alimentacao' },
+  { keywords: ['cacau show', 'cacaushow', 'hiperideal', 'subway', 'mcdonald', 'burger king'], category: 'alimentacao' },
+  { keywords: ['mercado livre', 'mercadolivre', 'amazon', 'amazonmktplc', 'amzn', 'adidas', 'nike', 'shopee', 'aliexpress'], category: 'compras' },
+  { keywords: ['senai'], category: 'educacao' },
+]
+
 // Palavra-chave (sem acento) -> nome genérico de categoria (pt-BR).
 const KEYWORD_RULES: Array<{ keywords: string[]; category: string }> = [
-  { keywords: ['netflix', 'spotify', 'disney', 'hbo', 'prime video', 'globoplay', 'youtube premium', 'digital services', 'video streaming', 'music streaming'], category: 'assinaturas' },
-  { keywords: ['ifood', 'rappi', 'restaurante', 'lanchonete', 'padaria', 'mercado', 'supermercado', 'hiperideal', 'hortifruti', 'acougue', 'mc donalds', 'burger', 'pizza', 'groceries', 'food and drinks', 'eating out', 'food delivery'], category: 'alimentacao' },
+  { keywords: ['netflix', 'spotify', 'disney', 'hbo', 'prime video', 'globoplay', 'youtube premium', 'chatgpt', 'chatgp', 'openai', 'claude', 'anthropic', 'digital services', 'video streaming', 'music streaming'], category: 'assinaturas' },
+  { keywords: ['ifood', 'ifd*', 'ifd ', 'rappi', 'delivery', 'deliver', 'restaurante', 'lanchonete', 'padaria', 'supermercado', 'hiperideal', 'hortifruti', 'acougue', 'cacau show', 'subway', 'mc donalds', 'burger', 'pizza', 'groceries', 'food and drinks', 'eating out', 'food delivery'], category: 'alimentacao' },
   { keywords: ['uber', '99 ', '99app', 'cabify', 'blablacar', 'posto', 'shell', 'ipiranga', 'combustivel', 'estacionamento', 'metro', 'onibus', 'passagem', 'transportation', 'automotive', 'gas stations', 'parking', 'tolls'], category: 'transporte' },
   { keywords: ['aluguel', 'condominio', 'luz', 'energia', 'agua', 'gas', 'enel', 'sabesp', 'imobiliaria', 'housing', 'utilities', 'rent', 'houseware'], category: 'moradia' },
   { keywords: ['farmacia', 'drogaria', 'hospital', 'clinica', 'medico', 'laboratorio', 'plano de saude', 'unimed', 'academia', 'healthcare', 'wellness', 'fitness', 'pharmacy'], category: 'saude' },
   { keywords: ['escola', 'faculdade', 'curso', 'senai', 'matricula', 'udemy', 'alura', 'coursera', 'livro', 'mensalidade', 'education', 'university', 'school', 'bookstore'], category: 'educacao' },
-  { keywords: ['amazon', 'mercado livre', 'mercadolivre', 'shopee', 'aliexpress', 'magazine', 'americanas', 'loja', 'shopping', 'electronics', 'clothing', 'pet supplies'], category: 'compras' },
+  { keywords: ['amazon', 'mercado livre', 'mercadolivre', 'shopee', 'aliexpress', 'adidas', 'nike', 'magazine', 'americanas', 'loja', 'shopping', 'electronics', 'clothing', 'pet supplies'], category: 'compras' },
   { keywords: ['hotel', 'airbnb', 'aereo', 'companhia aerea', 'travel', 'airport', 'airlines', 'accommodation', 'mileage'], category: 'viagens' },
   { keywords: ['imposto', 'ipva', 'iptu', 'receita federal', 'taxes', 'legal obligations'], category: 'impostos' },
   { keywords: ['tarifa', 'anuidade', 'juros', 'bank fees', 'account fees', 'credit card fees', 'encargos_juros'], category: 'taxas bancarias' },
@@ -69,13 +80,26 @@ export function categorizeByRules(
   item: CategorizableItem,
   userCategories: UserCategory[]
 ): number | null {
+  const merchantDescription = normalize(
+    [item.description, item.merchantName].filter(Boolean).join(' ')
+  )
+  const tipo = item.type === 'income' ? 'receita' : 'despesa'
+
+  if (item.type === 'expense') {
+    for (const rule of MERCHANT_RULES) {
+      if (rule.keywords.some((keyword) => merchantDescription.includes(normalize(keyword)))) {
+        const id = resolveCategory(rule.category, userCategories, tipo)
+        if (id) return id
+      }
+    }
+  }
+
   const desc = normalize(
     [item.description, item.merchantName, item.providerCategory, item.operationType]
       .filter(Boolean)
       .join(' ')
   )
   const rules = item.type === 'income' ? INCOME_RULES : KEYWORD_RULES
-  const tipo = item.type === 'income' ? 'receita' : 'despesa'
 
   for (const rule of rules) {
     if (rule.keywords.some((k) => desc.includes(normalize(k)))) {

@@ -4,32 +4,7 @@ import Image from "next/image";
 import { Building2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-
-const BRAND_MATCHES = [
-  { terms: ["ifood"], slug: "ifood", color: "#ea1d2c" },
-  { terms: ["subway"], asset: "/merchant-logos/subway.svg", color: "#008c15", wide: true },
-  { terms: ["byd auto", "salario byd", "salário byd", "byd"], asset: "/merchant-logos/byd.svg", color: "#d70c19", wide: true },
-  { terms: ["google"], slug: "google", color: "#ffffff" },
-  { terms: ["amazon"], slug: "amazon", color: "#ff9900" },
-  { terms: ["uber"], slug: "uber", color: "#ffffff" },
-  { terms: ["mercado livre", "mercadolivre"], slug: "mercadolibre", color: "#ffe600" },
-  { terms: ["mercado pago", "mercadopago"], slug: "mercadopago", color: "#00b1ea" },
-  { terms: ["netflix"], slug: "netflix", color: "#e50914" },
-  { terms: ["spotify"], slug: "spotify", color: "#1ed760" },
-  { terms: ["rappi"], slug: "rappi", color: "#ff5a2d" },
-  { terms: ["mcdonald", "mc donald"], slug: "mcdonalds", color: "#ffbc0d" },
-  { terms: ["apple"], slug: "apple", color: "#ffffff" },
-  { terms: ["shopee"], slug: "shopee", color: "#ee4d2d" },
-  { terms: ["aliexpress"], slug: "aliexpress", color: "#ff4747" },
-  { terms: ["steam"], slug: "steam", color: "#66c0f4" },
-] as const;
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
+import { findMerchantBrand } from "@/lib/merchantBrands";
 
 function connectorImage(connectorId: number) {
   return `https://cdn.pluggy.ai/assets/connector-icons/${connectorId}.svg`;
@@ -86,12 +61,9 @@ export function TransactionIcon({
   connectorId?: number;
   institution?: string;
 }) {
-  const haystack = normalize(description);
-  const brand = BRAND_MATCHES.find(({ terms }) =>
-    terms.some((term) => haystack.includes(term))
-  );
+  const brand = findMerchantBrand(description);
   const [brandFailed, setBrandFailed] = useState(false);
-  const initials = (brand ? description : category ?? description).slice(0, 2).toUpperCase();
+  const initials = brand?.fallback ?? (category ?? description).slice(0, 2).toUpperCase();
 
   return (
     <span className="relative h-12 w-12 shrink-0" aria-hidden="true">
@@ -105,13 +77,12 @@ export function TransactionIcon({
         {brand && !brandFailed ? (
           <Image
             src={
-              "asset" in brand
-                ? brand.asset
-                : `https://cdn.simpleicons.org/${brand.slug}/${brand.color.slice(1)}`
+              brand.asset ??
+              `https://cdn.simpleicons.org/${brand.slug}/${brand.color.slice(1)}`
             }
             alt=""
-            width={"wide" in brand && brand.wide ? 36 : 26}
-            height={"wide" in brand && brand.wide ? 20 : 26}
+            width={brand.wide ? 38 : 26}
+            height={brand.wide ? 24 : 26}
             unoptimized
             onError={() => setBrandFailed(true)}
           />

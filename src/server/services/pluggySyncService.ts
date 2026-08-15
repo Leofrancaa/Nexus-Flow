@@ -22,6 +22,10 @@ import {
   transactionDirection,
 } from '@/server/utils/pluggy/transaction'
 import {
+  installmentAccountingDate,
+  installmentDescription,
+} from '@/server/utils/pluggy/installment'
+import {
   calculateCurrentInvoice,
   type PluggyCardBill,
 } from '@/server/utils/pluggy/currentInvoice'
@@ -426,7 +430,14 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
         },
         userCategories
       )
-      const transactionDate = transactionDateInBrazil(transaction.date)
+      const originalTransactionDate = transactionDateInBrazil(transaction.date)
+      const transactionDate = account.type === 'CREDIT'
+        ? installmentAccountingDate(originalTransactionDate, transaction.creditCardMetadata)
+        : originalTransactionDate
+      const transactionDescription = installmentDescription(
+        transaction.merchant?.name || transaction.description,
+        transaction.creditCardMetadata
+      )
       const quantity = Math.abs(transaction.amount).toFixed(2)
 
       if (direction === 'expense') {
@@ -436,10 +447,12 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           pluggy_account_id: account.id,
           origem: 'pluggy',
           metodo_pagamento: account.type === 'CREDIT' ? 'Cartão de crédito' : 'Conta bancária',
-          tipo: transaction.merchant?.name || transaction.description,
+          tipo: transactionDescription,
           quantidade: quantity,
           data: transactionDate,
           parcelas: transaction.creditCardMetadata?.totalInstallments ?? null,
+          competencia_mes: transactionDate.getUTCMonth() + 1,
+          competencia_ano: transactionDate.getUTCFullYear(),
           card_id: cardIdsByAccount.get(account.id) ?? null,
           category_id: categoryId,
           observacoes: 'Sincronizado via Open Finance',
@@ -449,7 +462,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           const pendingIndex = pendingCategories.length
           pendingCategories.push({
             index: pendingIndex,
-            description: transaction.merchant?.name || transaction.description,
+            description: transactionDescription,
             type: direction,
             apply: (assignedCategory) => { row.category_id = assignedCategory },
           })
@@ -460,7 +473,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           pluggy_transaction_id: transaction.id,
           pluggy_account_id: account.id,
           origem: 'pluggy',
-          tipo: transaction.merchant?.name || transaction.description,
+          tipo: transactionDescription,
           quantidade: quantity,
           data: transactionDate,
           fonte: account.marketingName || account.name || 'Open Finance',
@@ -472,7 +485,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           const pendingIndex = pendingCategories.length
           pendingCategories.push({
             index: pendingIndex,
-            description: transaction.merchant?.name || transaction.description,
+            description: transactionDescription,
             type: direction,
             apply: (assignedCategory) => { row.category_id = assignedCategory },
           })
@@ -529,6 +542,8 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           quantidade: sql`excluded.quantidade`,
           data: sql`excluded.data`,
           parcelas: sql`excluded.parcelas`,
+          competencia_mes: sql`excluded.competencia_mes`,
+          competencia_ano: sql`excluded.competencia_ano`,
           card_id: sql`excluded.card_id`,
           category_id: sql`case when ${expenses.categoria_manual} then ${expenses.category_id} else excluded.category_id end`,
           updated_at: new Date(),
