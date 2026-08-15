@@ -8,9 +8,9 @@ interface UserAvatarProps {
 }
 
 const SIZES = {
-  sm: "h-10 w-10 text-[1.35rem]",
-  md: "h-12 w-12 text-[1.65rem]",
-  lg: "h-16 w-16 text-[2.25rem]",
+  sm: "h-10 w-10",
+  md: "h-12 w-12",
+  lg: "h-16 w-16",
 };
 
 export function UserAvatar({ avatar, className, size = "md" }: UserAvatarProps) {
@@ -20,16 +20,20 @@ export function UserAvatar({ avatar, className, size = "md" }: UserAvatarProps) 
     <span
       aria-hidden="true"
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/25 shadow-[0_8px_28px_-12px_rgba(0,0,0,.8)]",
-        option.background,
+        "relative inline-flex shrink-0 overflow-hidden rounded-full border border-white/25 bg-bg shadow-[0_8px_28px_-12px_rgba(0,0,0,.8)]",
         SIZES[size],
         className
       )}
+      style={{
+        backgroundImage: "url('/avatar-atlas-v1.webp')",
+        backgroundPosition: option.position,
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "400% 266.667%",
+      }}
     >
-      <span className="drop-shadow-[0_2px_5px_rgba(0,0,0,.45)]">{option.emoji}</span>
       <span
         aria-hidden="true"
-        className="absolute inset-x-1 top-0 h-1/3 rounded-full bg-white/20 blur-sm"
+        className="absolute inset-0 rounded-full shadow-[inset_0_1px_0_rgba(255,255,255,.2),inset_0_-10px_20px_rgba(0,0,0,.12)]"
       />
     </span>
   );

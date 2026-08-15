@@ -8,6 +8,10 @@ import { toast } from "react-hot-toast";
 import { PageWrapper } from "@/components/layout/pageWrapper";
 import { CategoryBreakdown } from "@/components/dashboard/categoryBreakdown";
 import { DashboardHero } from "@/components/dashboard/dashboardHero";
+import {
+  SyncAccountsModal,
+  type SyncConnection,
+} from "@/components/dashboard/syncAccountsModal";
 import { LimitRing } from "@/components/dashboard/limitRing";
 import { RecentActivity } from "@/components/dashboard/recentActivity";
 import { SpendTrendCard } from "@/components/dashboard/spendTrendCard";
@@ -19,11 +23,6 @@ import { apiRequest } from "@/lib/auth";
 import { toActivities, type Activity } from "@/lib/activities";
 import { gastoAcumuladoPorDia } from "@/lib/spendTrend";
 import type { DashboardData } from "@/server/types/index";
-
-type PluggyConnection = {
-  id: string;
-  connectorName: string | null;
-};
 
 type PluggyRefreshResult = {
   synchronized?: boolean;
@@ -54,6 +53,10 @@ function Dashboard() {
   const [itens, setItens] = useState<Activity[] | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [sincronizando, setSincronizando] = useState(false);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [connections, setConnections] = useState<SyncConnection[]>([]);
+  const [connectionsLoading, setConnectionsLoading] = useState(false);
+  const [busyConnectionId, setBusyConnectionId] = useState<string | null>(null);
   const [progressoSincronizacao, setProgressoSincronizacao] = useState<{
     atual: number;
     total: number;
@@ -64,6 +67,27 @@ function Dashboard() {
   // chega por evento, não por prop.
   useDataChanged(recarregar);
 
+  const carregarConexoes = useCallback(async () => {
+    setConnectionsLoading(true);
+    try {
+      const response = await apiRequest("/api/pluggy/items");
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "Não foi possível carregar as contas.");
+      const loaded = (body.data ?? []) as SyncConnection[];
+      setConnections(loaded);
+      return loaded;
+    } finally {
+      setConnectionsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!syncModalOpen) return;
+    carregarConexoes().catch((error) =>
+      toast.error(error instanceof Error ? error.message : "Não foi possível carregar as contas.")
+    );
+  }, [carregarConexoes, syncModalOpen]);
+
   const sincronizarTodasAsContas = useCallback(async () => {
     if (sincronizando) return;
 
@@ -71,19 +95,13 @@ function Dashboard() {
     const toastId = toast.loading("Localizando suas contas conectadas...");
 
     try {
-      const connectionsResponse = await apiRequest("/api/pluggy/items");
-      const connectionsBody = await connectionsResponse.json().catch(() => ({}));
-      if (!connectionsResponse.ok) {
-        throw new Error(connectionsBody.error || "Não foi possível carregar as contas.");
-      }
-
-      const connections = (connectionsBody.data ?? []) as PluggyConnection[];
-      if (connections.length === 0) {
+      const availableConnections = connections.length > 0 ? connections : await carregarConexoes();
+      if (availableConnections.length === 0) {
         toast.error("Nenhuma instituição conectada.", { id: toastId });
         return;
       }
 
-      setProgressoSincronizacao({ atual: 0, total: connections.length });
+      setProgressoSincronizacao({ atual: 0, total: availableConnections.length });
       let atualizadas = 0;
       let pendentes = 0;
       let precisamReconectar = 0;
@@ -91,10 +109,10 @@ function Dashboard() {
 
       // Uma chamada por vez evita disputar a coleta entre instituições e ainda
       // entrega a experiência de sincronizar tudo com um único toque.
-      for (const [index, connection] of connections.entries()) {
-        setProgressoSincronizacao({ atual: index + 1, total: connections.length });
+      for (const [index, connection] of availableConnections.entries()) {
+        setProgressoSincronizacao({ atual: index + 1, total: availableConnections.length });
         toast.loading(
-          `Atualizando ${connection.connectorName || "instituição"} (${index + 1}/${connections.length})...`,
+          `Atualizando ${connection.connectorName || "instituição"} (${index + 1}/${availableConnections.length})...`,
           { id: toastId }
         );
 
@@ -116,7 +134,9 @@ function Dashboard() {
 
       recarregar();
 
-      if (falhas === connections.length) {
+      await carregarConexoes().catch(() => undefined);
+
+      if (falhas === availableConnections.length) {
         toast.error("Nenhuma instituição conseguiu atualizar agora.", { id: toastId });
       } else if (precisamReconectar > 0) {
         toast.error(
@@ -141,7 +161,44 @@ function Dashboard() {
       setSincronizando(false);
       setProgressoSincronizacao(null);
     }
-  }, [recarregar, sincronizando]);
+  }, [carregarConexoes, connections, recarregar, sincronizando]);
+
+  const sincronizarUmaConta = useCallback(
+    async (connection: SyncConnection) => {
+      if (sincronizando || busyConnectionId) return;
+
+      setBusyConnectionId(connection.id);
+      const toastId = toast.loading(`Atualizando ${connection.connectorName || "instituição"}...`);
+      try {
+        const response = await apiRequest(`/api/pluggy/items/${connection.id}/sync`, {
+          method: "POST",
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || "Falha na atualização.");
+
+        const result = (body.data ?? {}) as PluggyRefreshResult;
+        if (result.requiresUserInput) {
+          toast.error("O banco pediu uma nova autorização. Abra Gerenciar contas para reconectar.", {
+            id: toastId,
+          });
+        } else if (result.synchronized || result.refreshLimited) {
+          toast.success(`${connection.connectorName || "Instituição"} atualizada.`, { id: toastId });
+        } else {
+          toast.success("Atualização iniciada e processando em segundo plano.", { id: toastId });
+        }
+
+        recarregar();
+        await carregarConexoes();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Falha ao sincronizar.", {
+          id: toastId,
+        });
+      } finally {
+        setBusyConnectionId(null);
+      }
+    },
+    [busyConnectionId, carregarConexoes, recarregar, sincronizando]
+  );
 
   useEffect(() => {
     let cancelado = false;
@@ -229,7 +286,19 @@ function Dashboard() {
         carregando={carregando}
         sincronizando={sincronizando}
         progressoSincronizacao={progressoSincronizacao}
-        onSincronizarContas={sincronizarTodasAsContas}
+        onAbrirSincronizacao={() => setSyncModalOpen(true)}
+      />
+
+      <SyncAccountsModal
+        open={syncModalOpen}
+        onOpenChange={setSyncModalOpen}
+        connections={connections}
+        loading={connectionsLoading}
+        syncingAll={sincronizando}
+        busyId={busyConnectionId}
+        progress={progressoSincronizacao}
+        onSyncAll={sincronizarTodasAsContas}
+        onSyncOne={sincronizarUmaConta}
       />
 
       <div className="relative z-10 -mt-2 space-y-4 pb-5">

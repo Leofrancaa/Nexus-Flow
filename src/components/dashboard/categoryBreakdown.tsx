@@ -56,7 +56,7 @@ export function CategoryBreakdown({
   return (
     <section className="rise rounded-card border border-white/[0.045] bg-[linear-gradient(145deg,#17191d_0%,#121417_100%)] p-5">
       <Link
-        href="/categorias"
+        href="/categorias/gastos"
         className="group flex items-start justify-between gap-2"
       >
         <div className="min-w-0">

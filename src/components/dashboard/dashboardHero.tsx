@@ -8,6 +8,7 @@ import { Money } from "@/components/ui/money";
 import { UserAvatar } from "@/components/profile/userAvatar";
 import { usePrivacy } from "@/contexts/privacyContext";
 import { getUserData } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 interface DashboardHeroProps {
   saldo: number;
@@ -16,7 +17,7 @@ interface DashboardHeroProps {
   carregando: boolean;
   sincronizando: boolean;
   progressoSincronizacao: { atual: number; total: number } | null;
-  onSincronizarContas: () => void;
+  onAbrirSincronizacao: () => void;
 }
 
 function saudacao(hora: number): string {
@@ -40,11 +41,12 @@ export function DashboardHero({
   carregando,
   sincronizando,
   progressoSincronizacao,
-  onSincronizarContas,
+  onAbrirSincronizacao,
 }: DashboardHeroProps) {
   const [nome, setNome] = useState("");
   const [avatar, setAvatar] = useState("panther");
   const [hora, setHora] = useState<number | null>(null);
+  const [headerSolid, setHeaderSolid] = useState(false);
   const { oculto, alternar } = usePrivacy();
 
   useEffect(() => {
@@ -55,6 +57,13 @@ export function DashboardHero({
         if (user?.avatar) setAvatar(user.avatar);
       })
       .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    const updateHeader = () => setHeaderSolid(window.scrollY > 28);
+    updateHeader();
+    window.addEventListener("scroll", updateHeader, { passive: true });
+    return () => window.removeEventListener("scroll", updateHeader);
   }, []);
 
   return (
@@ -77,8 +86,15 @@ export function DashboardHero({
         className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,10,13,.56)_0%,rgba(8,10,13,.18)_54%,rgba(8,10,13,.08)_100%)]"
       />
 
-      <div className="fixed inset-x-0 top-0 z-50 mx-auto w-full max-w-[430px] border-b border-white/[0.07] bg-bg/78 px-5 pb-3 pt-[max(.75rem,env(safe-area-inset-top))] backdrop-blur-xl">
-        <div className="flex items-center justify-between gap-3">
+      <div className="fixed inset-x-0 top-0 z-50 mx-auto w-full max-w-[430px] px-5 pb-3 pt-[max(.75rem,env(safe-area-inset-top))]">
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 border-b border-white/[0.07] bg-bg/95 shadow-[0_12px_32px_rgba(0,0,0,.22)] backdrop-blur-xl transition-opacity duration-300",
+            headerSolid ? "opacity-100" : "opacity-0"
+          )}
+        />
+        <div className="relative flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <UserAvatar avatar={avatar} size="md" />
             <span className="truncate font-display text-base font-bold text-fg">
@@ -89,10 +105,9 @@ export function DashboardHero({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onSincronizarContas}
-              disabled={sincronizando}
-              aria-label="Sincronizar todas as contas"
-              className="flex h-12 touch-manipulation items-center justify-center gap-2 rounded-full border border-white/15 bg-bg/55 px-3.5 text-xs font-bold text-fg transition-[background-color,transform,border-color,opacity] duration-200 hover:border-brand/35 hover:bg-bg/75 active:scale-[.96] disabled:cursor-wait disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
+              onClick={onAbrirSincronizacao}
+              aria-label="Abrir sincronização das contas"
+              className="flex h-12 touch-manipulation items-center justify-center gap-2 rounded-full border border-white/15 bg-bg/55 px-3.5 text-xs font-bold text-fg backdrop-blur-md transition-[background-color,transform,border-color,opacity] duration-200 hover:border-brand/35 hover:bg-bg/75 active:scale-[.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
             >
               <RefreshCw
                 className={`h-4 w-4 text-brand ${sincronizando ? "animate-spin" : ""}`}
@@ -108,7 +123,7 @@ export function DashboardHero({
               onClick={alternar}
               aria-pressed={oculto}
               aria-label={oculto ? "Mostrar valores" : "Ocultar valores"}
-              className="flex h-12 w-12 touch-manipulation items-center justify-center rounded-full border border-white/15 bg-bg/55 text-fg transition-[background-color,transform,border-color] duration-200 hover:border-brand/35 hover:bg-bg/75 active:scale-[.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
+              className="flex h-12 w-12 touch-manipulation items-center justify-center rounded-full border border-white/15 bg-bg/55 text-fg backdrop-blur-md transition-[background-color,transform,border-color] duration-200 hover:border-brand/35 hover:bg-bg/75 active:scale-[.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
             >
               {oculto ? (
                 <EyeOff className="h-5 w-5" aria-hidden="true" />

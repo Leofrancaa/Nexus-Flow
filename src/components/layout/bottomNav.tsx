@@ -18,10 +18,12 @@ interface Tab {
   icon: LucideIcon;
   /** Rotas que, apesar de terem URL própria, pertencem a esta aba. */
   owns?: string[];
+  /** Rotas filhas que só pertencem quando a URL é exatamente esta. */
+  ownsExact?: string[];
 }
 
 const TABS: Tab[] = [
-  { label: "Home", href: "/dashboard", icon: Home },
+  { label: "Home", href: "/dashboard", icon: Home, owns: ["/categorias/gastos"] },
   {
     label: "Atividades",
     href: "/atividades",
@@ -36,14 +38,19 @@ const TABS: Tab[] = [
     icon: User,
     // O hub do perfil é a porta de entrada destas telas; sem isso a barra
     // ficaria sem nenhuma aba acesa ao navegar para dentro delas.
-    owns: ["/categorias", "/limites", "/planos", "/configuracoes", "/manual", "/open-finance"],
+    owns: ["/limites", "/planos", "/configuracoes", "/manual", "/open-finance"],
+    ownsExact: ["/categorias"],
   },
 ];
 
 function isActive(pathname: string, tab: Tab): boolean {
   const matches = (route: string) =>
     pathname === route || pathname.startsWith(`${route}/`);
-  return matches(tab.href) || (tab.owns?.some(matches) ?? false);
+  return (
+    matches(tab.href) ||
+    (tab.owns?.some(matches) ?? false) ||
+    (tab.ownsExact?.includes(pathname) ?? false)
+  );
 }
 
 /**
