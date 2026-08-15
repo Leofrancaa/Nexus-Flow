@@ -160,7 +160,7 @@ export class IncomeService {
             WHERE i.user_id = ${userId}
               AND EXTRACT(MONTH FROM i.data) = ${month}
               AND EXTRACT(YEAR FROM i.data) = ${year}
-              AND COALESCE(i.nota, '') NOT ILIKE '%lançamento previsto de cartão%'
+              AND i.data <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
             ORDER BY i.data DESC
         `)
 

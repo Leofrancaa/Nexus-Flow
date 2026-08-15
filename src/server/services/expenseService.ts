@@ -372,7 +372,7 @@ export class ExpenseService {
             WHERE e.user_id = ${userId}
               AND EXTRACT(MONTH FROM e.data) = ${month}
               AND EXTRACT(YEAR FROM e.data) = ${year}
-              AND COALESCE(e.observacoes, '') NOT ILIKE '%lançamento previsto de cartão%'
+              AND e.data <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
             ORDER BY e.data DESC
         `)
 

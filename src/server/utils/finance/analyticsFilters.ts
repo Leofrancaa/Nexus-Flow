@@ -43,14 +43,6 @@ const INCOME_CARD_LEDGER_ADJUSTMENT = sql`
   COALESCE(i.nota, '') ILIKE '%movimento neutro de cartão%'
 `;
 
-const EXPENSE_PENDING_CARD_TRANSACTION = sql`
-  COALESCE(e.observacoes, '') ILIKE '%lançamento previsto de cartão%'
-`;
-
-const INCOME_PENDING_CARD_TRANSACTION = sql`
-  COALESCE(i.nota, '') ILIKE '%lançamento previsto de cartão%'
-`;
-
 /** Movimentos reais/projetados, sem pagamentos e ajustes neutros. */
 export const expenseCountsForForecast = sql`
   NOT (
@@ -105,13 +97,13 @@ export const incomeCountsForForecast = sql`
   )
 `;
 
-/** Totais realizados: previsões PENDING ficam somente no saldo futuro/faturas. */
+/** Totais realizados nunca incluem dias que ainda não chegaram no Brasil. */
 export const expenseCountsForAnalytics = sql`
   ${expenseCountsForForecast}
-  AND NOT (${EXPENSE_PENDING_CARD_TRANSACTION})
+  AND e.data <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
 `;
 
 export const incomeCountsForAnalytics = sql`
   ${incomeCountsForForecast}
-  AND NOT (${INCOME_PENDING_CARD_TRANSACTION})
+  AND i.data <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
 `;

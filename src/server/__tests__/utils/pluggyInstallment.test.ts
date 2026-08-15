@@ -70,7 +70,8 @@ describe('parcelas de cartão Pluggy', () => {
       billForecastDate: '2026-09-29',
     })
 
-    expect(dates.activityDate.toISOString()).toBe('2026-09-29T12:00:00.000Z')
+    expect(dates.activityDate.toISOString()).toBe('2026-07-29T12:00:00.000Z')
+    expect(dates.competenceDate.toISOString()).toBe('2026-09-29T12:00:00.000Z')
     expect(dates.pending).toBe(true)
   })
 })

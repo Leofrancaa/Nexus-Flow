@@ -75,10 +75,9 @@ export function cardTransactionDates(
   const pending = status?.toUpperCase() === 'PENDING'
 
   return {
-    // Transações já efetivadas sempre aparecem no dia real da compra. Uma
-    // previsão PENDING conserva a data da fatura apenas para projeções e fica
-    // fora da lista/totais até o banco confirmá-la.
-    activityDate: pending ? competenceDate : transactionDate,
+    // Atividades sempre usa o dia real informado pela transação. A competência
+    // prevista nunca pode transformar uma compra anterior em gasto futuro.
+    activityDate: transactionDate,
     competenceDate,
     pending,
   }
