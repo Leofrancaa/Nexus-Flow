@@ -1,5 +1,9 @@
 import { eq, sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
+import {
+    expenseCountsForAnalytics,
+    incomeCountsForAnalytics,
+} from '@/server/utils/finance/analyticsFilters'
 import { profiles } from '@/server/db/schema'
 import { createErrorResponse } from '@/server/utils/helper'
 
@@ -154,10 +158,10 @@ export class CurrencyService {
 
         const queryResult = await db.execute(sql`
             SELECT
-                COALESCE((SELECT SUM(quantidade) FROM incomes WHERE user_id = ${userId}), 0) as total_income,
-                COALESCE((SELECT SUM(quantidade) FROM expenses WHERE user_id = ${userId}), 0) as total_expenses,
-                COALESCE((SELECT SUM(quantidade) FROM incomes WHERE user_id = ${userId} AND EXTRACT(MONTH FROM data) = ${currentMonth} AND EXTRACT(YEAR FROM data) = ${currentYear}), 0) as month_income,
-                COALESCE((SELECT SUM(quantidade) FROM expenses WHERE user_id = ${userId} AND EXTRACT(MONTH FROM data) = ${currentMonth} AND EXTRACT(YEAR FROM data) = ${currentYear}), 0) as month_expenses
+                COALESCE((SELECT SUM(i.quantidade) FROM incomes i WHERE i.user_id = ${userId} AND ${incomeCountsForAnalytics}), 0) as total_income,
+                COALESCE((SELECT SUM(e.quantidade) FROM expenses e WHERE e.user_id = ${userId} AND ${expenseCountsForAnalytics}), 0) as total_expenses,
+                COALESCE((SELECT SUM(i.quantidade) FROM incomes i WHERE i.user_id = ${userId} AND EXTRACT(MONTH FROM i.data) = ${currentMonth} AND EXTRACT(YEAR FROM i.data) = ${currentYear} AND ${incomeCountsForAnalytics}), 0) as month_income,
+                COALESCE((SELECT SUM(e.quantidade) FROM expenses e WHERE e.user_id = ${userId} AND EXTRACT(MONTH FROM e.data) = ${currentMonth} AND EXTRACT(YEAR FROM e.data) = ${currentYear} AND ${expenseCountsForAnalytics}), 0) as month_expenses
         `)
 
         const data = queryResult.rows[0] as {

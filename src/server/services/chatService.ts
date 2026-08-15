@@ -1,20 +1,24 @@
 import { and, eq, asc, desc, sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
-import { chatMessages, expenses, plans } from '@/server/db/schema'
+import { chatMessages, plans } from '@/server/db/schema'
 import { createErrorResponse, formatCurrency } from '@/server/utils/helper'
 import { chatText, isLlmConfigured, ChatMessage } from '@/server/services/llmService'
 import { tryHandleChatAction } from '@/server/services/chatActionService'
 import { getSaldoAtual } from '@/server/utils/finance/getSaldoAtual'
 import { getGastosPorCategoria } from '@/server/utils/finance/getGastosPorCategoria'
+import { getComparativoMensal } from '@/server/utils/finance/getComparativoMensal'
+import { expenseCountsForAnalytics, incomeCountsForAnalytics } from '@/server/utils/finance/analyticsFilters'
+import { getCartoesAVencer } from '@/server/utils/finance/getCartoesAVencer'
+import { ThresholdService } from '@/server/services/thresholdService'
 
-const DAILY_MESSAGE_LIMIT = 4
 const HISTORY_LIMIT = 10
-const MAX_MESSAGE_LENGTH = 500
+const MAX_MESSAGE_LENGTH = 2000
 
 interface ChatStatus {
   used: number
-  remaining: number
-  limit: number
+  remaining: null
+  limit: null
+  unlimited: true
 }
 
 interface StoredMessage {
@@ -41,7 +45,7 @@ export class ChatService {
 
   static async getStatus(userId: string): Promise<ChatStatus> {
     const used = await this.messagesUsedToday(userId)
-    return { used, remaining: Math.max(0, DAILY_MESSAGE_LIMIT - used), limit: DAILY_MESSAGE_LIMIT }
+    return { used, remaining: null, limit: null, unlimited: true }
   }
 
   static async getHistory(userId: string, limit = 50): Promise<StoredMessage[]> {
@@ -60,67 +64,89 @@ export class ChatService {
     const mes = now.getMonth() + 1
     const ano = now.getFullYear()
 
-    const monthTotals = await db.execute(sql`
-      SELECT
-        COALESCE((SELECT SUM(quantidade) FROM incomes WHERE user_id = ${userId}
-          AND EXTRACT(MONTH FROM data) = ${mes} AND EXTRACT(YEAR FROM data) = ${ano}), 0) AS income,
-        COALESCE((SELECT SUM(quantidade) FROM expenses WHERE user_id = ${userId}
-          AND EXTRACT(MONTH FROM data) = ${mes} AND EXTRACT(YEAR FROM data) = ${ano}), 0) AS expense
-    `)
-    const mt = monthTotals.rows[0] as { income: string; expense: string }
-    const monthIncome = Number(mt.income)
-    const monthExpense = Number(mt.expense)
+    const [
+      monthComparison,
+      saldoAtual,
+      topCategorias,
+      biggestResult,
+      userPlans,
+      historyRows,
+      dueCards,
+      thresholdAlerts,
+      uncategorizedResult,
+    ] = await Promise.all([
+      getComparativoMensal(userId, mes, ano),
+      getSaldoAtual(userId),
+      getGastosPorCategoria(userId, mes, ano),
+      db.execute(sql`
+        SELECT e.tipo, e.quantidade, e.data
+        FROM expenses e
+        WHERE e.user_id = ${userId}
+          AND EXTRACT(MONTH FROM e.data) = ${mes}
+          AND EXTRACT(YEAR FROM e.data) = ${ano}
+          AND ${expenseCountsForAnalytics}
+        ORDER BY e.quantidade DESC
+        LIMIT 1
+      `),
+      db
+        .select({ nome: plans.nome, meta: plans.meta, total: plans.total_contribuido })
+        .from(plans)
+        .where(eq(plans.user_id, userId))
+        .limit(10),
+      db.execute(sql`
+        SELECT y, m, SUM(income) AS income, SUM(expense) AS expense
+        FROM (
+          SELECT EXTRACT(YEAR FROM i.data)::int AS y, EXTRACT(MONTH FROM i.data)::int AS m,
+                 i.quantidade AS income, 0 AS expense
+            FROM incomes i
+            WHERE i.user_id = ${userId}
+              AND i.data < date_trunc('month', CURRENT_DATE) + interval '1 month'
+              AND ${incomeCountsForAnalytics}
+          UNION ALL
+          SELECT EXTRACT(YEAR FROM e.data)::int AS y, EXTRACT(MONTH FROM e.data)::int AS m,
+                 0 AS income, e.quantidade AS expense
+            FROM expenses e
+            WHERE e.user_id = ${userId}
+              AND e.data < date_trunc('month', CURRENT_DATE) + interval '1 month'
+              AND ${expenseCountsForAnalytics}
+        ) t
+        GROUP BY y, m
+        ORDER BY y DESC, m DESC
+        LIMIT 6
+      `),
+      getCartoesAVencer(userId),
+      ThresholdService.getThresholdAlerts(userId, mes, ano),
+      db.execute(sql`
+        SELECT
+          (SELECT COUNT(*) FROM expenses e
+            WHERE e.user_id = ${userId}
+              AND e.category_id IS NULL
+              AND EXTRACT(MONTH FROM e.data) = ${mes}
+              AND EXTRACT(YEAR FROM e.data) = ${ano}
+              AND ${expenseCountsForAnalytics}) AS expenses,
+          (SELECT COUNT(*) FROM incomes i
+            WHERE i.user_id = ${userId}
+              AND i.category_id IS NULL
+              AND EXTRACT(MONTH FROM i.data) = ${mes}
+              AND EXTRACT(YEAR FROM i.data) = ${ano}
+              AND ${incomeCountsForAnalytics}) AS incomes
+      `),
+    ])
 
-    const saldoAtual = await getSaldoAtual(userId)
-    const topCategorias = await getGastosPorCategoria(userId, mes, ano)
-
-    const [biggest] = await db
-      .select({ tipo: expenses.tipo, quantidade: expenses.quantidade, data: expenses.data })
-      .from(expenses)
-      .where(
-        and(
-          eq(expenses.user_id, userId),
-          sql`EXTRACT(MONTH FROM ${expenses.data}) = ${mes}`,
-          sql`EXTRACT(YEAR FROM ${expenses.data}) = ${ano}`
-        )
-      )
-      .orderBy(desc(expenses.quantidade))
-      .limit(1)
-
-    const userPlans = await db
-      .select({ nome: plans.nome, meta: plans.meta, total: plans.total_contribuido })
-      .from(plans)
-      .where(eq(plans.user_id, userId))
-      .limit(10)
-
-    // Histórico compacto dos últimos 6 meses (para perguntas sobre meses anteriores).
-    // Exclui meses FUTUROS — despesas fixas são replicadas adiante no ano e não
-    // representam gasto realizado ("até então").
-    const historyRows = await db.execute(sql`
-      SELECT y, m, SUM(income) AS income, SUM(expense) AS expense
-      FROM (
-        SELECT EXTRACT(YEAR FROM data)::int AS y, EXTRACT(MONTH FROM data)::int AS m,
-               quantidade AS income, 0 AS expense
-          FROM incomes
-          WHERE user_id = ${userId}
-            AND data < date_trunc('month', CURRENT_DATE) + interval '1 month'
-        UNION ALL
-        SELECT EXTRACT(YEAR FROM data)::int AS y, EXTRACT(MONTH FROM data)::int AS m,
-               0 AS income, quantidade AS expense
-          FROM expenses
-          WHERE user_id = ${userId}
-            AND data < date_trunc('month', CURRENT_DATE) + interval '1 month'
-      ) t
-      GROUP BY y, m
-      ORDER BY y DESC, m DESC
-      LIMIT 6
-    `)
+    const monthIncome = monthComparison.receitas.atual
+    const monthExpense = monthComparison.despesas.atual
+    const biggest = biggestResult.rows[0] as
+      | { tipo: string; quantidade: string | number; data: Date | string }
+      | undefined
     const monthly = historyRows.rows as Array<{
       y: number
       m: number
       income: string
       expense: string
     }>
+    const uncategorized = uncategorizedResult.rows[0] as
+      | { expenses?: string | number; incomes?: string | number }
+      | undefined
 
     const mesNome = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
 
@@ -167,6 +193,30 @@ export class ChatService {
       lines.push(`Planos de investimento: ${planLines}.`)
     }
 
+    if (dueCards.length > 0) {
+      const cardsLine = dueCards
+        .map((card) =>
+          `${card.nome}: fatura ${formatCurrency(Number(card.total_gasto))}, ` +
+          `limite disponível ${formatCurrency(Number(card.limite_disponivel))}`
+        )
+        .join('; ')
+      lines.push(`Cartões: ${cardsLine}.`)
+    }
+
+    const concerningAlerts = thresholdAlerts.filter((alert) => alert.alert_level !== 'safe')
+    if (concerningAlerts.length > 0) {
+      lines.push(
+        `Alertas de orçamento: ${concerningAlerts
+          .map((alert) => `${alert.category_name} em ${Math.round(alert.percentage_used)}% do limite`)
+          .join('; ')}.`
+      )
+    }
+
+    const uncategorizedCount = Number(uncategorized?.expenses ?? 0) + Number(uncategorized?.incomes ?? 0)
+    if (uncategorizedCount > 0) {
+      lines.push(`${uncategorizedCount} lançamento(s) real(is) ainda estão sem categoria neste mês.`)
+    }
+
     return lines.join('\n')
   }
 
@@ -184,12 +234,6 @@ export class ChatService {
     }
 
     const used = await this.messagesUsedToday(userId)
-    if (used >= DAILY_MESSAGE_LIMIT) {
-      throw createErrorResponse(
-        `Você atingiu o limite de ${DAILY_MESSAGE_LIMIT} mensagens por dia. Tente novamente amanhã.`,
-        429
-      )
-    }
 
     // Comandos de lançamento ("gastei 50 no mercado") são executados de
     // verdade e respondidos com confirmação — sem passar pelo chat livre.
@@ -206,8 +250,9 @@ export class ChatService {
       reply,
       status: {
         used: used + 1,
-        remaining: Math.max(0, DAILY_MESSAGE_LIMIT - (used + 1)),
-        limit: DAILY_MESSAGE_LIMIT,
+        remaining: null,
+        limit: null,
+        unlimited: true,
       },
     }
   }

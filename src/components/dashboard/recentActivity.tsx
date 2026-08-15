@@ -95,10 +95,20 @@ export function RecentActivity({ itens, limite = 4 }: RecentActivityProps) {
 
               <Money
                 value={item.valor}
-                sign={item.kind === "income" ? "+" : "−"}
+                sign={
+                  item.natureza === "internal_transfer" || item.natureza === "card_payment"
+                    ? "↔"
+                    : item.kind === "income"
+                      ? "+"
+                      : "−"
+                }
                 className={cn(
                   "shrink-0 text-sm font-bold",
-                  item.kind === "income" ? "text-positive" : "text-negative"
+                  item.natureza === "internal_transfer" || item.natureza === "card_payment"
+                    ? "text-sky-400"
+                    : item.kind === "income"
+                      ? "text-positive"
+                      : "text-negative"
                 )}
               />
             </Link>

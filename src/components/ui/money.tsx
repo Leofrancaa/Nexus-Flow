@@ -8,7 +8,7 @@ interface MoneyProps {
   value: number;
   className?: string;
   /** Sinal explícito para listas em que entrada e saída convivem. */
-  sign?: "+" | "−";
+  sign?: "+" | "−" | "↔";
 }
 
 /**

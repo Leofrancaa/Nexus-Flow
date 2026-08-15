@@ -1,6 +1,9 @@
-import { eq, sum } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
-import { incomes, expenses } from '@/server/db/schema'
+import {
+    expenseCountsForAnalytics,
+    incomeCountsForAnalytics,
+} from './analyticsFilters'
 
 /**
  * Saldo projetado: soma tudo, sem recorte de data.
@@ -10,10 +13,17 @@ import { incomes, expenses } from '@/server/db/schema'
  * mudar, onde eu termino"; o de hoje está em `getSaldoAtual`.
  */
 export const getSaldoFuturo = async (user_id: string): Promise<number> => {
-    const [receitas, despesas] = await Promise.all([
-        db.select({ total: sum(incomes.quantidade) }).from(incomes).where(eq(incomes.user_id, user_id)),
-        db.select({ total: sum(expenses.quantidade) }).from(expenses).where(eq(expenses.user_id, user_id)),
-    ])
-
-    return Number(receitas[0]?.total ?? 0) - Number(despesas[0]?.total ?? 0)
+    const result = await db.execute(sql`
+        SELECT
+          COALESCE((
+            SELECT SUM(i.quantidade) FROM incomes i
+            WHERE i.user_id = ${user_id} AND ${incomeCountsForAnalytics}
+          ), 0) AS receitas,
+          COALESCE((
+            SELECT SUM(e.quantidade) FROM expenses e
+            WHERE e.user_id = ${user_id} AND ${expenseCountsForAnalytics}
+          ), 0) AS despesas
+    `)
+    const row = result.rows[0] as { receitas?: string | number; despesas?: string | number } | undefined
+    return Number(row?.receitas ?? 0) - Number(row?.despesas ?? 0)
 }

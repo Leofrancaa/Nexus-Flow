@@ -1,5 +1,9 @@
 import type { Expense } from "@/types/expense";
 import type { Income } from "@/types/income";
+import {
+  classifyFinancialMovements,
+  type FinancialMovementNature,
+} from "@/lib/financialMovement";
 
 /**
  * Despesa e receita achatadas em um tipo só.
@@ -22,6 +26,8 @@ export interface Activity {
   instituicao?: string;
   instituicaoId?: number;
   fixo?: boolean;
+  origem?: "manual" | "pluggy";
+  natureza: FinancialMovementNature;
   expense?: Expense;
   income?: Income;
 }
@@ -61,7 +67,7 @@ export function toActivities(
   despesas: Expense[],
   receitas: Income[]
 ): Activity[] {
-  const lista: Activity[] = [
+  const lista: Array<Omit<Activity, "natureza">> = [
     ...despesas.map((e) => ({
       key: `expense-${e.id}`,
       kind: "expense" as const,
@@ -75,6 +81,7 @@ export function toActivities(
       instituicao: e.instituicao_nome,
       instituicaoId: e.instituicao_id,
       fixo: e.fixo,
+      origem: e.origem,
       expense: e,
     })),
     ...receitas.map((r) => ({
@@ -90,11 +97,12 @@ export function toActivities(
       instituicao: r.instituicao_nome,
       instituicaoId: r.instituicao_id,
       fixo: r.fixo,
+      origem: r.origem,
       income: r,
     })),
   ];
 
-  return lista.sort((a, b) => b.data.localeCompare(a.data));
+  return classifyFinancialMovements(lista).sort((a, b) => b.data.localeCompare(a.data));
 }
 
 /** Iniciais do avatar da linha, no espírito do logo redondo do extrato. */

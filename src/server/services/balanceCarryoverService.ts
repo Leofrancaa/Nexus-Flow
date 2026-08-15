@@ -2,6 +2,10 @@ import { and, eq, gte, lt, desc, sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
 import { incomes, expenses, categories } from '@/server/db/schema'
 import { createErrorResponse } from '@/server/utils/helper'
+import {
+    expenseCountsForAnalytics,
+    incomeCountsForAnalytics,
+} from '@/server/utils/finance/analyticsFilters'
 
 const CARRYOVER_INCOME_TYPE = 'saldo_anterior'
 const CARRYOVER_EXPENSE_TYPE = 'debito_anterior'
@@ -39,18 +43,20 @@ export class BalanceCarryoverService {
         // dashboard como resultado do mês.
         const [receitasRaw, despesasRaw] = await Promise.all([
             db.execute(sql`
-                SELECT COALESCE(SUM(quantidade), 0) AS total
-                FROM incomes
-                WHERE user_id = ${userId}
-                  AND EXTRACT(MONTH FROM data) = ${srcMes}
-                  AND EXTRACT(YEAR FROM data) = ${srcAno}
+                SELECT COALESCE(SUM(i.quantidade), 0) AS total
+                FROM incomes i
+                WHERE i.user_id = ${userId}
+                  AND EXTRACT(MONTH FROM i.data) = ${srcMes}
+                  AND EXTRACT(YEAR FROM i.data) = ${srcAno}
+                  AND ${incomeCountsForAnalytics}
             `),
             db.execute(sql`
-                SELECT COALESCE(SUM(quantidade), 0) AS total
-                FROM expenses
-                WHERE user_id = ${userId}
-                  AND EXTRACT(MONTH FROM data) = ${srcMes}
-                  AND EXTRACT(YEAR FROM data) = ${srcAno}
+                SELECT COALESCE(SUM(e.quantidade), 0) AS total
+                FROM expenses e
+                WHERE e.user_id = ${userId}
+                  AND EXTRACT(MONTH FROM e.data) = ${srcMes}
+                  AND EXTRACT(YEAR FROM e.data) = ${srcAno}
+                  AND ${expenseCountsForAnalytics}
             `),
         ])
 

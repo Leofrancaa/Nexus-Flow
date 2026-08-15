@@ -371,6 +371,12 @@ export interface DueCard {
     limite_disponivel: number
     total_gasto: number
     dia_vencimento: number
+    instituicao: string | null
+    bandeira: string | null
+    numero: string
+    vencimento_em: string | null
+    fechamento_em: string | null
+    sincronizado: boolean
 }
 
 export interface SubscriptionSummary {

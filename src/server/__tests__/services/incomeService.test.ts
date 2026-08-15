@@ -113,6 +113,12 @@ describe('IncomeService.deleteIncome', () => {
   it('lança erro 404 quando receita não existe', async () => {
     await expect(IncomeService.deleteIncome(999, USER_ID)).rejects.toMatchObject({ status: 404 })
   })
+
+  it('impede excluir receita sincronizada', async () => {
+    const income = await seedIncome({ origem: 'pluggy', pluggy_transaction_id: 'pluggy-income-1' })
+
+    await expect(IncomeService.deleteIncome(income.id, USER_ID)).rejects.toMatchObject({ status: 400 })
+  })
 })
 
 describe('IncomeService.updateIncome', () => {
@@ -133,6 +139,25 @@ describe('IncomeService.updateIncome', () => {
     await expect(
       IncomeService.updateIncome(999, { tipo: 'X' }, USER_ID)
     ).rejects.toMatchObject({ status: 404 })
+  })
+
+  it('recategoriza receita sincronizada sem alterar os dados bancários', async () => {
+    const income = await seedIncome({
+      origem: 'pluggy',
+      pluggy_transaction_id: 'pluggy-income-2',
+    })
+
+    await IncomeService.updateIncome(
+      income.id,
+      { category_id: 7, quantidade: 1, tipo: 'Não deve mudar' },
+      USER_ID
+    )
+
+    const [updated] = await db.select().from(schema.incomes).where(eq(schema.incomes.id, income.id))
+    expect(updated.category_id).toBe(7)
+    expect(updated.categoria_manual).toBe(true)
+    expect(Number(updated.quantidade)).toBe(3000)
+    expect(updated.tipo).toBe('Salário')
   })
 
   it('atualiza mesmo com dados vazios (comportamento do service)', async () => {

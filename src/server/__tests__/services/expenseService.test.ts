@@ -291,6 +291,13 @@ describe('ExpenseService.deleteExpense', () => {
   it('lança erro 404 quando despesa não existe', async () => {
     await expect(ExpenseService.deleteExpense(999, USER_ID)).rejects.toMatchObject({ status: 404 })
   })
+
+  it('impede excluir uma despesa sincronizada que voltaria no próximo sync', async () => {
+    const exp = await seedExpense({ origem: 'pluggy', pluggy_transaction_id: 'pluggy-expense-1' })
+
+    await expect(ExpenseService.deleteExpense(exp.id, USER_ID)).rejects.toMatchObject({ status: 400 })
+    expect(await expensesOf()).toHaveLength(1)
+  })
 })
 
 describe('ExpenseService.updateExpense', () => {
@@ -337,6 +344,33 @@ describe('ExpenseService.updateExpense', () => {
     await expect(
       ExpenseService.updateExpense(credit.id, { tipo: 'Editado' }, USER_ID)
     ).rejects.toMatchObject({ status: 400 })
+  })
+
+  it('permite recategorizar crédito sincronizado e protege a escolha do próximo sync', async () => {
+    const [credit] = await db
+      .insert(schema.expenses)
+      .values({
+        metodo_pagamento: 'Cartão de crédito',
+        tipo: 'Compra importada',
+        quantidade: '100',
+        data: new Date('2025-01-15T12:00:00'),
+        user_id: USER_ID,
+        origem: 'pluggy',
+        pluggy_transaction_id: 'pluggy-credit-1',
+      })
+      .returning()
+
+    await ExpenseService.updateExpense(
+      credit.id,
+      { category_id: 9, quantidade: 999, tipo: 'Não deve mudar' },
+      USER_ID
+    )
+
+    const [updated] = await expensesOf()
+    expect(updated.category_id).toBe(9)
+    expect(updated.categoria_manual).toBe(true)
+    expect(Number(updated.quantidade)).toBe(100)
+    expect(updated.tipo).toBe('Compra importada')
   })
 
   it('lança erro 404 quando despesa não existe', async () => {

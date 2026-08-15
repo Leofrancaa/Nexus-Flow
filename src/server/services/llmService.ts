@@ -1,19 +1,22 @@
 /**
  * Cliente de LLM agnóstico de provedor — usado para estruturar PDFs de extrato
  * e categorizar transações. Por padrão aponta para o Groq (API gratuita,
- * compatível com o formato OpenAI) com um modelo Qwen.
+ * compatível com o formato OpenAI). O serviço tenta automaticamente um
+ * segundo modelo estável quando o modelo configurado é removido ou fica
+ * temporariamente indisponível.
  *
  * Configuração via ambiente:
  *   GROQ_API_KEY   — obrigatória para habilitar a IA (sem ela, o sistema usa
  *                    apenas regras por palavra-chave).
- *   GROQ_MODEL     — opcional; default 'qwen/qwen3-32b'. Veja os modelos atuais
+ *   GROQ_MODEL     — opcional; default 'openai/gpt-oss-120b'. Veja os modelos atuais
  *                    em https://console.groq.com/docs/models
  *   GROQ_BASE_URL  — opcional; permite trocar de provedor (ex.: outro endpoint
  *                    compatível com OpenAI).
  */
 
 const DEFAULT_BASE_URL = 'https://api.groq.com/openai/v1'
-const DEFAULT_MODEL = 'qwen/qwen3-32b'
+const DEFAULT_MODEL = 'openai/gpt-oss-120b'
+const FALLBACK_MODEL = 'llama-3.3-70b-versatile'
 
 export function isLlmConfigured(): boolean {
   return Boolean(process.env.GROQ_API_KEY)
@@ -55,36 +58,52 @@ async function callChat(
   if (!apiKey) throw new Error('GROQ_API_KEY não configurada.')
 
   const baseUrl = process.env.GROQ_BASE_URL || DEFAULT_BASE_URL
-  const model = process.env.GROQ_MODEL || DEFAULT_MODEL
+  const models = Array.from(
+    new Set([process.env.GROQ_MODEL, DEFAULT_MODEL, FALLBACK_MODEL].filter(Boolean) as string[])
+  )
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30000)
-
-  // Modelos Qwen3 (raciocínio) gastam muitos tokens "pensando" e estouram o
-  // limite do free tier. Desliga o raciocínio quando suportado.
-  const body: Record<string, unknown> = { model, temperature, max_tokens: maxTokens, messages }
-  if (/qwen/i.test(model)) body.reasoning_effort = 'none'
+  const timeout = setTimeout(() => controller.abort(), 45000)
 
   try {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-      body: JSON.stringify(body),
-    })
+    let lastError = 'Nenhum modelo respondeu.'
 
-    if (!res.ok) {
-      const detail = await res.text().catch(() => '')
-      throw new Error(`LLM respondeu ${res.status}: ${detail.slice(0, 200)}`)
+    for (const model of models) {
+      const body: Record<string, unknown> = {
+        model,
+        temperature,
+        max_tokens: maxTokens,
+        messages,
+      }
+
+      try {
+        const res = await fetch(`${baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+          body: JSON.stringify(body),
+        })
+
+        if (!res.ok) {
+          const detail = await res.text().catch(() => '')
+          lastError = `LLM respondeu ${res.status}: ${detail.slice(0, 200)}`
+          continue
+        }
+
+        const data = await res.json()
+        const content: string = data?.choices?.[0]?.message?.content ?? ''
+        if (content) return content
+        lastError = `O modelo ${model} devolveu uma resposta vazia.`
+      } catch (error) {
+        if (controller.signal.aborted) throw error
+        lastError = error instanceof Error ? error.message : 'Falha ao consultar a LLM.'
+      }
     }
 
-    const data = await res.json()
-    const content: string = data?.choices?.[0]?.message?.content ?? ''
-    if (!content) throw new Error('Resposta vazia da LLM.')
-    return content
+    throw new Error(lastError)
   } finally {
     clearTimeout(timeout)
   }

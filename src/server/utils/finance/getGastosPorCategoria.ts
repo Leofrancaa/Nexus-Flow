@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
+import { expenseCountsForAnalytics } from './analyticsFilters'
 
 export interface GastosPorCategoriaResult {
     id: number
@@ -25,6 +26,7 @@ export const getGastosPorCategoria = async (
         WHERE e.user_id = ${user_id}
         AND EXTRACT(MONTH FROM e.data) = ${mes}
         AND EXTRACT(YEAR FROM e.data) = ${ano}
+        AND ${expenseCountsForAnalytics}
         GROUP BY c.id, c.nome
         ORDER BY total DESC
     `)

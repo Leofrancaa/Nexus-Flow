@@ -10,7 +10,7 @@ import {
   pluggyItems,
   pluggyWebhookEvents,
 } from '@/server/db/schema'
-import { categorizeByRules } from '@/server/utils/pluggy/categorize'
+import { categorizeByRules, categorizeWithLlm } from '@/server/utils/pluggy/categorize'
 import { ensureDefaultCategories } from '@/server/services/defaultCategoryService'
 import { PluggyApiError, pluggyRequest } from '@/server/services/pluggyClient'
 import {
@@ -34,6 +34,7 @@ type PluggyTransaction = {
 
 type CursorResponse<T> = { results: T[]; next?: string | null }
 const WRITE_BATCH_SIZE = 250
+const AI_CATEGORY_BATCH_SIZE = 20
 const UPDATE_POLL_INTERVAL_MS = 2_000
 const UPDATE_POLL_TIMEOUT_MS = 20_000
 
@@ -273,6 +274,12 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
   )
   const expenseRows: Array<typeof expenses.$inferInsert> = []
   const incomeRows: Array<typeof incomes.$inferInsert> = []
+  const pendingCategories: Array<{
+    index: number
+    description: string
+    type: 'expense' | 'income'
+    apply: (categoryId: number | null) => void
+  }> = []
 
   for (const { account, transactions } of accountTransactions) {
     for (const transaction of transactions) {
@@ -293,7 +300,7 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
       const quantity = Math.abs(transaction.amount).toFixed(2)
 
       if (direction === 'expense') {
-        expenseRows.push({
+        const row: typeof expenses.$inferInsert = {
           user_id: userId,
           pluggy_transaction_id: transaction.id,
           pluggy_account_id: account.id,
@@ -306,9 +313,19 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           card_id: cardIdsByAccount.get(account.id) ?? null,
           category_id: categoryId,
           observacoes: 'Sincronizado via Open Finance',
-        })
+        }
+        expenseRows.push(row)
+        if (categoryId === null) {
+          const pendingIndex = pendingCategories.length
+          pendingCategories.push({
+            index: pendingIndex,
+            description: transaction.merchant?.name || transaction.description,
+            type: direction,
+            apply: (assignedCategory) => { row.category_id = assignedCategory },
+          })
+        }
       } else {
-        incomeRows.push({
+        const row: typeof incomes.$inferInsert = {
           user_id: userId,
           pluggy_transaction_id: transaction.id,
           pluggy_account_id: account.id,
@@ -319,8 +336,42 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           fonte: account.marketingName || account.name || 'Open Finance',
           nota: 'Sincronizado via Open Finance',
           category_id: categoryId,
-        })
+        }
+        incomeRows.push(row)
+        if (categoryId === null) {
+          const pendingIndex = pendingCategories.length
+          pendingCategories.push({
+            index: pendingIndex,
+            description: transaction.merchant?.name || transaction.description,
+            type: direction,
+            apply: (assignedCategory) => { row.category_id = assignedCategory },
+          })
+        }
       }
+    }
+  }
+
+  const fallbackCategory = (type: 'expense' | 'income') => {
+    const fallbackName = type === 'income' ? 'outros rendimentos' : 'outros'
+    return userCategories.find(
+      (category) =>
+        category.tipo === (type === 'income' ? 'receita' : 'despesa') &&
+        category.nome
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase() === fallbackName
+    )?.id ?? null
+  }
+
+  // IA somente no que as regras locais não reconheceram. Processar em lotes
+  // pequenos mantém a chamada dentro do TPM do plano grátis do Groq.
+  for (const batch of batches(pendingCategories, AI_CATEGORY_BATCH_SIZE)) {
+    const assignments = await categorizeWithLlm(
+      batch.map(({ index, description, type }) => ({ index, description, type })),
+      userCategories
+    )
+    for (const pending of batch) {
+      pending.apply(assignments[pending.index] ?? fallbackCategory(pending.type))
     }
   }
 

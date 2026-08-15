@@ -10,6 +10,7 @@ import {
     getLastDayOfMonth,
     createErrorResponse
 } from '@/server/utils/helper'
+import { incomeCountsForAnalytics } from '@/server/utils/finance/analyticsFilters'
 
 interface IncomeWithCategory extends Income {
     categoria_nome?: string
@@ -185,14 +186,16 @@ export class IncomeService {
         }
 
         const notaAtualizada = updateData.nota ?? updateData.observacoes
+        const isSynced = exists.origem === "pluggy"
 
         const setData = {
-            ...(updateData.tipo !== undefined ? { tipo: updateData.tipo } : {}),
-            ...(updateData.quantidade !== undefined ? { quantidade: String(updateData.quantidade) } : {}),
+            ...(!isSynced && updateData.tipo !== undefined ? { tipo: updateData.tipo } : {}),
+            ...(!isSynced && updateData.quantidade !== undefined ? { quantidade: String(updateData.quantidade) } : {}),
             ...(notaAtualizada !== undefined ? { nota: notaAtualizada } : {}),
-            ...(updateData.data !== undefined ? { data: new Date(`${updateData.data}T12:00:00`) } : {}),
-            ...(updateData.fonte !== undefined ? { fonte: updateData.fonte } : {}),
+            ...(!isSynced && updateData.data !== undefined ? { data: new Date(`${updateData.data}T12:00:00`) } : {}),
+            ...(!isSynced && updateData.fonte !== undefined ? { fonte: updateData.fonte } : {}),
             ...(updateData.category_id !== undefined ? { category_id: updateData.category_id } : {}),
+            ...(isSynced && updateData.category_id !== undefined ? { categoria_manual: true } : {}),
         }
 
         if (Object.keys(setData).length === 0) {
@@ -217,6 +220,13 @@ export class IncomeService {
 
         if (!income) {
             throw createErrorResponse("Receita não encontrada.", 404)
+        }
+
+        if (income.origem === "pluggy") {
+            throw createErrorResponse(
+                "Movimentos importados pelo banco não podem ser excluídos. Ajuste a categoria se necessário.",
+                400
+            )
         }
 
         if (income.fixo) {
@@ -248,18 +258,19 @@ export class IncomeService {
         year: number,
         categoryId?: number | undefined
     ): Promise<IncomeStatsResult> {
-        const categoryFilter = categoryId ? sql`AND category_id = ${categoryId}` : sql``
+        const categoryFilter = categoryId ? sql`AND i.category_id = ${categoryId}` : sql``
 
         const queryResult = await db.execute(sql`
             SELECT
-                COALESCE(SUM(quantidade), 0) AS total,
-                COALESCE(SUM(CASE WHEN fixo = true THEN quantidade ELSE 0 END), 0) AS fixas,
+                COALESCE(SUM(i.quantidade), 0) AS total,
+                COALESCE(SUM(CASE WHEN i.fixo = true THEN i.quantidade ELSE 0 END), 0) AS fixas,
                 COUNT(*) AS transacoes,
-                COALESCE(AVG(quantidade), 0) AS media
-            FROM incomes
-            WHERE user_id = ${userId}
-              AND EXTRACT(MONTH FROM data) = ${month}
-              AND EXTRACT(YEAR FROM data) = ${year}
+                COALESCE(AVG(i.quantidade), 0) AS media
+            FROM incomes i
+            WHERE i.user_id = ${userId}
+              AND EXTRACT(MONTH FROM i.data) = ${month}
+              AND EXTRACT(YEAR FROM i.data) = ${year}
+              AND ${incomeCountsForAnalytics}
               ${categoryFilter}
         `)
 
@@ -268,11 +279,12 @@ export class IncomeService {
 
     static async getMonthlyTotal(userId: string, month: number, year: number): Promise<number> {
         const queryResult = await db.execute(sql`
-            SELECT COALESCE(SUM(quantidade), 0) AS total
-            FROM incomes
-            WHERE user_id = ${userId}
-              AND EXTRACT(MONTH FROM data) = ${month}
-              AND EXTRACT(YEAR FROM data) = ${year}
+            SELECT COALESCE(SUM(i.quantidade), 0) AS total
+            FROM incomes i
+            WHERE i.user_id = ${userId}
+              AND EXTRACT(MONTH FROM i.data) = ${month}
+              AND EXTRACT(YEAR FROM i.data) = ${year}
+              AND ${incomeCountsForAnalytics}
         `)
 
         return parseFloat((queryResult.rows[0] as { total: string }).total)
@@ -285,12 +297,13 @@ export class IncomeService {
         year: number
     ): Promise<number> {
         const queryResult = await db.execute(sql`
-            SELECT COALESCE(SUM(quantidade), 0) AS total
-            FROM incomes
-            WHERE user_id = ${userId}
-              AND category_id = ${categoryId}
-              AND EXTRACT(MONTH FROM data) = ${month}
-              AND EXTRACT(YEAR FROM data) = ${year}
+            SELECT COALESCE(SUM(i.quantidade), 0) AS total
+            FROM incomes i
+            WHERE i.user_id = ${userId}
+              AND i.category_id = ${categoryId}
+              AND EXTRACT(MONTH FROM i.data) = ${month}
+              AND EXTRACT(YEAR FROM i.data) = ${year}
+              AND ${incomeCountsForAnalytics}
         `)
 
         return parseFloat((queryResult.rows[0] as { total: string }).total)
@@ -302,11 +315,12 @@ export class IncomeService {
     ): Promise<Array<{ mes: string; total: number }>> {
         const queryResult = await db.execute(sql`
             SELECT
-                EXTRACT(MONTH FROM data) AS numero_mes,
-                SUM(quantidade) AS total
-            FROM incomes
-            WHERE user_id = ${userId}
-              AND EXTRACT(YEAR FROM data) = ${year}
+                EXTRACT(MONTH FROM i.data) AS numero_mes,
+                SUM(i.quantidade) AS total
+            FROM incomes i
+            WHERE i.user_id = ${userId}
+              AND EXTRACT(YEAR FROM i.data) = ${year}
+              AND ${incomeCountsForAnalytics}
             GROUP BY numero_mes
             ORDER BY numero_mes
         `)
@@ -342,6 +356,7 @@ export class IncomeService {
             WHERE i.user_id = ${userId}
               AND EXTRACT(MONTH FROM i.data) = ${month}
               AND EXTRACT(YEAR FROM i.data) = ${year}
+              AND ${incomeCountsForAnalytics}
             GROUP BY c.nome, c.cor
         `)
 

@@ -12,6 +12,7 @@ export interface Expense {
     categoria_nome?: string;
     cor_categoria?: string;
     origem?: "manual" | "pluggy";
+    observacoes?: string | null;
     conta_nome?: string;
     instituicao_nome?: string;
     instituicao_id?: number;

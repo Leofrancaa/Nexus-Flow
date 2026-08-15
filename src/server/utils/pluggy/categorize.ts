@@ -83,11 +83,10 @@ export function categorizeByRules(
       if (id) return id
     }
   }
-  return resolveCategory(
-    item.type === 'income' ? 'outros rendimentos' : 'outros',
-    userCategories,
-    tipo
-  )
+  // `null` sinaliza para o sincronizador tentar a IA em lote. Só depois dessa
+  // tentativa ele aplica a categoria genérica, evitando que "Outros" impeça
+  // a classificação inteligente de sequer ser chamada.
+  return null
 }
 
 /**

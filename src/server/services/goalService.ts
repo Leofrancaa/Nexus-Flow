@@ -2,6 +2,7 @@ import { and, eq, desc, sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
 import { goals } from '@/server/db/schema'
 import { createErrorResponse, isPositiveNumber } from '@/server/utils/helper'
+import { incomeCountsForAnalytics } from '@/server/utils/finance/analyticsFilters'
 
 interface Goal {
     id: number
@@ -72,11 +73,12 @@ export class GoalService {
 
         return Promise.all(rows.map(async (goal) => {
             const incomeResult = await db.execute(sql`
-                SELECT COALESCE(SUM(quantidade), 0) as valor_atual
-                FROM incomes
-                WHERE user_id = ${userId}
-                  AND EXTRACT(MONTH FROM data) = ${goal.mes}
-                  AND EXTRACT(YEAR FROM data) = ${goal.ano}
+                SELECT COALESCE(SUM(i.quantidade), 0) as valor_atual
+                FROM incomes i
+                WHERE i.user_id = ${userId}
+                  AND EXTRACT(MONTH FROM i.data) = ${goal.mes}
+                  AND EXTRACT(YEAR FROM i.data) = ${goal.ano}
+                  AND ${incomeCountsForAnalytics}
             `)
 
             const valorAlvo = Number(goal.valor_alvo)

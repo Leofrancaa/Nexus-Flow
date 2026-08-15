@@ -293,11 +293,11 @@
 @keyframes nx-dialog-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -47%) scale(0.975);
+    transform: scale(0.975);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
   }
 }
 
@@ -315,7 +315,7 @@
 @keyframes nx-dialog-out {
   to {
     opacity: 0;
-    transform: translate(-50%, -48%) scale(0.985);
+    transform: scale(0.985);
   }
 }
 

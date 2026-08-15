@@ -16,6 +16,7 @@ import { LimitRing } from "@/components/dashboard/limitRing";
 import { RecentActivity } from "@/components/dashboard/recentActivity";
 import { SpendTrendCard } from "@/components/dashboard/spendTrendCard";
 import { WidgetCard } from "@/components/dashboard/widgetCard";
+import { CreditOverviewModal } from "@/components/dashboard/creditOverviewModal";
 import { Money } from "@/components/ui/money";
 import { PrivacyProvider } from "@/contexts/privacyContext";
 import { useDataChanged } from "@/hooks/useDataRefresh";
@@ -54,6 +55,7 @@ function Dashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [sincronizando, setSincronizando] = useState(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [creditModalOpen, setCreditModalOpen] = useState(false);
   const [connections, setConnections] = useState<SyncConnection[]>([]);
   const [connectionsLoading, setConnectionsLoading] = useState(false);
   const [busyConnectionId, setBusyConnectionId] = useState<string | null>(null);
@@ -300,6 +302,16 @@ function Dashboard() {
         onSyncOne={sincronizarUmaConta}
       />
 
+      <CreditOverviewModal
+        open={creditModalOpen}
+        onOpenChange={setCreditModalOpen}
+        cards={dados?.cartoesAVencer ?? []}
+        onSync={() => {
+          setCreditModalOpen(false);
+          setSyncModalOpen(true);
+        }}
+      />
+
       <div className="relative z-10 -mt-2 space-y-4 pb-5">
         {carregando ? (
           <div className="h-56 animate-pulse rounded-card bg-surface" />
@@ -353,7 +365,11 @@ function Dashboard() {
                   "Toque para sincronizar"
                 )
               }
-              onClick={cartoes.limite > 0 ? undefined : () => setSyncModalOpen(true)}
+              onClick={
+                cartoes.quantidade > 0
+                  ? () => setCreditModalOpen(true)
+                  : () => setSyncModalOpen(true)
+              }
               delay={180}
               media={
                 cartoes.limite > 0 ? (

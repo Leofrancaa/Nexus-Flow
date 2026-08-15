@@ -1,5 +1,9 @@
 import { sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
+import {
+    expenseCountsForAnalytics,
+    incomeCountsForAnalytics,
+} from './analyticsFilters'
 
 interface TotalRow {
     total: string | number
@@ -20,20 +24,24 @@ export const getComparativoMensal = async (
 
     const [receitaAtual, receitaAnterior, despesaAtual, despesaAnterior] = await Promise.all([
         db.execute(sql`
-            SELECT COALESCE(SUM(quantidade), 0) as total FROM incomes
-            WHERE user_id = ${user_id} AND EXTRACT(MONTH FROM data) = ${mesAtual} AND EXTRACT(YEAR FROM data) = ${anoAtual}
+            SELECT COALESCE(SUM(i.quantidade), 0) as total FROM incomes i
+            WHERE i.user_id = ${user_id} AND EXTRACT(MONTH FROM i.data) = ${mesAtual} AND EXTRACT(YEAR FROM i.data) = ${anoAtual}
+              AND ${incomeCountsForAnalytics}
         `),
         db.execute(sql`
-            SELECT COALESCE(SUM(quantidade), 0) as total FROM incomes
-            WHERE user_id = ${user_id} AND EXTRACT(MONTH FROM data) = ${mesAnterior} AND EXTRACT(YEAR FROM data) = ${anoAnterior}
+            SELECT COALESCE(SUM(i.quantidade), 0) as total FROM incomes i
+            WHERE i.user_id = ${user_id} AND EXTRACT(MONTH FROM i.data) = ${mesAnterior} AND EXTRACT(YEAR FROM i.data) = ${anoAnterior}
+              AND ${incomeCountsForAnalytics}
         `),
         db.execute(sql`
-            SELECT COALESCE(SUM(quantidade), 0) as total FROM expenses
-            WHERE user_id = ${user_id} AND EXTRACT(MONTH FROM data) = ${mesAtual} AND EXTRACT(YEAR FROM data) = ${anoAtual}
+            SELECT COALESCE(SUM(e.quantidade), 0) as total FROM expenses e
+            WHERE e.user_id = ${user_id} AND EXTRACT(MONTH FROM e.data) = ${mesAtual} AND EXTRACT(YEAR FROM e.data) = ${anoAtual}
+              AND ${expenseCountsForAnalytics}
         `),
         db.execute(sql`
-            SELECT COALESCE(SUM(quantidade), 0) as total FROM expenses
-            WHERE user_id = ${user_id} AND EXTRACT(MONTH FROM data) = ${mesAnterior} AND EXTRACT(YEAR FROM data) = ${anoAnterior}
+            SELECT COALESCE(SUM(e.quantidade), 0) as total FROM expenses e
+            WHERE e.user_id = ${user_id} AND EXTRACT(MONTH FROM e.data) = ${mesAnterior} AND EXTRACT(YEAR FROM e.data) = ${anoAnterior}
+              AND ${expenseCountsForAnalytics}
         `),
     ])
 

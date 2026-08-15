@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       assinaturas
     ] = await Promise.all([
       getSaldoFuturo(user.id),
-      getTotaisMensais(user.id),
+      getTotaisMensais(user.id, ano),
       getComparativoMensal(user.id, mes, ano),
       getGastosPorCategoria(user.id, mes, ano),
       getGastosPorCartao(user.id, mes, ano),

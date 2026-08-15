@@ -28,6 +28,7 @@ interface Props {
 }
 
 export function EditIncomeForm({ income, onClose, onUpdated }: Props) {
+  const isSynced = income.origem === "pluggy";
   const [tipo, setTipo] = useState(income.tipo || "");
   const [quantidade, setQuantidade] = useState(String(income.quantidade || ""));
   const [fonte, setFonte] = useState(income.fonte || "");
@@ -57,6 +58,11 @@ export function EditIncomeForm({ income, onClose, onUpdated }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isSynced && !categoriaId) {
+      toast.error("Escolha uma categoria para organizar este movimento.");
+      return;
+    }
+
     const toastId = toast.loading("Atualizando receita...");
 
     try {
@@ -65,14 +71,18 @@ export function EditIncomeForm({ income, onClose, onUpdated }: Props) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          tipo,
-          quantidade: parseFloat(quantidade),
-          fonte,
-          nota,
-          data,
-          category_id: parseInt(categoriaId),
-        }),
+        body: JSON.stringify(
+          isSynced
+            ? { nota, category_id: parseInt(categoriaId) }
+            : {
+                tipo,
+                quantidade: parseFloat(quantidade),
+                fonte,
+                nota,
+                data,
+                category_id: parseInt(categoriaId),
+              }
+        ),
       });
 
       if (!res.ok) {
@@ -93,67 +103,75 @@ export function EditIncomeForm({ income, onClose, onUpdated }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Descrição e Valor */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label>Descrição</Label>
-          <Input
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value)}
-            required
-          />
+      {isSynced ? (
+        <div className="rounded-2xl border border-sky-400/20 bg-sky-400/[0.07] px-4 py-3">
+          <p className="text-sm font-semibold text-fg">Movimento sincronizado</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            O banco mantém descrição, valor e data. Sua categoria e nota continuarão iguais após sincronizar.
+          </p>
+          <p className="num mt-2 text-sm font-bold text-sky-300">
+            {tipo} · R$ {Number(quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </p>
         </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <Label>Descrição</Label>
+              <Input
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value)}
+                required
+              />
+            </div>
 
-        <div>
-          <Label>Valor (R$)</Label>
-          <Input
-            type="number"
-            value={quantidade}
-            onChange={(e) => setQuantidade(e.target.value)}
-            required
-          />
-        </div>
-      </div>
+            <div>
+              <Label>Valor (R$)</Label>
+              <Input
+                type="number"
+                value={quantidade}
+                onChange={(e) => setQuantidade(e.target.value)}
+                required
+              />
+            </div>
+          </div>
 
-      {/* Fonte e Categoria */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label>Fonte</Label>
-          <Input
-            value={fonte}
-            onChange={(e) => setFonte(e.target.value)}
-            required
-          />
-        </div>
+          <div>
+            <Label>Fonte</Label>
+            <Input
+              value={fonte}
+              onChange={(e) => setFonte(e.target.value)}
+              required
+            />
+          </div>
 
-        <div>
-          <Label>Categoria</Label>
-          <Select value={categoriaId} onValueChange={setCategoriaId}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione uma categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              {categorias.map((categoria) => (
-                <SelectItem key={categoria.id} value={String(categoria.id)}>
-                  {categoria.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+          <div>
+            <Label>Data</Label>
+            <DatePicker
+              value={data}
+              onChange={setData}
+              placeholder="Selecione a data"
+            />
+          </div>
+        </>
+      )}
 
-      {/* Data */}
       <div>
-        <Label>Data</Label>
-        <DatePicker
-          value={data}
-          onChange={setData}
-          placeholder="Selecione a data"
-        />
+        <Label>Categoria</Label>
+        <Select value={categoriaId} onValueChange={setCategoriaId}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Selecione uma categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            {categorias.map((categoria) => (
+              <SelectItem key={categoria.id} value={String(categoria.id)}>
+                {categoria.nome}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Nota */}
       <div>
         <Label>Nota</Label>
         <Textarea
@@ -163,18 +181,17 @@ export function EditIncomeForm({ income, onClose, onUpdated }: Props) {
         />
       </div>
 
-      {/* Botões */}
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex flex-col-reverse gap-3 pt-2 min-[360px]:flex-row">
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 rounded-md bg-[#1F2937] text-white hover:bg-[#374151] transition"
+          className="min-h-12 min-w-0 flex-1 rounded-[14px] border border-line px-4 py-3 font-semibold text-muted transition-[background-color,color,transform] hover:bg-elevated hover:text-fg active:scale-[.98]"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="px-4 py-2 rounded-md bg-cyan-600 text-white hover:bg-cyan-500 transition"
+          className="min-h-12 min-w-0 flex-1 rounded-[14px] bg-brand px-4 py-3 font-semibold text-bg transition-[opacity,transform,box-shadow] glow-sm hover:opacity-90 active:scale-[.98]"
         >
           Salvar Alterações
         </button>

@@ -21,7 +21,7 @@ import {
   type Activity,
 } from "@/lib/activities";
 
-type Filtro = "todas" | "entradas" | "saidas";
+type Filtro = "todas" | "entradas" | "saidas" | "movimentos";
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -104,8 +104,13 @@ function Atividades() {
     const termo = busca.trim().toLowerCase();
 
     return itens.filter((item) => {
-      if (filtro === "entradas" && item.kind !== "income") return false;
-      if (filtro === "saidas" && item.kind !== "expense") return false;
+      if (filtro === "entradas" && item.natureza !== "income") return false;
+      if (filtro === "saidas" && item.natureza !== "expense") return false;
+      if (
+        filtro === "movimentos" &&
+        item.natureza !== "internal_transfer" &&
+        item.natureza !== "card_payment"
+      ) return false;
       if (!termo) return true;
       return (
         item.descricao.toLowerCase().includes(termo) ||
@@ -129,8 +134,8 @@ function Atividades() {
   const totais = useMemo(() => {
     const base = { entradas: 0, saidas: 0 };
     for (const item of itens ?? []) {
-      if (item.kind === "income") base.entradas += item.valor;
-      else base.saidas += item.valor;
+      if (item.natureza === "income") base.entradas += item.valor;
+      else if (item.natureza === "expense") base.saidas += item.valor;
     }
     return base;
   }, [itens]);
@@ -170,8 +175,14 @@ function Atividades() {
 
   // Despesa de cartão de crédito é gerada pela fatura: editar aqui deixaria o
   // limite do cartão inconsistente. Mesma regra que a lista antiga aplicava.
-  const podeEditar = (item: Activity) =>
-    item.kind === "income" || item.expense?.metodo_pagamento !== "cartao de credito";
+  const podeEditar = (item: Activity) => {
+    if (item.origem === "pluggy") return true;
+    return item.kind === "income" || !item.expense?.metodo_pagamento
+      ?.normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .includes("credito");
+  };
 
   return (
     <PageWrapper className="pt-8">
@@ -218,12 +229,13 @@ function Atividades() {
         </div>
       </header>
 
-      <div className="mb-4 flex gap-2" role="group" aria-label="Filtrar por tipo">
+      <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Filtrar por tipo">
         {(
           [
             ["todas", "Todas"],
             ["entradas", "Entradas"],
             ["saidas", "Saídas"],
+            ["movimentos", "Transferências"],
           ] as const
         ).map(([valor, rotulo]) => (
           <button
@@ -298,7 +310,11 @@ function Atividades() {
                           {item.descricao}
                         </span>
                         <span className="block truncate text-xs text-muted">
-                          {item.categoria ?? "Sem categoria"}
+                          {item.natureza === "internal_transfer"
+                            ? "Transferência entre contas"
+                            : item.natureza === "card_payment"
+                              ? "Pagamento de fatura"
+                              : item.categoria ?? "Sem categoria"}
                           {item.detalhe ? ` · ${item.detalhe}` : ""}
                         </span>
                         {item.instituicao ? (
@@ -311,12 +327,18 @@ function Atividades() {
                       <span
                         className={cn(
                           "num shrink-0 text-sm font-bold",
-                          item.kind === "income"
-                            ? "text-positive"
-                            : "text-negative"
+                          item.natureza === "internal_transfer" || item.natureza === "card_payment"
+                            ? "text-sky-400"
+                            : item.kind === "income"
+                              ? "text-positive"
+                              : "text-negative"
                         )}
                       >
-                        {item.kind === "income" ? "+" : "−"}
+                        {item.natureza === "internal_transfer" || item.natureza === "card_payment"
+                          ? "↔"
+                          : item.kind === "income"
+                            ? "+"
+                            : "−"}
                         {brl(item.valor)}
                       </span>
                     </button>
@@ -335,9 +357,15 @@ function Atividades() {
         title={selecionada?.descricao ?? ""}
         description={
           selecionada
-            ? `${selecionada.kind === "income" ? "Receita" : "Despesa"} de ${brl(
-                selecionada.valor
-              )}`
+            ? `${
+                selecionada.natureza === "internal_transfer"
+                  ? "Transferência entre suas contas"
+                  : selecionada.natureza === "card_payment"
+                    ? "Pagamento de fatura já contabilizada pelas compras"
+                    : selecionada.kind === "income"
+                      ? "Receita"
+                      : "Despesa"
+              } de ${brl(selecionada.valor)}`
             : undefined
         }
         size="sm"
@@ -361,17 +389,23 @@ function Atividades() {
             </p>
           )}
 
-          <button
-            type="button"
-            onClick={() => {
-              setConfirmando(selecionada);
-              setSelecionada(null);
-            }}
-            className="flex items-center gap-3 rounded-xl px-4 py-3.5 text-left font-medium text-negative transition-colors hover:bg-negative/10"
-          >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-            Excluir
-          </button>
+          {selecionada?.origem === "pluggy" ? (
+            <p className="rounded-xl bg-elevated px-4 py-3 text-sm text-muted">
+              Movimentos importados pelo banco não podem ser excluídos. Você pode ajustar a categoria sem perder a sincronização.
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmando(selecionada);
+                setSelecionada(null);
+              }}
+              className="flex items-center gap-3 rounded-xl px-4 py-3.5 text-left font-medium text-negative transition-colors hover:bg-negative/10"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Excluir
+            </button>
+          )}
         </div>
       </Modal>
 

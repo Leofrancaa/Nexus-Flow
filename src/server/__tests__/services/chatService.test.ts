@@ -35,21 +35,22 @@ beforeEach(async () => {
 })
 
 describe('ChatService.getStatus', () => {
-  it('começa com o limite completo disponível', async () => {
+  it('não aplica limite diário interno', async () => {
     const status = await ChatService.getStatus(USER_ID)
-    expect(status.limit).toBe(4)
+    expect(status.limit).toBeNull()
     expect(status.used).toBe(0)
-    expect(status.remaining).toBe(4)
+    expect(status.remaining).toBeNull()
+    expect(status.unlimited).toBe(true)
   })
 })
 
 describe('ChatService.sendMessage', () => {
-  it('responde, armazena as mensagens e decrementa o restante', async () => {
+  it('responde e armazena as mensagens sem limite interno', async () => {
     const result = await ChatService.sendMessage(USER_ID, 'Qual meu maior gasto?')
 
     expect(result.reply).toContain('Alimentação')
     expect(result.status.used).toBe(1)
-    expect(result.status.remaining).toBe(3)
+    expect(result.status.remaining).toBeNull()
 
     const stored = await ChatService.getHistory(USER_ID)
     expect(stored).toHaveLength(2) // user + assistant
@@ -57,13 +58,10 @@ describe('ChatService.sendMessage', () => {
     expect(stored[1].role).toBe('assistant')
   })
 
-  it('bloqueia após atingir o limite diário de 4 mensagens', async () => {
-    for (let i = 0; i < 4; i++) {
-      await ChatService.sendMessage(USER_ID, `Pergunta ${i}`)
+  it('continua respondendo depois de quatro mensagens no mesmo dia', async () => {
+    for (let i = 0; i < 5; i++) {
+      await expect(ChatService.sendMessage(USER_ID, `Pergunta ${i}`)).resolves.toBeDefined()
     }
-    await expect(ChatService.sendMessage(USER_ID, 'Mais uma')).rejects.toMatchObject({
-      status: 429,
-    })
   })
 
   it('rejeita mensagem vazia', async () => {
@@ -72,7 +70,7 @@ describe('ChatService.sendMessage', () => {
 
   it('rejeita mensagem muito longa', async () => {
     await expect(
-      ChatService.sendMessage(USER_ID, 'a'.repeat(600))
+      ChatService.sendMessage(USER_ID, 'a'.repeat(2100))
     ).rejects.toMatchObject({ status: 400 })
   })
 })

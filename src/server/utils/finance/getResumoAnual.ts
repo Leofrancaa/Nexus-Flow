@@ -1,5 +1,9 @@
 import { sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
+import {
+    expenseCountsForAnalytics,
+    incomeCountsForAnalytics,
+} from './analyticsFilters'
 
 export interface ResumoAnualResult {
     mes: string
@@ -16,15 +20,17 @@ interface MesRow {
 export const getResumoAnual = async (user_id: string, ano: number): Promise<ResumoAnualResult[]> => {
     const [receitasQuery, despesasQuery] = await Promise.all([
         db.execute(sql`
-            SELECT EXTRACT(MONTH FROM data) AS mes, SUM(quantidade) AS total_receitas
-            FROM incomes
-            WHERE user_id = ${user_id} AND EXTRACT(YEAR FROM data) = ${ano}
+            SELECT EXTRACT(MONTH FROM i.data) AS mes, SUM(i.quantidade) AS total_receitas
+            FROM incomes i
+            WHERE i.user_id = ${user_id} AND EXTRACT(YEAR FROM i.data) = ${ano}
+              AND ${incomeCountsForAnalytics}
             GROUP BY mes ORDER BY mes
         `),
         db.execute(sql`
-            SELECT EXTRACT(MONTH FROM data) AS mes, SUM(quantidade) AS total_despesas
-            FROM expenses
-            WHERE user_id = ${user_id} AND EXTRACT(YEAR FROM data) = ${ano}
+            SELECT EXTRACT(MONTH FROM e.data) AS mes, SUM(e.quantidade) AS total_despesas
+            FROM expenses e
+            WHERE e.user_id = ${user_id} AND EXTRACT(YEAR FROM e.data) = ${ano}
+              AND ${expenseCountsForAnalytics}
             GROUP BY mes ORDER BY mes
         `),
     ])

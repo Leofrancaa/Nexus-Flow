@@ -5,6 +5,7 @@ import { getComparativoMensal, getCartoesEstourados } from '@/server/utils/finan
 import { and, eq, ne, sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
 import { thresholds as thresholdsTable, plans } from '@/server/db/schema'
+import { expenseCountsForAnalytics } from '@/server/utils/finance/analyticsFilters'
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,12 +24,13 @@ export async function GET(request: NextRequest) {
         SELECT COUNT(*) as count
         FROM thresholds t
         JOIN (
-          SELECT category_id, SUM(quantidade) AS total
-          FROM expenses
-          WHERE user_id = ${user.id}
-            AND EXTRACT(MONTH FROM data) = ${mes}
-            AND EXTRACT(YEAR FROM data) = ${ano}
-          GROUP BY category_id
+          SELECT e.category_id, SUM(e.quantidade) AS total
+          FROM expenses e
+          WHERE e.user_id = ${user.id}
+            AND EXTRACT(MONTH FROM e.data) = ${mes}
+            AND EXTRACT(YEAR FROM e.data) = ${ano}
+            AND ${expenseCountsForAnalytics}
+          GROUP BY e.category_id
         ) e ON e.category_id = t.category_id
         WHERE t.user_id = ${user.id}
           AND e.total > t.valor

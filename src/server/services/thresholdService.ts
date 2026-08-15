@@ -9,6 +9,7 @@ import {
     createErrorResponse,
     isPositiveNumber
 } from '@/server/utils/helper'
+import { expenseCountsForAnalytics } from '@/server/utils/finance/analyticsFilters'
 
 interface ThresholdWithCategory extends Threshold {
     categoria: {
@@ -205,6 +206,7 @@ export class ThresholdService {
                 AND e.user_id = t.user_id
                 AND EXTRACT(MONTH FROM e.data) = ${targetMonth}
                 AND EXTRACT(YEAR FROM e.data) = ${targetYear}
+                AND ${expenseCountsForAnalytics}
             WHERE t.user_id = ${userId}
             GROUP BY t.id, t.valor, c.nome, c.cor
             ORDER BY c.nome
@@ -272,11 +274,12 @@ export class ThresholdService {
         const thresholdValue = Number(threshold.valor)
 
         const spendingResult = await db.execute(sql`
-            SELECT COALESCE(SUM(quantidade), 0) as current_spending
-            FROM expenses
-            WHERE user_id = ${userId} AND category_id = ${categoryId}
-              AND EXTRACT(MONTH FROM data) = ${targetMonth}
-              AND EXTRACT(YEAR FROM data) = ${targetYear}
+            SELECT COALESCE(SUM(e.quantidade), 0) as current_spending
+            FROM expenses e
+            WHERE e.user_id = ${userId} AND e.category_id = ${categoryId}
+              AND EXTRACT(MONTH FROM e.data) = ${targetMonth}
+              AND EXTRACT(YEAR FROM e.data) = ${targetYear}
+              AND ${expenseCountsForAnalytics}
         `)
 
         const currentSpending = Number(
@@ -325,6 +328,7 @@ export class ThresholdService {
                     AND e.user_id = t.user_id
                     AND EXTRACT(MONTH FROM e.data) = ${currentMonth}
                     AND EXTRACT(YEAR FROM e.data) = ${currentYear}
+                    AND ${expenseCountsForAnalytics}
                 WHERE t.user_id = ${userId}
                 GROUP BY t.id, t.valor
             ) threshold_analysis

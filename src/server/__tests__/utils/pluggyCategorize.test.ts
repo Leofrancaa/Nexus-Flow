@@ -20,4 +20,10 @@ describe('categorização de transações Pluggy', () => {
       expectedCategoryId
     )
   })
+
+  it('deixa nomes desconhecidos para a categorização por IA em lote', () => {
+    expect(
+      categorizeByRules({ description: 'EMPRESA NOVA XYZ', type: 'expense' }, categories)
+    ).toBeNull()
+  })
 })

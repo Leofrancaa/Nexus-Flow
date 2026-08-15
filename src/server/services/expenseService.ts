@@ -12,6 +12,7 @@ import {
     calculateCompetencia,
     createErrorResponse
 } from '@/server/utils/helper'
+import { expenseCountsForAnalytics } from '@/server/utils/finance/analyticsFilters'
 
 interface ExpenseWithCategory extends Expense {
     categoria_nome?: string
@@ -413,11 +414,12 @@ export class ExpenseService {
 
     static async getMonthlyTotal(userId: string, month: number, year: number): Promise<number> {
         const queryResult = await db.execute(sql`
-            SELECT COALESCE(SUM(quantidade), 0) as total
-            FROM expenses
-            WHERE user_id = ${userId}
-              AND EXTRACT(MONTH FROM data) = ${month}
-              AND EXTRACT(YEAR FROM data) = ${year}
+            SELECT COALESCE(SUM(e.quantidade), 0) as total
+            FROM expenses e
+            WHERE e.user_id = ${userId}
+              AND EXTRACT(MONTH FROM e.data) = ${month}
+              AND EXTRACT(YEAR FROM e.data) = ${year}
+              AND ${expenseCountsForAnalytics}
         `)
 
         return Number((queryResult.rows[0] as { total: string } | undefined)?.total || 0)
@@ -430,12 +432,13 @@ export class ExpenseService {
         year: number
     ): Promise<number> {
         const queryResult = await db.execute(sql`
-            SELECT COALESCE(SUM(quantidade), 0) as total
-            FROM expenses
-            WHERE user_id = ${userId}
-              AND category_id = ${categoryId}
-              AND EXTRACT(MONTH FROM data) = ${month}
-              AND EXTRACT(YEAR FROM data) = ${year}
+            SELECT COALESCE(SUM(e.quantidade), 0) as total
+            FROM expenses e
+            WHERE e.user_id = ${userId}
+              AND e.category_id = ${categoryId}
+              AND EXTRACT(MONTH FROM e.data) = ${month}
+              AND EXTRACT(YEAR FROM e.data) = ${year}
+              AND ${expenseCountsForAnalytics}
         `)
 
         return Number((queryResult.rows[0] as { total: string } | undefined)?.total || 0)
@@ -447,18 +450,19 @@ export class ExpenseService {
         year: number,
         categoryId?: number
     ): Promise<{ total: number; fixas: number; transacoes: number; media: number }> {
-        const categoryFilter = categoryId ? sql`AND category_id = ${categoryId}` : sql``
+        const categoryFilter = categoryId ? sql`AND e.category_id = ${categoryId}` : sql``
 
         const queryResult = await db.execute(sql`
             SELECT
-                COALESCE(SUM(quantidade), 0) as total,
-                COALESCE(SUM(CASE WHEN fixo = true THEN quantidade END), 0) as fixas,
+                COALESCE(SUM(e.quantidade), 0) as total,
+                COALESCE(SUM(CASE WHEN e.fixo = true THEN e.quantidade END), 0) as fixas,
                 COUNT(*) as transacoes,
-                CASE WHEN COUNT(*) > 0 THEN COALESCE(AVG(quantidade), 0) ELSE 0 END as media
-            FROM expenses
-            WHERE user_id = ${userId}
-              AND EXTRACT(MONTH FROM data) = ${month}
-              AND EXTRACT(YEAR FROM data) = ${year}
+                CASE WHEN COUNT(*) > 0 THEN COALESCE(AVG(e.quantidade), 0) ELSE 0 END as media
+            FROM expenses e
+            WHERE e.user_id = ${userId}
+              AND EXTRACT(MONTH FROM e.data) = ${month}
+              AND EXTRACT(YEAR FROM e.data) = ${year}
+              AND ${expenseCountsForAnalytics}
               ${categoryFilter}
         `)
 
@@ -494,6 +498,7 @@ export class ExpenseService {
             WHERE e.user_id = ${userId}
               AND EXTRACT(MONTH FROM e.data) = ${month}
               AND EXTRACT(YEAR FROM e.data) = ${year}
+              AND ${expenseCountsForAnalytics}
             GROUP BY COALESCE(parent.id, c.id), COALESCE(parent.nome, c.nome), COALESCE(parent.cor, c.cor)
             ORDER BY total DESC
         `)
@@ -533,20 +538,25 @@ export class ExpenseService {
             throw createErrorResponse("Despesa não encontrada.", 404)
         }
 
+        const isSynced = original.origem === "pluggy"
         const metodoOrigNorm = normalize(original.metodo_pagamento)
-        if (metodoOrigNorm.includes("credito")) {
+        if (!isSynced && metodoOrigNorm.includes("credito")) {
             throw createErrorResponse("Despesas no cartão de crédito não podem ser editadas.", 400)
         }
 
         const updateObj: Partial<ExpenseInsert> = {}
 
-        if (updateData.metodo_pagamento !== undefined) updateObj.metodo_pagamento = updateData.metodo_pagamento
-        if (updateData.tipo !== undefined) updateObj.tipo = updateData.tipo
-        if (updateData.quantidade !== undefined) updateObj.quantidade = String(updateData.quantidade)
-        if (updateData.data !== undefined) updateObj.data = new Date(`${updateData.data}T12:00:00`)
-        if (updateData.fixo !== undefined) updateObj.fixo = updateData.fixo
+        // Movimentos bancários são a fonte da verdade para valor, data e
+        // descrição. O usuário pode organizar a categoria/observação, e essa
+        // escolha fica protegida do próximo upsert da Pluggy.
+        if (!isSynced && updateData.metodo_pagamento !== undefined) updateObj.metodo_pagamento = updateData.metodo_pagamento
+        if (!isSynced && updateData.tipo !== undefined) updateObj.tipo = updateData.tipo
+        if (!isSynced && updateData.quantidade !== undefined) updateObj.quantidade = String(updateData.quantidade)
+        if (!isSynced && updateData.data !== undefined) updateObj.data = new Date(`${updateData.data}T12:00:00`)
+        if (!isSynced && updateData.fixo !== undefined) updateObj.fixo = updateData.fixo
         if (updateData.category_id !== undefined) updateObj.category_id = updateData.category_id
         if (updateData.observacoes !== undefined) updateObj.observacoes = updateData.observacoes
+        if (isSynced && updateData.category_id !== undefined) updateObj.categoria_manual = true
 
         if (Object.keys(updateObj).length === 0) {
             return this.mapToExpense(original as unknown as Record<string, unknown>)
@@ -573,6 +583,13 @@ export class ExpenseService {
 
         if (!expense) {
             throw createErrorResponse("Despesa não encontrada.", 404)
+        }
+
+        if (expense.origem === "pluggy") {
+            throw createErrorResponse(
+                "Movimentos importados pelo banco não podem ser excluídos. Ajuste a categoria se necessário.",
+                400
+            )
         }
 
         if (expense.fixo) {

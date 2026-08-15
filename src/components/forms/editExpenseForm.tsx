@@ -34,6 +34,7 @@ interface Props {
 }
 
 export function EditExpenseForm({ expense, onClose, onUpdated }: Props) {
+  const isSynced = expense.origem === "pluggy";
   const [tipo, setTipo] = useState(expense.tipo || "");
   const [quantidade, setQuantidade] = useState(
     String(expense.quantidade || "")
@@ -70,13 +71,17 @@ export function EditExpenseForm({ expense, onClose, onUpdated }: Props) {
     e.preventDefault();
 
     // Validação dos campos obrigatórios
-    const requiredFieldsValidation = validateRequiredFields({
-      Descrição: tipo,
-      Valor: quantidade,
-      "Método de pagamento": metodoPagamento,
-      Data: data,
-      Categoria: categoriaId,
-    });
+    const requiredFieldsValidation = validateRequiredFields(
+      isSynced
+        ? { Categoria: categoriaId }
+        : {
+            Descrição: tipo,
+            Valor: quantidade,
+            "Método de pagamento": metodoPagamento,
+            Data: data,
+            Categoria: categoriaId,
+          }
+    );
 
     if (requiredFieldsValidation) {
       toast.error(requiredFieldsValidation, {
@@ -86,7 +91,9 @@ export function EditExpenseForm({ expense, onClose, onUpdated }: Props) {
     }
 
     // Validação do valor
-    const valueValidation = validatePositiveNumber(quantidade, "O valor");
+    const valueValidation = isSynced
+      ? null
+      : validatePositiveNumber(quantidade, "O valor");
     if (valueValidation) {
       toast.error(valueValidation, {
         id: "expense-edit-value-validation",
@@ -104,13 +111,17 @@ export function EditExpenseForm({ expense, onClose, onUpdated }: Props) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          tipo,
-          quantidade: parseFloat(quantidade),
-          metodo_pagamento: metodoPagamento,
-          data,
-          category_id: parseInt(categoriaId),
-        }),
+        body: JSON.stringify(
+          isSynced
+            ? { category_id: parseInt(categoriaId) }
+            : {
+                tipo,
+                quantidade: parseFloat(quantidade),
+                metodo_pagamento: metodoPagamento,
+                data,
+                category_id: parseInt(categoriaId),
+              }
+        ),
       });
 
       if (!res.ok) {
@@ -137,43 +148,57 @@ export function EditExpenseForm({ expense, onClose, onUpdated }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label>Descrição *</Label>
-        <Input
-          placeholder="Ex: Almoço, Gasolina..."
-          value={tipo}
-          onChange={(e) => setTipo(e.target.value)}
-          required
-        />
-      </div>
+      {isSynced ? (
+        <div className="rounded-2xl border border-sky-400/20 bg-sky-400/[0.07] px-4 py-3">
+          <p className="text-sm font-semibold text-fg">Movimento sincronizado</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            O banco mantém descrição, valor e data. A categoria escolhida aqui será preservada nas próximas sincronizações.
+          </p>
+          <p className="num mt-2 text-sm font-bold text-sky-300">
+            {tipo} · R$ {Number(quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div>
+            <Label>Descrição *</Label>
+            <Input
+              placeholder="Ex: Almoço, Gasolina..."
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value)}
+              required
+            />
+          </div>
 
-      <div>
-        <Label>Valor (R$) *</Label>
-        <Input
-          type="number"
-          step="0.01"
-          min="0"
-          placeholder="Ex: 50.00"
-          value={quantidade}
-          onChange={(e) => setQuantidade(e.target.value)}
-          required
-        />
-      </div>
+          <div>
+            <Label>Valor (R$) *</Label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Ex: 50.00"
+              value={quantidade}
+              onChange={(e) => setQuantidade(e.target.value)}
+              required
+            />
+          </div>
 
-      <div>
-        <Label>Método de Pagamento *</Label>
-        <Select value={metodoPagamento} onValueChange={setMetodoPagamento}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Selecione o método" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="dinheiro">Dinheiro</SelectItem>
-            <SelectItem value="cartao de credito">Cartão de Crédito</SelectItem>
-            <SelectItem value="debito">Débito</SelectItem>
-            <SelectItem value="pix">Pix</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <div>
+            <Label>Método de Pagamento *</Label>
+            <Select value={metodoPagamento} onValueChange={setMetodoPagamento}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione o método" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                <SelectItem value="cartao de credito">Cartão de Crédito</SelectItem>
+                <SelectItem value="debito">Débito</SelectItem>
+                <SelectItem value="pix">Pix</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </>
+      )}
 
       <div>
         <Label>Categoria *</Label>
@@ -191,26 +216,28 @@ export function EditExpenseForm({ expense, onClose, onUpdated }: Props) {
         </Select>
       </div>
 
-      <div>
-        <Label>Data *</Label>
-        <DatePicker
-          value={data}
-          onChange={setData}
-          placeholder="Selecione a data"
-        />
-      </div>
+      {!isSynced ? (
+        <div>
+          <Label>Data *</Label>
+          <DatePicker
+            value={data}
+            onChange={setData}
+            placeholder="Selecione a data"
+          />
+        </div>
+      ) : null}
 
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex flex-col-reverse gap-3 pt-2 min-[360px]:flex-row">
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 rounded-md bg-[#1F2937] text-white hover:bg-[#374151] transition"
+          className="min-h-12 min-w-0 flex-1 rounded-[14px] border border-line px-4 py-3 font-semibold text-muted transition-[background-color,color,transform] hover:bg-elevated hover:text-fg active:scale-[.98]"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="px-4 py-2 rounded-md bg-cyan-600 text-white hover:bg-cyan-500 transition"
+          className="min-h-12 min-w-0 flex-1 rounded-[14px] bg-brand px-4 py-3 font-semibold text-bg transition-[opacity,transform,box-shadow] glow-sm hover:opacity-90 active:scale-[.98]"
         >
           Salvar Alterações
         </button>

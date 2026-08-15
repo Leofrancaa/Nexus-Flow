@@ -14,20 +14,18 @@ interface Message {
 
 const SUGGESTIONS = [
   "Qual foi meu maior gasto este mês?",
-  "Como está meu saldo do mês?",
-  "Em quais categorias eu mais gastei?",
-  "Como estão meus planos de investimento?",
+  "Quanto posso gastar por dia até o fim do mês?",
+  "Onde consigo economizar sem comprometer o essencial?",
+  "Compare este mês com o anterior.",
 ];
 
 // Deve casar com MAX_MESSAGE_LENGTH no chatService (servidor).
-const MAX_LEN = 500;
+const MAX_LEN = 2000;
 
 export default function AssistantPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [remaining, setRemaining] = useState<number>(4);
-  const [limit, setLimit] = useState<number>(4);
   const [sending, setSending] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -43,8 +41,6 @@ export default function AssistantPage() {
       if (res.ok) {
         const data = await res.json();
         setMessages(data.data?.messages ?? []);
-        setRemaining(data.data?.status?.remaining ?? 4);
-        setLimit(data.data?.status?.limit ?? 4);
       }
     } catch {
       /* silencioso */
@@ -62,11 +58,6 @@ export default function AssistantPage() {
   const send = async (text: string) => {
     const message = text.trim();
     if (!message || sending) return;
-    if (remaining <= 0) {
-      toast.error("Você atingiu o limite de mensagens de hoje.");
-      return;
-    }
-
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content: message }]);
     setSending(true);
@@ -86,7 +77,6 @@ export default function AssistantPage() {
         ...prev,
         { role: "assistant", content: data.data.reply },
       ]);
-      setRemaining(data.data.status.remaining);
     } catch {
       toast.error("Erro ao enviar mensagem.");
       setMessages((prev) => prev.slice(0, -1));
@@ -94,8 +84,6 @@ export default function AssistantPage() {
       setSending(false);
     }
   };
-
-  const esgotado = remaining <= 0;
 
   return (
     // Altura da janela menos a bottom nav: o campo de mensagem precisa parar
@@ -116,14 +104,8 @@ export default function AssistantPage() {
               Pergunte sobre suas finanças
             </p>
           </div>
-          <span
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
-              esgotado
-                ? "bg-negative/15 text-negative"
-                : "bg-brand/15 text-brand"
-            }`}
-          >
-            {remaining}/{limit} hoje
+          <span className="shrink-0 rounded-full bg-brand/15 px-3 py-1.5 text-xs font-semibold text-brand">
+            Sem limite interno
           </span>
         </header>
 
@@ -141,7 +123,7 @@ export default function AssistantPage() {
                   <button
                     key={s}
                     onClick={() => send(s)}
-                    disabled={esgotado || sending}
+                    disabled={sending}
                     className="rounded-2xl bg-surface px-4 py-3 text-left text-sm text-muted transition-colors hover:bg-elevated hover:text-fg disabled:opacity-50"
                   >
                     {s}
@@ -199,10 +181,8 @@ export default function AssistantPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value.slice(0, MAX_LEN))}
                 maxLength={MAX_LEN}
-                placeholder={
-                  esgotado ? "Limite diário atingido" : "Digite sua pergunta..."
-                }
-                disabled={esgotado || sending}
+                placeholder="Pergunte ou registre um lançamento..."
+                disabled={sending}
                 className="w-full bg-transparent px-3 py-2.5 text-base text-fg outline-none placeholder:text-subtle disabled:opacity-50"
               />
               {input.length > MAX_LEN * 0.8 && (
@@ -218,7 +198,7 @@ export default function AssistantPage() {
             <button
               type="submit"
               aria-label="Enviar"
-              disabled={esgotado || sending || !input.trim()}
+              disabled={sending || !input.trim()}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand text-bg transition-opacity glow-sm hover:opacity-90 disabled:opacity-40 disabled:shadow-none"
             >
               <Send className="h-4 w-4" />
