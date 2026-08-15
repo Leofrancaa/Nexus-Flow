@@ -60,3 +60,26 @@ export function installmentAccountingDate(
   // banco. Em estornos, a instituição pode antecipar parcelas para o mês atual.
   return transactionDate
 }
+
+export function cardTransactionDates(
+  transactionDate: Date,
+  status?: string | null,
+  metadata?: PluggyInstallmentMetadata | null,
+  billDueDate?: string | null
+) {
+  const competenceDate = installmentAccountingDate(
+    transactionDate,
+    metadata,
+    billDueDate
+  )
+  const pending = status?.toUpperCase() === 'PENDING'
+
+  return {
+    // Transações já efetivadas sempre aparecem no dia real da compra. Uma
+    // previsão PENDING conserva a data da fatura apenas para projeções e fica
+    // fora da lista/totais até o banco confirmá-la.
+    activityDate: pending ? competenceDate : transactionDate,
+    competenceDate,
+    pending,
+  }
+}

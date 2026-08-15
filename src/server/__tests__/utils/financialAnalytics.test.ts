@@ -42,6 +42,13 @@ describe("financial analytics", () => {
         nota: "Movimento neutro de cartão · Sincronizado via Open Finance",
         user_id: USER_ID,
       },
+      {
+        tipo: "Estorno previsto",
+        quantidade: "999",
+        data: new Date("2026-08-20T12:00:00"),
+        nota: "Lançamento previsto de cartão · Sincronizado via Open Finance",
+        user_id: USER_ID,
+      },
     ]);
 
     await db.insert(schema.expenses).values([
@@ -76,6 +83,15 @@ describe("financial analytics", () => {
         category_id: shoppingCategory.id,
         user_id: USER_ID,
       },
+      {
+        metodo_pagamento: "Cartão de crédito",
+        tipo: "Parcela futura",
+        quantidade: "888",
+        data: new Date("2026-08-20T12:00:00"),
+        category_id: shoppingCategory.id,
+        observacoes: "Lançamento previsto de cartão · Sincronizado via Open Finance",
+        user_id: USER_ID,
+      },
     ]);
 
     const [comparison, categories, currentBalance] = await Promise.all([
@@ -93,6 +109,6 @@ describe("financial analytics", () => {
     expect(comparison.despesas.atual).toBe(200);
     expect(comparison.saldo).toBe(2800);
     expect(categories).toEqual([{ id: shoppingCategory.id, nome: "Compras", total: 200 }]);
-    expect(futureBalance).toBe(2800);
+    expect(futureBalance).toBe(2911);
   });
 });

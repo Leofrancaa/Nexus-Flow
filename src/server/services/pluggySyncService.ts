@@ -22,7 +22,7 @@ import {
   transactionDirection,
 } from '@/server/utils/pluggy/transaction'
 import {
-  installmentAccountingDate,
+  cardTransactionDates,
   installmentDescription,
 } from '@/server/utils/pluggy/installment'
 import {
@@ -447,21 +447,31 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
         userCategories
       )
       const originalTransactionDate = transactionDateInBrazil(transaction.date)
-      const transactionDate = account.type === 'CREDIT'
-        ? installmentAccountingDate(
+      const cardDates = account.type === 'CREDIT'
+        ? cardTransactionDates(
             originalTransactionDate,
+            transaction.status,
             transaction.creditCardMetadata,
             transaction.creditCardMetadata?.billId
               ? billDueDateById.get(transaction.creditCardMetadata.billId)
               : null
           )
-        : originalTransactionDate
+        : {
+            activityDate: originalTransactionDate,
+            competenceDate: originalTransactionDate,
+            pending: false,
+          }
       const transactionDescription = installmentDescription(
         transaction.merchant?.name || transaction.description,
         transaction.creditCardMetadata
       )
       const neutralCardLedger = account.type === 'CREDIT' &&
         isNeutralCreditCardLedger(transactionDescription, direction)
+      const syncNotes = [
+        neutralCardLedger ? 'Movimento neutro de cartão' : null,
+        cardDates.pending ? 'Lançamento previsto de cartão' : null,
+        'Sincronizado via Open Finance',
+      ].filter(Boolean).join(' · ')
       const quantity = Math.abs(transaction.amount).toFixed(2)
 
       if (direction === 'expense') {
@@ -473,15 +483,13 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           metodo_pagamento: account.type === 'CREDIT' ? 'Cartão de crédito' : 'Conta bancária',
           tipo: transactionDescription,
           quantidade: quantity,
-          data: transactionDate,
+          data: cardDates.activityDate,
           parcelas: transaction.creditCardMetadata?.totalInstallments ?? null,
-          competencia_mes: transactionDate.getUTCMonth() + 1,
-          competencia_ano: transactionDate.getUTCFullYear(),
+          competencia_mes: cardDates.competenceDate.getUTCMonth() + 1,
+          competencia_ano: cardDates.competenceDate.getUTCFullYear(),
           card_id: cardIdsByAccount.get(account.id) ?? null,
           category_id: categoryId,
-          observacoes: neutralCardLedger
-            ? 'Movimento neutro de cartão · Sincronizado via Open Finance'
-            : 'Sincronizado via Open Finance',
+          observacoes: syncNotes,
         }
         expenseRows.push(row)
         if (categoryId === null) {
@@ -501,11 +509,9 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
           origem: 'pluggy',
           tipo: transactionDescription,
           quantidade: quantity,
-          data: transactionDate,
+          data: cardDates.activityDate,
           fonte: account.marketingName || account.name || 'Open Finance',
-          nota: neutralCardLedger
-            ? 'Movimento neutro de cartão · Sincronizado via Open Finance'
-            : 'Sincronizado via Open Finance',
+          nota: syncNotes,
           category_id: categoryId,
         }
         incomeRows.push(row)

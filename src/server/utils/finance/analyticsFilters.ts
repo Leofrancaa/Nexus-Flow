@@ -43,8 +43,16 @@ const INCOME_CARD_LEDGER_ADJUSTMENT = sql`
   COALESCE(i.nota, '') ILIKE '%movimento neutro de cartão%'
 `;
 
-/** Despesas de consumo: exclui pagamento de fatura e transferências internas pareadas. */
-export const expenseCountsForAnalytics = sql`
+const EXPENSE_PENDING_CARD_TRANSACTION = sql`
+  COALESCE(e.observacoes, '') ILIKE '%lançamento previsto de cartão%'
+`;
+
+const INCOME_PENDING_CARD_TRANSACTION = sql`
+  COALESCE(i.nota, '') ILIKE '%lançamento previsto de cartão%'
+`;
+
+/** Movimentos reais/projetados, sem pagamentos e ajustes neutros. */
+export const expenseCountsForForecast = sql`
   NOT (
     ${CARD_PAYMENT}
     OR ${EXPENSE_CARD_LEDGER_ADJUSTMENT}
@@ -71,8 +79,7 @@ export const expenseCountsForAnalytics = sql`
   )
 `;
 
-/** Receitas reais: exclui a entrada que é contraparte de transferência interna. */
-export const incomeCountsForAnalytics = sql`
+export const incomeCountsForForecast = sql`
   NOT (
     ${INCOME_CARD_LEDGER_ADJUSTMENT}
     OR (
@@ -96,4 +103,15 @@ export const incomeCountsForAnalytics = sql`
       )
     )
   )
+`;
+
+/** Totais realizados: previsões PENDING ficam somente no saldo futuro/faturas. */
+export const expenseCountsForAnalytics = sql`
+  ${expenseCountsForForecast}
+  AND NOT (${EXPENSE_PENDING_CARD_TRANSACTION})
+`;
+
+export const incomeCountsForAnalytics = sql`
+  ${incomeCountsForForecast}
+  AND NOT (${INCOME_PENDING_CARD_TRANSACTION})
 `;

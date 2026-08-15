@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
 import {
-    expenseCountsForAnalytics,
-    incomeCountsForAnalytics,
+    expenseCountsForForecast,
+    incomeCountsForForecast,
 } from './analyticsFilters'
 
 function dateRangeInBrazil(referenceDate: Date) {
@@ -41,14 +41,14 @@ export const getSaldoFuturo = async (
             WHERE i.user_id = ${user_id}
               AND i.data > ${today}::date
               AND i.data <= ${monthEnd}::date
-              AND ${incomeCountsForAnalytics}
+              AND ${incomeCountsForForecast}
           ), 0) AS receitas,
           COALESCE((
             SELECT SUM(e.quantidade) FROM expenses e
             WHERE e.user_id = ${user_id}
               AND e.data > ${today}::date
               AND e.data <= ${monthEnd}::date
-              AND ${expenseCountsForAnalytics}
+              AND ${expenseCountsForForecast}
           ), 0) AS despesas
     `)
     const row = result.rows[0] as { receitas?: string | number; despesas?: string | number } | undefined
