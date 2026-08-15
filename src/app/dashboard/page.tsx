@@ -350,10 +350,10 @@ function Dashboard() {
                     de <Money value={cartoes.limite} />
                   </>
                 ) : (
-                  "Sem limite cadastrado"
+                  "Toque para sincronizar"
                 )
               }
-              href="/cartoes"
+              onClick={cartoes.limite > 0 ? undefined : () => setSyncModalOpen(true)}
               delay={180}
               media={
                 cartoes.limite > 0 ? (
@@ -366,7 +366,6 @@ function Dashboard() {
               label="Parcelamentos"
               value={String(dados?.parcelasPendentes?.length ?? 0)}
               sub="Em andamento"
-              href="/cartoes"
               delay={240}
               media={
                 <MetricIcon>

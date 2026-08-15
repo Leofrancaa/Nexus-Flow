@@ -15,6 +15,8 @@ interface WidgetCardProps {
   /** Anel, gráfico ou ícone no topo do card. */
   media?: React.ReactNode;
   href?: string;
+  /** Ação local, usada quando o card abre um modal em vez de navegar. */
+  onClick?: () => void;
   /** Atraso da entrada, em ms, para a cascata da tela. */
   delay?: number;
   className?: string;
@@ -34,6 +36,7 @@ export function WidgetCard({
   sub,
   media,
   href,
+  onClick,
   delay = 0,
   className,
 }: WidgetCardProps) {
@@ -41,7 +44,7 @@ export function WidgetCard({
     <>
       <div className="flex items-start justify-between gap-2">
         <div className="min-h-[2rem]">{media}</div>
-        {href && (
+        {(href || onClick) && (
           <ChevronRight
             className="h-4 w-4 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5"
             aria-hidden="true"
@@ -60,7 +63,7 @@ export function WidgetCard({
   const estilo = cn(
     "rise group flex h-full min-h-[8.75rem] flex-col rounded-card border border-white/[0.045] bg-[linear-gradient(145deg,#17191d_0%,#121417_100%)] p-4",
     "transition-[background-color,transform,border-color] duration-200 active:scale-[.985]",
-    href && "hover:border-white/[0.08] hover:bg-elevated",
+    (href || onClick) && "hover:border-white/[0.08] hover:bg-elevated",
     className
   );
 
@@ -73,6 +76,19 @@ export function WidgetCard({
       >
         {conteudo}
       </Link>
+    );
+  }
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(estilo, "w-full text-left")}
+        style={{ animationDelay: `${delay}ms` }}
+      >
+        {conteudo}
+      </button>
     );
   }
 
