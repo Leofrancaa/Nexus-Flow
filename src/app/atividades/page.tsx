@@ -10,12 +10,12 @@ import { Modal } from "@/components/ui/modal";
 import ConfirmDialog from "@/components/ui/confirmDialog";
 import { EditExpenseModal } from "@/components/modals/editExpenseModal";
 import { EditIncomeModal } from "@/components/modals/editIncomeModal";
+import { TransactionIcon } from "@/components/activities/transactionIcon";
 import { useDate } from "@/contexts/dateContext";
 import { useDataChanged } from "@/hooks/useDataRefresh";
 import { apiRequest } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import {
-  iniciais,
   toActivities,
   tituloDoDia,
   type Activity,
@@ -109,7 +109,8 @@ function Atividades() {
       if (!termo) return true;
       return (
         item.descricao.toLowerCase().includes(termo) ||
-        (item.categoria?.toLowerCase().includes(termo) ?? false)
+        (item.categoria?.toLowerCase().includes(termo) ?? false) ||
+        (item.instituicao?.toLowerCase().includes(termo) ?? false)
       );
     });
   }, [itens, filtro, busca]);
@@ -284,16 +285,13 @@ function Atividades() {
                       onClick={() => setSelecionada(item)}
                       className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-surface"
                     >
-                      <span
-                        aria-hidden="true"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-                        style={{
-                          backgroundColor: `${item.cor ?? "#a1a1aa"}22`,
-                          color: item.cor ?? "#a1a1aa",
-                        }}
-                      >
-                        {iniciais(item)}
-                      </span>
+                      <TransactionIcon
+                        description={item.descricao}
+                        category={item.categoria}
+                        color={item.cor}
+                        connectorId={item.instituicaoId}
+                        institution={item.instituicao}
+                      />
 
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium text-fg">
@@ -303,6 +301,11 @@ function Atividades() {
                           {item.categoria ?? "Sem categoria"}
                           {item.detalhe ? ` · ${item.detalhe}` : ""}
                         </span>
+                        {item.instituicao ? (
+                          <span className="mt-0.5 block truncate text-[11px] font-medium text-subtle">
+                            {item.instituicao}
+                          </span>
+                        ) : null}
                       </span>
 
                       <span

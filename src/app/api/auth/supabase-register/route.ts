@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/server/db/drizzle'
 import { inviteCodes, profiles } from '@/server/db/schema'
+import { ensureDefaultCategories } from '@/server/services/defaultCategoryService'
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,6 +82,12 @@ export async function POST(request: NextRequest) {
         { status: 400, headers: { 'Cache-Control': 'private, no-store' } }
       )
     }
+
+    // O trigger de auth já criou o profile neste ponto. Se houver uma falha
+    // transitória, o GET de categorias e o primeiro sync fazem o mesmo reparo.
+    await ensureDefaultCategories(data.user.id).catch((categoryError) => {
+      console.error('[default-categories]', data.user!.id, categoryError)
+    })
 
     if (!isBootstrap && normalizedInviteCode) {
       await db

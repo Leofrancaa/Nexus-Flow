@@ -10,7 +10,12 @@ import {
   pluggyWebhookEvents,
 } from '@/server/db/schema'
 import { categorizeByRules } from '@/server/utils/pluggy/categorize'
+import { ensureDefaultCategories } from '@/server/services/defaultCategoryService'
 import { PluggyApiError, pluggyRequest } from '@/server/services/pluggyClient'
+import {
+  transactionDateInBrazil,
+  transactionDirection,
+} from '@/server/utils/pluggy/transaction'
 
 type PluggyTransaction = {
   id: string
@@ -18,11 +23,24 @@ type PluggyTransaction = {
   date: string
   description: string
   amount: number
+  type?: 'DEBIT' | 'CREDIT' | string | null
+  category?: string | null
+  operationType?: string | null
+  merchant?: { name?: string | null; businessName?: string | null } | null
   currencyCode?: string
   creditCardMetadata?: { totalInstallments?: number | null } | null
 }
 
 type CursorResponse<T> = { results: T[]; next?: string | null }
+const WRITE_BATCH_SIZE = 250
+
+function batches<T>(items: T[], size = WRITE_BATCH_SIZE): T[][] {
+  const result: T[][] = []
+  for (let index = 0; index < items.length; index += size) {
+    result.push(items.slice(index, index + size))
+  }
+  return result
+}
 
 function nextCursor(next: string | null | undefined): string | null {
   if (!next) return null
@@ -127,88 +145,122 @@ export async function syncPluggyItem(itemId: string, expectedUserId?: string) {
       })
   }
 
+  await ensureDefaultCategories(userId)
   const userCategories = await db
     .select({ id: categories.id, nome: categories.nome, tipo: categories.tipo })
     .from(categories)
     .where(eq(categories.user_id, userId))
 
-  let transactionCount = 0
-  for (const account of accountRows) {
-    const transactions = await listTransactions(account.id)
-    transactionCount += transactions.length
+  // As contas são independentes. Buscar em paralelo evita uma cascata de
+  // chamadas à Pluggy; as gravações seguintes são feitas em lotes no PG.
+  const accountTransactions = await Promise.all(
+    accountRows.map(async (account) => ({
+      account,
+      transactions: await listTransactions(account.id),
+    }))
+  )
+  const transactionCount = accountTransactions.reduce(
+    (total, result) => total + result.transactions.length,
+    0
+  )
+  const expenseRows: Array<typeof expenses.$inferInsert> = []
+  const incomeRows: Array<typeof incomes.$inferInsert> = []
 
+  for (const { account, transactions } of accountTransactions) {
     for (const transaction of transactions) {
-      if (!transaction.amount) continue
-      const isExpense = transaction.amount < 0
+      if (!Number.isFinite(transaction.amount) || transaction.amount === 0) continue
+
+      const direction = transactionDirection(transaction, account.type)
       const categoryId = categorizeByRules(
-        { description: transaction.description, type: isExpense ? 'expense' : 'income' },
+        {
+          description: transaction.description,
+          merchantName: transaction.merchant?.name ?? transaction.merchant?.businessName,
+          providerCategory: transaction.category,
+          operationType: transaction.operationType,
+          type: direction,
+        },
         userCategories
       )
-      const transactionDate = new Date(transaction.date)
+      const transactionDate = transactionDateInBrazil(transaction.date)
+      const quantity = Math.abs(transaction.amount).toFixed(2)
 
-      if (isExpense) {
-        await db.delete(incomes).where(eq(incomes.pluggy_transaction_id, transaction.id))
-        await db
-          .insert(expenses)
-          .values({
-            user_id: userId,
-            pluggy_transaction_id: transaction.id,
-            pluggy_account_id: account.id,
-            origem: 'pluggy',
-            metodo_pagamento: account.type === 'CREDIT' ? 'Cartão de crédito' : 'Conta bancária',
-            tipo: transaction.description,
-            quantidade: Math.abs(transaction.amount).toFixed(2),
-            data: transactionDate,
-            parcelas: transaction.creditCardMetadata?.totalInstallments ?? null,
-            category_id: categoryId,
-            observacoes: 'Sincronizado via Open Finance',
-          })
-          .onConflictDoUpdate({
-            target: expenses.pluggy_transaction_id,
-            targetWhere: sql`${expenses.pluggy_transaction_id} IS NOT NULL`,
-            set: {
-              pluggy_account_id: account.id,
-              metodo_pagamento: account.type === 'CREDIT' ? 'Cartão de crédito' : 'Conta bancária',
-              tipo: transaction.description,
-              quantidade: Math.abs(transaction.amount).toFixed(2),
-              data: transactionDate,
-              parcelas: transaction.creditCardMetadata?.totalInstallments ?? null,
-              category_id: sql`case when ${expenses.categoria_manual} then ${expenses.category_id} else ${categoryId} end`,
-              updated_at: new Date(),
-            },
-          })
+      if (direction === 'expense') {
+        expenseRows.push({
+          user_id: userId,
+          pluggy_transaction_id: transaction.id,
+          pluggy_account_id: account.id,
+          origem: 'pluggy',
+          metodo_pagamento: account.type === 'CREDIT' ? 'Cartão de crédito' : 'Conta bancária',
+          tipo: transaction.merchant?.name || transaction.description,
+          quantidade: quantity,
+          data: transactionDate,
+          parcelas: transaction.creditCardMetadata?.totalInstallments ?? null,
+          category_id: categoryId,
+          observacoes: 'Sincronizado via Open Finance',
+        })
       } else {
-        await db.delete(expenses).where(eq(expenses.pluggy_transaction_id, transaction.id))
-        await db
-          .insert(incomes)
-          .values({
-            user_id: userId,
-            pluggy_transaction_id: transaction.id,
-            pluggy_account_id: account.id,
-            origem: 'pluggy',
-            tipo: transaction.description,
-            quantidade: transaction.amount.toFixed(2),
-            data: transactionDate,
-            fonte: account.marketingName || account.name || 'Open Finance',
-            nota: 'Sincronizado via Open Finance',
-            category_id: categoryId,
-          })
-          .onConflictDoUpdate({
-            target: incomes.pluggy_transaction_id,
-            targetWhere: sql`${incomes.pluggy_transaction_id} IS NOT NULL`,
-            set: {
-              pluggy_account_id: account.id,
-              tipo: transaction.description,
-              quantidade: transaction.amount.toFixed(2),
-              data: transactionDate,
-              fonte: account.marketingName || account.name || 'Open Finance',
-              category_id: sql`case when ${incomes.categoria_manual} then ${incomes.category_id} else ${categoryId} end`,
-              updated_at: new Date(),
-            },
-          })
+        incomeRows.push({
+          user_id: userId,
+          pluggy_transaction_id: transaction.id,
+          pluggy_account_id: account.id,
+          origem: 'pluggy',
+          tipo: transaction.merchant?.name || transaction.description,
+          quantidade: quantity,
+          data: transactionDate,
+          fonte: account.marketingName || account.name || 'Open Finance',
+          nota: 'Sincronizado via Open Finance',
+          category_id: categoryId,
+        })
       }
     }
   }
+
+  await db.transaction(async (tx) => {
+    for (const ids of batches(expenseRows.map((row) => row.pluggy_transaction_id!))) {
+      await tx.delete(incomes).where(
+        and(eq(incomes.user_id, userId), inArray(incomes.pluggy_transaction_id, ids))
+      )
+    }
+    for (const ids of batches(incomeRows.map((row) => row.pluggy_transaction_id!))) {
+      await tx.delete(expenses).where(
+        and(eq(expenses.user_id, userId), inArray(expenses.pluggy_transaction_id, ids))
+      )
+    }
+
+    for (const rows of batches(expenseRows)) {
+      await tx.insert(expenses).values(rows).onConflictDoUpdate({
+        target: expenses.pluggy_transaction_id,
+        targetWhere: sql`${expenses.pluggy_transaction_id} IS NOT NULL`,
+        set: {
+          pluggy_account_id: sql`excluded.pluggy_account_id`,
+          origem: 'pluggy',
+          metodo_pagamento: sql`excluded.metodo_pagamento`,
+          tipo: sql`excluded.tipo`,
+          quantidade: sql`excluded.quantidade`,
+          data: sql`excluded.data`,
+          parcelas: sql`excluded.parcelas`,
+          category_id: sql`case when ${expenses.categoria_manual} then ${expenses.category_id} else excluded.category_id end`,
+          updated_at: new Date(),
+        },
+      })
+    }
+    for (const rows of batches(incomeRows)) {
+      await tx.insert(incomes).values(rows).onConflictDoUpdate({
+        target: incomes.pluggy_transaction_id,
+        targetWhere: sql`${incomes.pluggy_transaction_id} IS NOT NULL`,
+        set: {
+          pluggy_account_id: sql`excluded.pluggy_account_id`,
+          origem: 'pluggy',
+          tipo: sql`excluded.tipo`,
+          quantidade: sql`excluded.quantidade`,
+          data: sql`excluded.data`,
+          fonte: sql`excluded.fonte`,
+          category_id: sql`case when ${incomes.categoria_manual} then ${incomes.category_id} else excluded.category_id end`,
+          updated_at: new Date(),
+        },
+      })
+    }
+  })
 
   await db
     .update(pluggyItems)

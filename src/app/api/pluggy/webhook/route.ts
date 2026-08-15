@@ -19,8 +19,11 @@ type PluggyWebhook = {
   error?: { code?: string; message?: string }
 }
 
-function validSecret(received: string | null): boolean {
+function validSecret(request: Request): boolean {
   const expected = process.env.PLUGGY_WEBHOOK_SECRET
+  const received =
+    request.headers.get('x-nexus-webhook-secret') ??
+    new URL(request.url).searchParams.get('token')
   if (!expected || !received) return false
   const a = Buffer.from(received)
   const b = Buffer.from(expected)
@@ -47,7 +50,7 @@ async function processWebhook(payload: PluggyWebhook) {
 }
 
 export async function POST(request: Request) {
-  if (!validSecret(request.headers.get('x-nexus-webhook-secret'))) {
+  if (!validSecret(request)) {
     return Response.json({ ok: false }, { status: 401 })
   }
 

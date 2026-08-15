@@ -23,11 +23,21 @@ export async function POST(request: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
+    const webhookSecret = process.env.PLUGGY_WEBHOOK_SECRET
+    const webhookUrl =
+      appUrl?.startsWith('https://') && webhookSecret
+        ? (() => {
+            const url = new URL('/api/pluggy/webhook', appUrl)
+            url.searchParams.set('token', webhookSecret)
+            return url.toString()
+          })()
+        : undefined
     const payload = {
       ...(body.itemId ? { itemId: body.itemId } : {}),
       options: {
         clientUserId: user.id,
         avoidDuplicates: true,
+        ...(webhookUrl ? { webhookUrl } : {}),
         ...(appUrl?.startsWith('https://') ? { oauthRedirectUri: `${appUrl}/open-finance` } : {}),
       },
     }

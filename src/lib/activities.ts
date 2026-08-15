@@ -19,6 +19,8 @@ export interface Activity {
   categoria?: string;
   cor?: string;
   detalhe?: string;
+  instituicao?: string;
+  instituicaoId?: number;
   fixo?: boolean;
   expense?: Expense;
   income?: Income;
@@ -70,6 +72,8 @@ export function toActivities(
       categoria: e.categoria_nome,
       cor: e.cor_categoria,
       detalhe: e.metodo_pagamento,
+      instituicao: e.instituicao_nome,
+      instituicaoId: e.instituicao_id,
       fixo: e.fixo,
       expense: e,
     })),
@@ -82,7 +86,9 @@ export function toActivities(
       data: soData(r.data),
       categoria: r.categoria_nome,
       cor: r.cor_categoria,
-      detalhe: r.fonte,
+      detalhe: r.conta_nome ?? r.fonte,
+      instituicao: r.instituicao_nome,
+      instituicaoId: r.instituicao_id,
       fixo: r.fixo,
       income: r,
     })),

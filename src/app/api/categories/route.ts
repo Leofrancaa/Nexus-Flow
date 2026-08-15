@@ -2,11 +2,13 @@ import { NextRequest } from 'next/server'
 import { getAuthUser, unauthorizedResponse } from '@/server/lib/auth'
 import { ok, err, apiError } from '@/server/lib/apiResponse'
 import { CategoryService } from '@/server/services/categoryService'
+import { ensureDefaultCategories } from '@/server/services/defaultCategoryService'
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request)
     if (!user) return unauthorizedResponse()
+    await ensureDefaultCategories(user.id)
 
     const { searchParams } = new URL(request.url)
     const tipo = searchParams.get('tipo')

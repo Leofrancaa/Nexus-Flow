@@ -19,6 +19,7 @@ import type { Item } from "pluggy-js";
 import { PageWrapper } from "@/components/layout/pageWrapper";
 import ConfirmDialog from "@/components/ui/confirmDialog";
 import Button from "@/components/ui/button";
+import { InstitutionLogo } from "@/components/activities/transactionIcon";
 import { apiRequest } from "@/lib/auth";
 
 const PluggyConnect = dynamic(
@@ -203,9 +204,12 @@ export default function OpenFinancePage() {
             return (
               <li key={connection.id} className="rounded-[1.5rem] border border-white/[0.07] bg-surface p-5">
                 <div className="flex items-start gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-elevated text-brand">
-                    <Building2 className="h-5 w-5" />
-                  </span>
+                  <InstitutionLogo
+                    connectorId={connection.connectorId ?? undefined}
+                    name={connection.connectorName ?? undefined}
+                    size={44}
+                    className="rounded-2xl bg-elevated p-1.5"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">

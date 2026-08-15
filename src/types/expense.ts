@@ -11,4 +11,8 @@ export interface Expense {
     category_id?: number | null;
     categoria_nome?: string;
     cor_categoria?: string;
+    origem?: "manual" | "pluggy";
+    conta_nome?: string;
+    instituicao_nome?: string;
+    instituicao_id?: number;
 }

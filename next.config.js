@@ -130,8 +130,18 @@ const nextConfig = {
         minimumCacheTTL: 60,
         deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
         imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-        // Adicione domínios se for usar imagens externas
-        domains: [],
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'cdn.pluggy.ai',
+                pathname: '/assets/connector-icons/**',
+            },
+            {
+                protocol: 'https',
+                hostname: 'cdn.simpleicons.org',
+                pathname: '/**',
+            },
+        ],
     },
 
     // Configurações para melhor SEO e performance

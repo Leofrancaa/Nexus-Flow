@@ -14,6 +14,9 @@ import {
 interface IncomeWithCategory extends Income {
     categoria_nome?: string
     cor_categoria?: string
+    conta_nome?: string
+    instituicao_nome?: string
+    instituicao_id?: number
 }
 
 interface IncomeStatsResult {
@@ -143,9 +146,16 @@ export class IncomeService {
             SELECT
                 i.*,
                 c.nome AS categoria_nome,
-                c.cor AS cor_categoria
+                c.cor AS cor_categoria,
+                pa.nome AS conta_nome,
+                pi.connector_name AS instituicao_nome,
+                pi.connector_id AS instituicao_id
             FROM incomes i
             LEFT JOIN categories c ON i.category_id = c.id
+            LEFT JOIN pluggy_accounts pa
+              ON pa.account_id = i.pluggy_account_id AND pa.user_id = i.user_id
+            LEFT JOIN pluggy_items pi
+              ON pi.item_id = pa.item_id AND pi.user_id = i.user_id
             WHERE i.user_id = ${userId}
               AND EXTRACT(MONTH FROM i.data) = ${month}
               AND EXTRACT(YEAR FROM i.data) = ${year}

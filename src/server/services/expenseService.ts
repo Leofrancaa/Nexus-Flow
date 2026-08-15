@@ -16,6 +16,9 @@ import {
 interface ExpenseWithCategory extends Expense {
     categoria_nome?: string
     cor_categoria?: string
+    conta_nome?: string
+    instituicao_nome?: string
+    instituicao_id?: number
 }
 
 // Tipo de valores para inserção em expenses (numeric → string).
@@ -355,9 +358,16 @@ export class ExpenseService {
             SELECT
                 e.*,
                 c.nome AS categoria_nome,
-                c.cor AS cor_categoria
+                c.cor AS cor_categoria,
+                pa.nome AS conta_nome,
+                pi.connector_name AS instituicao_nome,
+                pi.connector_id AS instituicao_id
             FROM expenses e
             LEFT JOIN categories c ON e.category_id = c.id
+            LEFT JOIN pluggy_accounts pa
+              ON pa.account_id = e.pluggy_account_id AND pa.user_id = e.user_id
+            LEFT JOIN pluggy_items pi
+              ON pi.item_id = pa.item_id AND pi.user_id = e.user_id
             WHERE e.user_id = ${userId}
               AND EXTRACT(MONTH FROM e.data) = ${month}
               AND EXTRACT(YEAR FROM e.data) = ${year}

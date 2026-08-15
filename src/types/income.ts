@@ -11,4 +11,8 @@ export interface Income {
     category_id?: number;
     categoria_nome?: string;
     cor_categoria?: string;
+    origem?: "manual" | "pluggy";
+    conta_nome?: string;
+    instituicao_nome?: string;
+    instituicao_id?: number;
 }
