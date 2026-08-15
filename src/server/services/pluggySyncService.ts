@@ -47,8 +47,6 @@ type PluggyTransaction = {
     installmentNumber?: number | null
     billId?: string | null
     billForecastDate?: string | null
-    purchaseDate?: string | null
-    totalAmount?: number | null
   } | null
 }
 

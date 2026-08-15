@@ -2,7 +2,6 @@ export type PluggyInstallmentMetadata = {
   installmentNumber?: number | null
   totalInstallments?: number | null
   billForecastDate?: string | null
-  purchaseDate?: string | null
 }
 
 function civilDateParts(value?: string | null) {
@@ -57,17 +56,7 @@ export function installmentAccountingDate(
   const bill = civilDateParts(billDueDate)
   if (bill) return dateInMonth(bill.year, bill.month, transactionDate.getUTCDate())
 
-  // Alguns conectores removem billForecastDate assim que a parcela é lançada,
-  // mas mantêm purchaseDate + installmentNumber. Reconstituir a competência
-  // evita que todas as parcelas já postadas caiam juntas no mês da compra.
-  const purchase = civilDateParts(metadata?.purchaseDate)
-  const installmentNumber = metadata?.installmentNumber
-  if (purchase && installmentNumber && installmentNumber > 0) {
-    const monthIndex = purchase.month - 1 + installmentNumber - 1
-    const year = purchase.year + Math.floor(monthIndex / 12)
-    const month = (monthIndex % 12) + 1
-    return dateInMonth(year, month, purchase.day)
-  }
-
+  // Sem competência explícita, respeita a data efetivamente lançada pelo
+  // banco. Em estornos, a instituição pode antecipar parcelas para o mês atual.
   return transactionDate
 }
