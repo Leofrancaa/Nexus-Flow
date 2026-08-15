@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Pencil, Search, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Search, Tags, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 import { PageWrapper } from "@/components/layout/pageWrapper";
@@ -11,17 +11,26 @@ import ConfirmDialog from "@/components/ui/confirmDialog";
 import { EditExpenseModal } from "@/components/modals/editExpenseModal";
 import { EditIncomeModal } from "@/components/modals/editIncomeModal";
 import { TransactionIcon } from "@/components/activities/transactionIcon";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDate } from "@/contexts/dateContext";
 import { useDataChanged } from "@/hooks/useDataRefresh";
 import { apiRequest } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import {
+  activityMatchesFilters,
   toActivities,
   tituloDoDia,
   type Activity,
+  type ActivityTypeFilter,
 } from "@/lib/activities";
 
-type Filtro = "todas" | "entradas" | "saidas" | "movimentos";
+type Filtro = ActivityTypeFilter;
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -52,6 +61,7 @@ function Atividades() {
   })();
 
   const [filtro, setFiltro] = useState<Filtro>(filtroInicial);
+  const [categoriaFiltro, setCategoriaFiltro] = useState("todas");
   const [busca, setBusca] = useState("");
   const [itens, setItens] = useState<Activity[] | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -99,26 +109,39 @@ function Atividades() {
     };
   }, [selectedMonth, selectedYear, refreshKey]);
 
-  const filtradas = useMemo(() => {
-    if (!itens) return null;
-    const termo = busca.trim().toLowerCase();
+  const categoriasDisponiveis = useMemo(() => {
+    const mapa = new Map<number, string>();
+    let temSemCategoria = false;
 
-    return itens.filter((item) => {
-      if (filtro === "entradas" && item.natureza !== "income") return false;
-      if (filtro === "saidas" && item.natureza !== "expense") return false;
+    for (const item of itens ?? []) {
+      if (filtro === "entradas" && item.natureza !== "income") continue;
+      if (filtro === "saidas" && item.natureza !== "expense") continue;
       if (
         filtro === "movimentos" &&
         item.natureza !== "internal_transfer" &&
         item.natureza !== "card_payment"
-      ) return false;
-      if (!termo) return true;
-      return (
-        item.descricao.toLowerCase().includes(termo) ||
-        (item.categoria?.toLowerCase().includes(termo) ?? false) ||
-        (item.instituicao?.toLowerCase().includes(termo) ?? false)
-      );
-    });
-  }, [itens, filtro, busca]);
+      ) continue;
+
+      if (item.categoriaId && item.categoria) mapa.set(item.categoriaId, item.categoria);
+      else temSemCategoria = true;
+    }
+
+    return {
+      itens: [...mapa.entries()]
+        .map(([id, nome]) => ({ id, nome }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+      temSemCategoria,
+    };
+  }, [itens, filtro]);
+
+  const filtradas = useMemo(() => {
+    if (!itens) return null;
+    const termo = busca.trim().toLowerCase();
+
+    return itens.filter((item) =>
+      activityMatchesFilters(item, filtro, categoriaFiltro, termo)
+    );
+  }, [itens, filtro, categoriaFiltro, busca]);
 
   const grupos = useMemo(() => {
     if (!filtradas) return null;
@@ -241,7 +264,10 @@ function Atividades() {
           <button
             key={valor}
             type="button"
-            onClick={() => setFiltro(valor)}
+            onClick={() => {
+              setFiltro(valor);
+              setCategoriaFiltro("todas");
+            }}
             aria-pressed={filtro === valor}
             className={cn(
               "rounded-full px-4 py-2 text-sm font-semibold transition-colors",
@@ -253,6 +279,29 @@ function Atividades() {
             {rotulo}
           </button>
         ))}
+      </div>
+
+      <div className="mb-3 flex items-center gap-3 rounded-2xl bg-surface px-4 py-2">
+        <Tags className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+        <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
+          <SelectTrigger
+            aria-label="Filtrar atividades por categoria"
+            className="h-11 border-0 bg-transparent px-0 shadow-none focus:ring-0"
+          >
+            <SelectValue placeholder="Todas as categorias" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as categorias</SelectItem>
+            {categoriasDisponiveis.itens.map((categoria) => (
+              <SelectItem key={categoria.id} value={`categoria:${categoria.id}`}>
+                {categoria.nome}
+              </SelectItem>
+            ))}
+            {categoriasDisponiveis.temSemCategoria ? (
+              <SelectItem value="sem-categoria">Sem categoria</SelectItem>
+            ) : null}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="mb-5 flex items-center gap-2 rounded-2xl bg-surface px-4">

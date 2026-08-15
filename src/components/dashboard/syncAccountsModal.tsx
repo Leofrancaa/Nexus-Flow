@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Check, LoaderCircle, Plus, RefreshCw, TriangleAlert } from "lucide-react";
+import { Check, Clock3, LoaderCircle, Plus, RefreshCw, TriangleAlert } from "lucide-react";
 
 import { InstitutionLogo } from "@/components/activities/transactionIcon";
 import { Modal } from "@/components/ui/modal";
@@ -12,6 +12,8 @@ export interface SyncConnection {
   connectorName: string | null;
   status: string;
   lastSyncedAt: string | null;
+  nextAutoSyncAt: string | null;
+  autoSyncActive: boolean;
   accountCount: number;
 }
 
@@ -45,6 +47,21 @@ function needsAttention(status: string) {
   return ["WAITING_USER_INPUT", "WAITING_USER_ACTION", "LOGIN_ERROR"].includes(status);
 }
 
+function nextAutomaticUpdate(value: string | null) {
+  if (!value) return "Auto-sync não informado pela Pluggy";
+
+  const date = new Date(value);
+  if (date.getTime() <= Date.now()) return "Auto-sync aguardando processamento";
+
+  return `Próxima automática: ${date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  })} às ${date.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+}
+
 export function SyncAccountsModal({
   open,
   onOpenChange,
@@ -61,9 +78,19 @@ export function SyncAccountsModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Sincronizar contas"
-      description="Atualize uma instituição ou todas de uma vez."
+      description="Acompanhe o auto-sync ou peça uma atualização imediata."
       className="sm:max-w-sm"
     >
+      <div className="mb-4 flex gap-3 rounded-2xl border border-brand/15 bg-brand/[0.06] p-3.5">
+        <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+        <div>
+          <p className="text-sm font-semibold text-fg">Sincronização automática pela Pluggy</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            Em produção, a frequência é definida pelo plano: a cada 24, 12 ou 8 horas. O Nexus importa os novos dados pelo webhook assim que a coleta termina.
+          </p>
+        </div>
+      </div>
+
       {loading ? (
         <div className="space-y-3" aria-label="Carregando instituições">
           {[0, 1, 2].map((item) => (
@@ -102,6 +129,9 @@ export function SyncAccountsModal({
                       <Check className="h-3 w-3 text-positive" aria-hidden="true" />
                     )}
                     {connection.accountCount} {connection.accountCount === 1 ? "conta" : "contas"}
+                  </p>
+                  <p className="mt-1 truncate text-[11px] text-brand/80">
+                    {nextAutomaticUpdate(connection.nextAutoSyncAt)}
                   </p>
                 </div>
 

@@ -4,7 +4,13 @@ import db from '@/server/db/drizzle'
 import { pluggyAccounts, pluggyItems } from '@/server/db/schema'
 import { getAuthUser, unauthorizedResponse } from '@/server/lib/auth'
 import { apiError, err, ok } from '@/server/lib/apiResponse'
+import { pluggyRequest } from '@/server/services/pluggyClient'
 import { syncPluggyItem } from '@/server/services/pluggySyncService'
+
+type RemoteItemSchedule = {
+  status?: string
+  nextAutoSyncAt?: string | null
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +32,28 @@ export async function GET(request: NextRequest) {
       .where(and(eq(pluggyItems.user_id, user.id), ne(pluggyItems.status, 'DELETED')))
       .groupBy(pluggyItems.id)
       .orderBy(desc(pluggyItems.created_at))
-    return ok(items)
+    // `nextAutoSyncAt` é a fonte oficial para saber se e quando a Pluggy fará
+    // a próxima coleta. Consultas independentes seguem em paralelo para não
+    // transformar três instituições em uma cascata de latência.
+    const scheduledItems = await Promise.all(
+      items.map(async (item) => {
+        try {
+          const remote = await pluggyRequest<RemoteItemSchedule>(
+            `/items/${encodeURIComponent(item.id)}`
+          )
+          return {
+            ...item,
+            status: remote.status ?? item.status,
+            nextAutoSyncAt: remote.nextAutoSyncAt ?? null,
+            autoSyncActive: Boolean(remote.nextAutoSyncAt),
+          }
+        } catch {
+          return { ...item, nextAutoSyncAt: null, autoSyncActive: false }
+        }
+      })
+    )
+
+    return ok(scheduledItems)
   } catch (error) {
     return apiError(error, 'Não foi possível carregar as conexões bancárias.')
   }

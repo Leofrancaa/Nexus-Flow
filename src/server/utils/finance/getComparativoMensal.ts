@@ -12,6 +12,7 @@ interface TotalRow {
 interface ComparativoMensalResult {
     receitas: { atual: number; anterior: number }
     despesas: { atual: number; anterior: number }
+    saldo: number
 }
 
 export const getComparativoMensal = async (
@@ -48,14 +49,18 @@ export const getComparativoMensal = async (
     const total = (r: { rows: unknown[] }): number =>
         Number((r.rows[0] as TotalRow | undefined)?.total ?? 0)
 
+    const receitasAtuais = total(receitaAtual)
+    const despesasAtuais = total(despesaAtual)
+
     return {
         receitas: {
-            atual: total(receitaAtual),
+            atual: receitasAtuais,
             anterior: total(receitaAnterior),
         },
         despesas: {
-            atual: total(despesaAtual),
+            atual: despesasAtuais,
             anterior: total(despesaAnterior),
         },
+        saldo: receitasAtuais - despesasAtuais,
     }
 }

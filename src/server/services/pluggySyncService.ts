@@ -12,7 +12,11 @@ import {
 } from '@/server/db/schema'
 import { categorizeByRules, categorizeWithLlm } from '@/server/utils/pluggy/categorize'
 import { ensureDefaultCategories } from '@/server/services/defaultCategoryService'
-import { PluggyApiError, pluggyRequest } from '@/server/services/pluggyClient'
+import {
+  PluggyApiError,
+  pluggyRequest,
+  pluggyWebhookUrl,
+} from '@/server/services/pluggyClient'
 import {
   transactionDateInBrazil,
   transactionDirection,
@@ -594,9 +598,13 @@ export async function refreshPluggyItem(itemId: string, expectedUserId: string) 
 
   let requestedItem: Item
   try {
+    const webhookUrl = pluggyWebhookUrl()
     requestedItem = await pluggyRequest<Item>(path, {
       method: 'PATCH',
-      body: JSON.stringify({}),
+      // Reanexa o webhook também em conexões antigas. Depois desta atualização,
+      // o auto-sync da Pluggy passa a avisar o Nexus assim que a coleta diária
+      // (ou de 12/8 h, conforme o plano) terminar.
+      body: JSON.stringify(webhookUrl ? { webhookUrl } : {}),
     })
   } catch (error) {
     // A Pluggy limita a frequência de atualização por instituição. Mesmo

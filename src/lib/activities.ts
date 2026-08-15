@@ -20,6 +20,7 @@ export interface Activity {
   valor: number;
   /** Sempre YYYY-MM-DD, já sem a parte de hora. */
   data: string;
+  categoriaId?: number | null;
   categoria?: string;
   cor?: string;
   detalhe?: string;
@@ -30,6 +31,37 @@ export interface Activity {
   natureza: FinancialMovementNature;
   expense?: Expense;
   income?: Income;
+}
+
+export type ActivityTypeFilter = "todas" | "entradas" | "saidas" | "movimentos";
+
+/** Regra única dos filtros da tela, mantida fora do componente para ser testável. */
+export function activityMatchesFilters(
+  item: Activity,
+  typeFilter: ActivityTypeFilter,
+  categoryFilter: string,
+  normalizedSearch: string
+): boolean {
+  if (typeFilter === "entradas" && item.natureza !== "income") return false;
+  if (typeFilter === "saidas" && item.natureza !== "expense") return false;
+  if (
+    typeFilter === "movimentos" &&
+    item.natureza !== "internal_transfer" &&
+    item.natureza !== "card_payment"
+  ) return false;
+
+  if (categoryFilter === "sem-categoria" && item.categoriaId) return false;
+  if (
+    categoryFilter.startsWith("categoria:") &&
+    String(item.categoriaId) !== categoryFilter.slice("categoria:".length)
+  ) return false;
+
+  if (!normalizedSearch) return true;
+  return (
+    item.descricao.toLowerCase().includes(normalizedSearch) ||
+    (item.categoria?.toLowerCase().includes(normalizedSearch) ?? false) ||
+    (item.instituicao?.toLowerCase().includes(normalizedSearch) ?? false)
+  );
 }
 
 export const soData = (d: string) => d.split("T")[0].split(" ")[0];
@@ -75,6 +107,7 @@ export function toActivities(
       descricao: e.tipo,
       valor: Number(e.quantidade),
       data: soData(e.data),
+      categoriaId: e.category_id,
       categoria: e.categoria_nome,
       cor: e.cor_categoria,
       detalhe: e.metodo_pagamento,
@@ -91,6 +124,7 @@ export function toActivities(
       descricao: r.tipo,
       valor: Number(r.quantidade),
       data: soData(r.data),
+      categoriaId: r.category_id,
       categoria: r.categoria_nome,
       cor: r.cor_categoria,
       detalhe: r.conta_nome ?? r.fonte,

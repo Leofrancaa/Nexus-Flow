@@ -59,13 +59,18 @@ export async function GET(request: NextRequest) {
     ])
 
     const temSaldoConectado = saldoConectado.produtos > 0
-    const saldo = temSaldoConectado ? saldoConectado.total : saldoLancamentos
-    const saldoFuturo = await getSaldoFuturo(user.id, saldo)
+    // O número principal explica exatamente os dois valores mostrados logo
+    // abaixo dele: entradas menos saídas do mês corrente. Saldo bancário é uma
+    // fotografia patrimonial diferente e não deve substituir o fluxo mensal.
+    const saldo = comparativo.saldo
+    const saldoBaseFuturo = temSaldoConectado ? saldoConectado.total : saldoLancamentos
+    const saldoFuturo = await getSaldoFuturo(user.id, saldoBaseFuturo)
 
     const dashboardData: DashboardData = {
       saldo,
       saldoFuturo,
-      saldoOrigem: temSaldoConectado ? 'contas' : 'lancamentos',
+      saldoOrigem: 'mensal',
+      saldoFuturoOrigem: temSaldoConectado ? 'contas' : 'lancamentos',
       saldoInvestimentos: saldoConectado.investimentos,
       totaisMensais: totaisMensais.receitas.map((receita, index) => ({
         mes: receita.mes,

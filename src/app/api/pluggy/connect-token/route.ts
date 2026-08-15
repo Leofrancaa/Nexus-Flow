@@ -4,7 +4,12 @@ import db from '@/server/db/drizzle'
 import { pluggyItems } from '@/server/db/schema'
 import { getAuthUser, unauthorizedResponse } from '@/server/lib/auth'
 import { apiError, err, ok } from '@/server/lib/apiResponse'
-import { isPluggyConfigured, pluggyRequest, pluggySandboxEnabled } from '@/server/services/pluggyClient'
+import {
+  isPluggyConfigured,
+  pluggyRequest,
+  pluggySandboxEnabled,
+  pluggyWebhookUrl,
+} from '@/server/services/pluggyClient'
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,15 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
-    const webhookSecret = process.env.PLUGGY_WEBHOOK_SECRET
-    const webhookUrl =
-      appUrl?.startsWith('https://') && webhookSecret
-        ? (() => {
-            const url = new URL('/api/pluggy/webhook', appUrl)
-            url.searchParams.set('token', webhookSecret)
-            return url.toString()
-          })()
-        : undefined
+    const webhookUrl = pluggyWebhookUrl()
     const payload = {
       ...(body.itemId ? { itemId: body.itemId } : {}),
       options: {

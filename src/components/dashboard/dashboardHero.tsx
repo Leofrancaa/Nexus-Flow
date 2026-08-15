@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 interface DashboardHeroProps {
   saldo: number;
-  saldoOrigem: "contas" | "lancamentos";
   entradas: number;
   saidas: number;
   carregando: boolean;
@@ -37,7 +36,6 @@ function saudacao(hora: number): string {
  */
 export function DashboardHero({
   saldo,
-  saldoOrigem,
   entradas,
   saidas,
   carregando,
@@ -150,15 +148,16 @@ export function DashboardHero({
         </div>
 
         <div className="mt-10 rise [animation-delay:110ms]">
-          <p className="text-sm text-fg/70">
-            {saldoOrigem === "contas" ? "Saldo conectado" : "Saldo pelos lançamentos"}
-          </p>
+          <p className="text-sm text-fg/70">Resultado do mês · entradas − saídas</p>
           {carregando ? (
             <div className="mt-2 h-12 w-56 animate-pulse rounded-xl bg-white/10" />
           ) : (
             <Money
               value={saldo}
-              className="mt-1 block text-[2.75rem] font-bold leading-none tracking-[-0.05em] text-fg"
+              className={cn(
+                "mt-1 block text-[2.75rem] font-bold leading-none tracking-[-0.05em]",
+                saldo < 0 ? "text-negative" : "text-fg"
+              )}
             />
           )}
 

@@ -76,6 +76,7 @@ describe("financial analytics", () => {
 
     expect(comparison.receitas.atual).toBe(3000);
     expect(comparison.despesas.atual).toBe(200);
+    expect(comparison.saldo).toBe(2800);
     expect(categories).toEqual([{ id: shoppingCategory.id, nome: "Compras", total: 200 }]);
     expect(futureBalance).toBe(2800);
   });

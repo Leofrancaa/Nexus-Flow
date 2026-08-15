@@ -282,7 +282,6 @@ function Dashboard() {
     <PageWrapper className="overflow-hidden">
       <DashboardHero
         saldo={Number(dados?.saldo ?? 0)}
-        saldoOrigem={dados?.saldoOrigem ?? "lancamentos"}
         entradas={receitasMes}
         saidas={despesasMes}
         carregando={carregando}
@@ -395,7 +394,7 @@ function Dashboard() {
               label="Saldo no fim do mês"
               value={<Money value={Number(dados?.saldoFuturo ?? 0)} />}
               sub={
-                dados?.saldoOrigem === "contas"
+                dados?.saldoFuturoOrigem === "contas"
                   ? "Saldo conectado + lançamentos futuros do mês"
                   : "Lançamentos até o fim deste mês"
               }

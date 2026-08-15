@@ -92,3 +92,17 @@ export function isPluggyConfigured(): boolean {
 export function pluggySandboxEnabled(): boolean {
   return process.env.PLUGGY_INCLUDE_SANDBOX === 'true'
 }
+
+/**
+ * URL assinada que recebe tanto atualizações manuais quanto o auto-sync.
+ * Centralizar evita conectar itens com um webhook e atualizá-los com outro.
+ */
+export function pluggyWebhookUrl(): string | undefined {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
+  const webhookSecret = process.env.PLUGGY_WEBHOOK_SECRET
+  if (!appUrl?.startsWith('https://') || !webhookSecret) return undefined
+
+  const url = new URL('/api/pluggy/webhook', appUrl)
+  url.searchParams.set('token', webhookSecret)
+  return url.toString()
+}
