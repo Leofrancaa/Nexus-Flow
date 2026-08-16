@@ -165,7 +165,7 @@ export default function PerfilPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-4 gap-3" aria-busy={salvandoAvatar}>
+        <div className="grid grid-cols-4 gap-2.5" aria-busy={salvandoAvatar}>
           {AVATAR_OPTIONS.map((option) => {
             const selecionado = option.id === avatar;
             return (
@@ -177,9 +177,12 @@ export default function PerfilPage() {
                 aria-label={`Usar avatar ${option.label}`}
                 aria-pressed={selecionado}
                 title={option.label}
-                className="relative flex min-h-16 touch-manipulation items-center justify-center rounded-2xl bg-elevated transition-[background-color,transform,opacity] hover:bg-line active:scale-[.96] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
+                className="relative flex min-h-[5.5rem] touch-manipulation flex-col items-center justify-center gap-1.5 rounded-2xl border border-transparent bg-elevated transition-[background-color,border-color,transform,opacity] hover:border-white/10 hover:bg-line active:scale-[.96] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 aria-pressed:border-brand/45 aria-pressed:bg-brand/[0.06]"
               >
                 <UserAvatar avatar={option.id} size="md" />
+                <span className="text-[10px] font-semibold text-muted">
+                  {option.label}
+                </span>
                 {selecionado ? (
                   <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand text-bg shadow-sm">
                     <Check className="h-3 w-3" aria-hidden="true" />
