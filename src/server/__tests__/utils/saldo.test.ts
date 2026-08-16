@@ -60,6 +60,10 @@ describe('saldo atual x saldo futuro', () => {
 
   it('saldo conectado soma contas e cofrinhos, mas nunca dívida do cartão', async () => {
     await seedUser()
+    await db.insert(schema.pluggyItems).values([
+      { user_id: USER_ID, item_id: 'mercado-pago', connector_name: 'Mercado Pago' },
+      { user_id: USER_ID, item_id: 'nubank', connector_name: 'Nubank' },
+    ])
     await db.insert(schema.pluggyAccounts).values([
       {
         user_id: USER_ID,
@@ -88,6 +92,8 @@ describe('saldo atual x saldo futuro', () => {
       total: 1035.64,
       investimentos: 1033,
       produtos: 2,
+      mercadoPago: 1035.64,
+      produtosMercadoPago: 2,
     })
   })
 })

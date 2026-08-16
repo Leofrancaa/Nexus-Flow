@@ -279,15 +279,15 @@ function Dashboard() {
 
   const despesasMes = Number(dados?.comparativo?.despesas?.atual ?? 0);
   const despesasAnterior = Number(dados?.comparativo?.despesas?.anterior ?? 0);
-  const entradasAcompanhamento = Number(dados?.acompanhamento?.entradas ?? 0);
-  const saidasAcompanhamento = Number(dados?.acompanhamento?.saidas ?? 0);
+  const saldoDisponivel = Number(dados?.posicaoFinanceira?.disponivel ?? 0);
+  const faturasAbertas = Number(dados?.posicaoFinanceira?.faturasAbertas ?? 0);
 
   return (
     <PageWrapper className="overflow-hidden">
       <DashboardHero
         saldo={Number(dados?.saldo ?? 0)}
-        entradas={entradasAcompanhamento}
-        saidas={saidasAcompanhamento}
+        disponivel={saldoDisponivel}
+        faturas={faturasAbertas}
         carregando={carregando}
         sincronizando={sincronizando}
         progressoSincronizacao={progressoSincronizacao}
@@ -395,13 +395,9 @@ function Dashboard() {
             />
 
             <WidgetCard
-              label="Saldo no fim do mês"
+              label="Após as faturas"
               value={<Money value={Number(dados?.saldoFuturo ?? 0)} />}
-              sub={
-                dados?.saldoFuturoOrigem === "contas"
-                  ? "Saldo conectado + lançamentos futuros do mês"
-                  : "Lançamentos até o fim deste mês"
-              }
+              sub="Disponível menos faturas abertas"
               delay={300}
               media={
                 <MetricIcon>

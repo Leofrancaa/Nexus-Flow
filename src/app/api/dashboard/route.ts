@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server'
 import { getAuthUser, unauthorizedResponse } from '@/server/lib/auth'
 import { ok, apiError } from '@/server/lib/apiResponse'
 import {
-    getSaldoFuturo,
     getSaldoAtual,
     getSaldoConectado,
     getTotaisMensais,
@@ -18,6 +17,7 @@ import {
 } from '@/server/utils/finance/index'
 import { DashboardData } from '@/server/types/index'
 import { ensureDefaultCategories } from '@/server/services/defaultCategoryService'
+import { calculateFinancialPosition, roundMoney } from '@/server/utils/finance/statementReconciliation'
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
     ])
 
     const temSaldoConectado = saldoConectado.produtos > 0
+    const temSaldoMercadoPago = saldoConectado.produtosMercadoPago > 0
     const entradasAcompanhamento = resumoAnual.reduce(
       (total, item) => total + Number(item.total_receitas),
       0
@@ -67,19 +68,32 @@ export async function GET(request: NextRequest) {
       (total, item) => total + Number(item.total_despesas),
       0
     )
-    // O saldo principal acompanha o fluxo a partir dos marcos definidos por
-    // instituição. O saldo bancário conectado continua sendo uma fotografia
-    // patrimonial separada, usada apenas como base da projeção futura.
-    const saldo = saldoLancamentos
-    const saldoBaseFuturo = temSaldoConectado ? saldoConectado.total : saldoLancamentos
-    const saldoFuturo = await getSaldoFuturo(user.id, saldoBaseFuturo)
+    const faturasAbertas = roundMoney(
+      cartoesAVencer.reduce((total, card) => total + Number(card.total_gasto), 0)
+    )
+    // Para o ciclo conciliado, o extrato confirma que o patrimônio disponível
+    // é o saldo do Mercado Pago/cofrinho. Valores residuais de outros produtos
+    // (como os R$ 1,57 reportados pelo Nubank) não entram nesta posição.
+    const saldoDisponivel = temSaldoMercadoPago
+      ? roundMoney(saldoConectado.mercadoPago)
+      : temSaldoConectado
+        ? roundMoney(saldoConectado.total)
+        : roundMoney(saldoLancamentos)
+    const saldo = calculateFinancialPosition(saldoDisponivel, faturasAbertas)
+    // A projeção útil aqui é o que resta depois de quitar as obrigações já
+    // abertas. Não somamos novamente compras da fatura nem todo o histórico.
+    const saldoFuturo = saldo
 
     const dashboardData: DashboardData = {
       saldo,
       saldoFuturo,
-      saldoOrigem: 'acompanhamento',
-      saldoFuturoOrigem: temSaldoConectado ? 'contas' : 'lancamentos',
-      saldoInvestimentos: saldoConectado.investimentos,
+      saldoOrigem: 'posicao',
+      saldoFuturoOrigem: 'faturas',
+      saldoInvestimentos: saldoDisponivel,
+      posicaoFinanceira: {
+        disponivel: saldoDisponivel,
+        faturasAbertas,
+      },
       acompanhamento: {
         entradas: entradasAcompanhamento,
         saidas: saidasAcompanhamento,

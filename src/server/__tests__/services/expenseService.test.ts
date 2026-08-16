@@ -30,7 +30,7 @@ async function expensesOf(userId = USER_ID) {
 }
 
 describe('ExpenseService — atividades realizadas', () => {
-  it('não exibe parcela PENDING de competência futura na data original da compra', async () => {
+  it('usa a data real da compra e não exibe parcela PENDING futura', async () => {
     await db.insert(schema.expenses).values([
       {
         metodo_pagamento: 'Cartão de crédito',
@@ -64,8 +64,9 @@ describe('ExpenseService — atividades realizadas', () => {
       },
     ])
 
-    const [monthly, range] = await Promise.all([
+    const [monthly, previousMonth, range] = await Promise.all([
       ExpenseService.getExpensesByMonthYear(USER_ID as unknown as string, 1, 2000),
+      ExpenseService.getExpensesByMonthYear(USER_ID as unknown as string, 12, 1999),
       ExpenseService.getExpensesByDateRange(
         USER_ID as unknown as string,
         '2000-01-01',
@@ -73,8 +74,8 @@ describe('ExpenseService — atividades realizadas', () => {
       ),
     ])
 
-    expect(monthly.map((expense) => expense.tipo)).toEqual([
-      'Compra efetivada',
+    expect(monthly.map((expense) => expense.tipo)).toEqual(['Compra efetivada'])
+    expect(previousMonth.map((expense) => expense.tipo)).toEqual([
       'Parcela da fatura de janeiro',
     ])
     expect(range.map((expense) => expense.tipo)).toEqual(['Compra efetivada'])

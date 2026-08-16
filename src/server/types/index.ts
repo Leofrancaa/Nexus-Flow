@@ -299,9 +299,13 @@ export interface CreateThresholdRequest {
 export interface DashboardData {
     saldo: number
     saldoFuturo: number
-    saldoOrigem: 'acompanhamento'
-    saldoFuturoOrigem: 'contas' | 'lancamentos'
+    saldoOrigem: 'posicao'
+    saldoFuturoOrigem: 'faturas'
     saldoInvestimentos: number
+    posicaoFinanceira: {
+        disponivel: number
+        faturasAbertas: number
+    }
     acompanhamento: {
         entradas: number
         saidas: number
@@ -385,6 +389,8 @@ export interface DueCard {
     vencimento_em: string | null
     fechamento_em: string | null
     sincronizado: boolean
+    fatura_conciliada: boolean
+    referencia_fatura: string | null
 }
 
 export interface SubscriptionSummary {

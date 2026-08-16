@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
 
 interface DashboardHeroProps {
   saldo: number;
-  entradas: number;
-  saidas: number;
+  disponivel: number;
+  faturas: number;
   carregando: boolean;
   sincronizando: boolean;
   progressoSincronizacao: { atual: number; total: number } | null;
@@ -36,8 +36,8 @@ function saudacao(hora: number): string {
  */
 export function DashboardHero({
   saldo,
-  entradas,
-  saidas,
+  disponivel,
+  faturas,
   carregando,
   sincronizando,
   progressoSincronizacao,
@@ -148,7 +148,7 @@ export function DashboardHero({
         </div>
 
         <div className="mt-10 rise [animation-delay:110ms]">
-          <p className="text-sm text-fg/70">Desde o início do acompanhamento</p>
+          <p className="text-sm text-fg/70">Disponível menos faturas abertas</p>
           {carregando ? (
             <div className="mt-2 h-12 w-56 animate-pulse rounded-xl bg-white/10" />
           ) : (
@@ -184,11 +184,11 @@ export function DashboardHero({
           <div className="mt-1 flex items-center gap-5 text-xs">
             <span className="flex min-w-0 items-center gap-1.5 text-fg/65">
               <ArrowDownLeft className="h-3.5 w-3.5 text-positive" />
-              Entradas <Money value={entradas} className="font-semibold text-fg" />
+              Disponível <Money value={disponivel} className="font-semibold text-fg" />
             </span>
             <span className="flex min-w-0 items-center gap-1.5 text-fg/65">
               <ArrowUpRight className="h-3.5 w-3.5 text-negative" />
-              Saídas <Money value={saidas} className="font-semibold text-fg" />
+              Faturas <Money value={faturas} className="font-semibold text-fg" />
             </span>
           </div>
         </div>

@@ -101,6 +101,10 @@ describe('marco inicial do acompanhamento financeiro', () => {
         pluggy_account_id: 'mp-bank', origem: 'pluggy', user_id: USER_ID,
       },
       {
+        tipo: 'Dinheiro retirado Bolão copa', quantidade: '1033.86', data: new Date('2026-08-16T12:00:00'),
+        pluggy_account_id: 'mp-bank', origem: 'pluggy', user_id: USER_ID,
+      },
+      {
         tipo: 'Nu antes', quantidade: '300', data: new Date('2026-07-24T12:00:00'),
         pluggy_account_id: 'nu-bank', origem: 'pluggy', user_id: USER_ID,
       },
@@ -118,9 +122,10 @@ describe('marco inicial do acompanhamento financeiro', () => {
       },
     ])
 
-    const [visibleExpenses, visibleIncomes, septemberInvoice, balance] = await Promise.all([
+    const [visibleExpenses, visibleIncomes, junePurchases, septemberPurchases, balance] = await Promise.all([
       ExpenseService.getExpensesByDateRange(SERVICE_USER_ID, '2026-01-01', '2026-12-31'),
       IncomeService.getIncomesByDateRange(SERVICE_USER_ID, '2026-01-01', '2026-12-31'),
+      ExpenseService.getExpensesByMonthYear(SERVICE_USER_ID, 6, 2026),
       ExpenseService.getExpensesByMonthYear(SERVICE_USER_ID, 9, 2026),
       getSaldoAtual(SERVICE_USER_ID),
     ])
@@ -133,12 +138,14 @@ describe('marco inicial do acompanhamento financeiro', () => {
       'Nu no marco',
     ].sort())
     expect(visibleIncomes.map((row) => row.tipo).sort()).toEqual([
+      'Dinheiro retirado Bolão copa',
       'Itaú no marco',
       'MP no marco',
       'Manual preservada',
       'Nu no marco',
     ].sort())
-    expect(septemberInvoice.map((row) => row.tipo)).toEqual(['MP fatura setembro'])
+    expect(junePurchases.map((row) => row.tipo)).toEqual(['MP fatura setembro'])
+    expect(septemberPurchases).toEqual([])
     expect(balance).toBe(1125)
   })
 })

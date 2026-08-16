@@ -149,6 +149,22 @@ const INCOME_CARD_LEDGER_ADJUSTMENT = sql`
   COALESCE(i.nota, '') ILIKE '%movimento neutro de cartão%'
 `;
 
+// Resgatar dinheiro de cofrinho/reserva apenas muda onde o patrimônio está.
+// A conta corrente recebe o valor, mas isso não é renda nova.
+const INCOME_OWN_RESERVE_TRANSFER = sql`
+  (
+    ${INCOME_IS_MERCADO_PAGO}
+    AND COALESCE(i.tipo, '') ~* '(dinheiro retirado|resgate).*(bol[aã]o|cofrinho|reserva)'
+  )
+`;
+
+const EXPENSE_OWN_RESERVE_TRANSFER = sql`
+  (
+    ${EXPENSE_IS_MERCADO_PAGO}
+    AND COALESCE(e.tipo, '') ~* '(dinheiro (guardado|reservado)|aplica[cç][aã]o).*(bol[aã]o|cofrinho|reserva)'
+  )
+`;
+
 const EXPENSE_INTERNAL_TRANSFER = sql`
   (
     ${EXPENSE_TRANSFER_CANDIDATE}
@@ -173,38 +189,21 @@ const EXPENSE_INTERNAL_TRANSFER = sql`
 `;
 
 /**
- * Compras no crédito pertencem ao mês da fatura; débitos, PIX, boletos e o
- * próprio pagamento da fatura pertencem ao mês em que saíram da conta.
+ * Gastos e atividades pertencem à data em que aconteceram. A competência da
+ * fatura continua armazenada para a dívida do cartão, mas não desloca uma
+ * compra feita em agosto para a lista de setembro.
  */
 export const expenseInPeriod = (month: number, year: number) => sql`
-  CASE
-    WHEN ${CREDIT_CARD_PURCHASE}
-      AND e.competencia_mes IS NOT NULL
-      AND e.competencia_ano IS NOT NULL
-    THEN e.competencia_mes = ${month} AND e.competencia_ano = ${year}
-    ELSE EXTRACT(MONTH FROM e.data) = ${month}
-      AND EXTRACT(YEAR FROM e.data) = ${year}
-  END
+  EXTRACT(MONTH FROM e.data) = ${month}
+  AND EXTRACT(YEAR FROM e.data) = ${year}
 `;
 
 export const expensePeriodMonth = sql`
-  CASE
-    WHEN ${CREDIT_CARD_PURCHASE}
-      AND e.competencia_mes IS NOT NULL
-      AND e.competencia_ano IS NOT NULL
-    THEN e.competencia_mes
-    ELSE EXTRACT(MONTH FROM e.data)::int
-  END
+  EXTRACT(MONTH FROM e.data)::int
 `;
 
 export const expensePeriodYear = sql`
-  CASE
-    WHEN ${CREDIT_CARD_PURCHASE}
-      AND e.competencia_mes IS NOT NULL
-      AND e.competencia_ano IS NOT NULL
-    THEN e.competencia_ano
-    ELSE EXTRACT(YEAR FROM e.data)::int
-  END
+  EXTRACT(YEAR FROM e.data)::int
 `;
 
 /**
@@ -236,6 +235,7 @@ export const expenseCountsForForecast = sql`
   AND NOT (
     ${CARD_PAYMENT}
     OR ${EXPENSE_CARD_LEDGER_ADJUSTMENT}
+    OR ${EXPENSE_OWN_RESERVE_TRANSFER}
     OR ${EXPENSE_INTERNAL_TRANSFER}
   )
 `;
@@ -244,6 +244,7 @@ export const incomeCountsForForecast = sql`
   ${incomeInTrackingWindow}
   AND NOT (
     ${INCOME_CARD_LEDGER_ADJUSTMENT}
+    OR ${INCOME_OWN_RESERVE_TRANSFER}
     OR (
       ${INCOME_TRANSFER_CANDIDATE}
       AND EXISTS (
