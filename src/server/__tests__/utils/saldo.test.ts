@@ -92,7 +92,7 @@ describe('saldo atual x saldo futuro', () => {
       total: 1035.64,
       investimentos: 1033,
       produtos: 2,
-      mercadoPago: 1035.64,
+      mercadoPago: 1033,
       produtosMercadoPago: 2,
     })
   })

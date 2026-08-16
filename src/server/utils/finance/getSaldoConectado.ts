@@ -17,10 +17,23 @@ export async function getSaldoConectado(userId: string): Promise<SaldoConectado>
       COALESCE(SUM(account.saldo) FILTER (WHERE account.type IN ('BANK', 'INVESTMENT')), 0) AS total,
       COALESCE(SUM(account.saldo) FILTER (WHERE account.type = 'INVESTMENT'), 0) AS investimentos,
       COUNT(*) FILTER (WHERE account.type IN ('BANK', 'INVESTMENT'))::int AS produtos,
-      COALESCE(SUM(account.saldo) FILTER (
-        WHERE account.type IN ('BANK', 'INVESTMENT')
-          AND item.connector_name ILIKE '%mercado pago%'
-      ), 0) AS mercado_pago,
+      CASE
+        -- No Mercado Pago, o saldo da conta pode repetir o valor agregado dos
+        -- cofrinhos. Quando o produto INVESTMENT existe, ele é a fonte mais
+        -- específica e não pode ser somado novamente ao BANK.
+        WHEN COUNT(*) FILTER (
+          WHERE account.type = 'INVESTMENT'
+            AND item.connector_name ILIKE '%mercado pago%'
+        ) > 0
+        THEN COALESCE(SUM(account.saldo) FILTER (
+          WHERE account.type = 'INVESTMENT'
+            AND item.connector_name ILIKE '%mercado pago%'
+        ), 0)
+        ELSE COALESCE(SUM(account.saldo) FILTER (
+          WHERE account.type = 'BANK'
+            AND item.connector_name ILIKE '%mercado pago%'
+        ), 0)
+      END AS mercado_pago,
       COUNT(*) FILTER (
         WHERE account.type IN ('BANK', 'INVESTMENT')
           AND item.connector_name ILIKE '%mercado pago%'
