@@ -9,7 +9,10 @@ import {
     createErrorResponse,
     isPositiveNumber
 } from '@/server/utils/helper'
-import { expenseCountsForAnalytics } from '@/server/utils/finance/analyticsFilters'
+import {
+    expenseCountsForAnalytics,
+    expenseInPeriod,
+} from '@/server/utils/finance/analyticsFilters'
 
 interface ThresholdWithCategory extends Threshold {
     categoria: {
@@ -204,8 +207,7 @@ export class ThresholdService {
             JOIN categories c ON t.category_id = c.id
             LEFT JOIN expenses e ON e.category_id = t.category_id
                 AND e.user_id = t.user_id
-                AND EXTRACT(MONTH FROM e.data) = ${targetMonth}
-                AND EXTRACT(YEAR FROM e.data) = ${targetYear}
+                AND ${expenseInPeriod(targetMonth, targetYear)}
                 AND ${expenseCountsForAnalytics}
             WHERE t.user_id = ${userId}
             GROUP BY t.id, t.valor, c.nome, c.cor
@@ -277,8 +279,7 @@ export class ThresholdService {
             SELECT COALESCE(SUM(e.quantidade), 0) as current_spending
             FROM expenses e
             WHERE e.user_id = ${userId} AND e.category_id = ${categoryId}
-              AND EXTRACT(MONTH FROM e.data) = ${targetMonth}
-              AND EXTRACT(YEAR FROM e.data) = ${targetYear}
+              AND ${expenseInPeriod(targetMonth, targetYear)}
               AND ${expenseCountsForAnalytics}
         `)
 
@@ -326,8 +327,7 @@ export class ThresholdService {
                 FROM thresholds t
                 LEFT JOIN expenses e ON e.category_id = t.category_id
                     AND e.user_id = t.user_id
-                    AND EXTRACT(MONTH FROM e.data) = ${currentMonth}
-                    AND EXTRACT(YEAR FROM e.data) = ${currentYear}
+                    AND ${expenseInPeriod(currentMonth, currentYear)}
                     AND ${expenseCountsForAnalytics}
                 WHERE t.user_id = ${userId}
                 GROUP BY t.id, t.valor

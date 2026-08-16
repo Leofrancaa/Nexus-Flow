@@ -94,7 +94,10 @@ function Atividades() {
 
         if (cancelado) return;
 
-        setItens(toActivities(despesas, receitas));
+        setItens(toActivities(despesas, receitas, {
+          month: selectedMonth,
+          year: selectedYear,
+        }));
       } catch {
         if (!cancelado) {
           setItens([]);
@@ -145,11 +148,12 @@ function Atividades() {
 
   const grupos = useMemo(() => {
     if (!filtradas) return null;
-    const mapa = new Map<string, Activity[]>();
+    const mapa = new Map<string, { titulo: string; itens: Activity[] }>();
     for (const item of filtradas) {
-      const atual = mapa.get(item.data);
-      if (atual) atual.push(item);
-      else mapa.set(item.data, [item]);
+      const chave = item.grupo ?? item.data;
+      const atual = mapa.get(chave);
+      if (atual) atual.itens.push(item);
+      else mapa.set(chave, { titulo: item.grupo ?? tituloDoDia(item.data), itens: [item] });
     }
     return [...mapa.entries()];
   }, [filtradas]);
@@ -333,13 +337,13 @@ function Atividades() {
         </p>
       ) : (
         <div className="space-y-6">
-          {grupos.map(([dia, doDia]) => (
-            <section key={dia}>
+          {grupos.map(([chave, grupo]) => (
+            <section key={chave}>
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-subtle">
-                {tituloDoDia(dia)}
+                {grupo.titulo}
               </h2>
               <ul className="space-y-1">
-                {doDia.map((item) => (
+                {grupo.itens.map((item) => (
                   <li key={item.key}>
                     <button
                       type="button"

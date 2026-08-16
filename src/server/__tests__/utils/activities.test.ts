@@ -44,6 +44,26 @@ describe("activity filters", () => {
     expect(normalizedIncome.categoriaId).toBe(9);
   });
 
+  it("agrupa parcela no mês da fatura sem inventar um dia futuro", () => {
+    const [installment] = toActivities(
+      [{
+        id: 3,
+        tipo: "Senai mensalidade 2/2",
+        quantidade: 475.38,
+        metodo_pagamento: "Cartão de crédito",
+        data: "2026-06-24",
+        competencia_mes: 8,
+        competencia_ano: 2026,
+      }],
+      [],
+      { month: 8, year: 2026 }
+    );
+
+    expect(installment.data).toBe("2026-06-24");
+    expect(installment.dataPeriodo).toMatch(/^2026-08-/);
+    expect(installment.grupo).toBe("Fatura de agosto");
+  });
+
   it("filtra por categoria junto com tipo e busca", () => {
     expect(activityMatchesFilters(expense, "saidas", "categoria:7", "subway")).toBe(true);
     expect(activityMatchesFilters(expense, "entradas", "categoria:7", "")).toBe(false);

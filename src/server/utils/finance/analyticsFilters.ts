@@ -35,12 +35,77 @@ const CARD_PAYMENT = sql`
   )
 `;
 
+const CREDIT_CARD_PURCHASE = sql`
+  (
+    e.card_id IS NOT NULL
+    OR COALESCE(e.metodo_pagamento, '') ~* '(cart[aã]o.*cr[eé]dito|^cr[eé]dito$|credit card)'
+  )
+`;
+
 const EXPENSE_CARD_LEDGER_ADJUSTMENT = sql`
   COALESCE(e.observacoes, '') ILIKE '%movimento neutro de cartão%'
 `;
 
 const INCOME_CARD_LEDGER_ADJUSTMENT = sql`
   COALESCE(i.nota, '') ILIKE '%movimento neutro de cartão%'
+`;
+
+const EXPENSE_INTERNAL_TRANSFER = sql`
+  (
+    ${EXPENSE_TRANSFER_CANDIDATE}
+    AND EXISTS (
+      SELECT 1
+      FROM incomes paired_income
+      WHERE paired_income.user_id = e.user_id
+        AND paired_income.quantidade = e.quantidade
+        AND ABS(paired_income.data - e.data) <= 2
+        AND (
+          EXISTS (
+            SELECT 1 FROM categories paired_category
+            WHERE paired_category.id = paired_income.category_id
+              AND LOWER(COALESCE(paired_category.nome, '')) LIKE 'transfer%'
+          )
+          OR COALESCE(paired_income.tipo, '') ILIKE ANY (
+            ARRAY['%same person transfer%', '%transferencia%', '%transferência%', '%pix recebido%', '%ted recebida%']::text[]
+          )
+        )
+    )
+  )
+`;
+
+/**
+ * Compras no crédito pertencem ao mês da fatura; débitos, PIX, boletos e o
+ * próprio pagamento da fatura pertencem ao mês em que saíram da conta.
+ */
+export const expenseInPeriod = (month: number, year: number) => sql`
+  CASE
+    WHEN ${CREDIT_CARD_PURCHASE}
+      AND e.competencia_mes IS NOT NULL
+      AND e.competencia_ano IS NOT NULL
+    THEN e.competencia_mes = ${month} AND e.competencia_ano = ${year}
+    ELSE EXTRACT(MONTH FROM e.data) = ${month}
+      AND EXTRACT(YEAR FROM e.data) = ${year}
+  END
+`;
+
+export const expensePeriodMonth = sql`
+  CASE
+    WHEN ${CREDIT_CARD_PURCHASE}
+      AND e.competencia_mes IS NOT NULL
+      AND e.competencia_ano IS NOT NULL
+    THEN e.competencia_mes
+    ELSE EXTRACT(MONTH FROM e.data)::int
+  END
+`;
+
+export const expensePeriodYear = sql`
+  CASE
+    WHEN ${CREDIT_CARD_PURCHASE}
+      AND e.competencia_mes IS NOT NULL
+      AND e.competencia_ano IS NOT NULL
+    THEN e.competencia_ano
+    ELSE EXTRACT(YEAR FROM e.data)::int
+  END
 `;
 
 /**
@@ -79,26 +144,7 @@ export const expenseCountsForForecast = sql`
   NOT (
     ${CARD_PAYMENT}
     OR ${EXPENSE_CARD_LEDGER_ADJUSTMENT}
-    OR (
-      ${EXPENSE_TRANSFER_CANDIDATE}
-      AND EXISTS (
-        SELECT 1
-        FROM incomes paired_income
-        WHERE paired_income.user_id = e.user_id
-          AND paired_income.quantidade = e.quantidade
-          AND ABS(paired_income.data - e.data) <= 2
-          AND (
-            EXISTS (
-              SELECT 1 FROM categories paired_category
-              WHERE paired_category.id = paired_income.category_id
-                AND LOWER(COALESCE(paired_category.nome, '')) LIKE 'transfer%'
-            )
-            OR COALESCE(paired_income.tipo, '') ILIKE ANY (
-              ARRAY['%same person transfer%', '%transferencia%', '%transferência%', '%pix recebido%', '%ted recebida%']::text[]
-            )
-          )
-      )
-    )
+    OR ${EXPENSE_INTERNAL_TRANSFER}
   )
 `;
 

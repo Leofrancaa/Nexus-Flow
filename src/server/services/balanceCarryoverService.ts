@@ -4,6 +4,7 @@ import { incomes, expenses, categories } from '@/server/db/schema'
 import { createErrorResponse } from '@/server/utils/helper'
 import {
     expenseCountsForAnalytics,
+    expenseInPeriod,
     incomeCountsForAnalytics,
 } from '@/server/utils/finance/analyticsFilters'
 
@@ -54,8 +55,7 @@ export class BalanceCarryoverService {
                 SELECT COALESCE(SUM(e.quantidade), 0) AS total
                 FROM expenses e
                 WHERE e.user_id = ${userId}
-                  AND EXTRACT(MONTH FROM e.data) = ${srcMes}
-                  AND EXTRACT(YEAR FROM e.data) = ${srcAno}
+                  AND ${expenseInPeriod(srcMes, srcAno)}
                   AND ${expenseCountsForAnalytics}
             `),
         ])

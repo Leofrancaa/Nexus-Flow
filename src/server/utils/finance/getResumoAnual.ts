@@ -2,6 +2,8 @@ import { sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
 import {
     expenseCountsForAnalytics,
+    expensePeriodMonth,
+    expensePeriodYear,
     incomeCountsForAnalytics,
 } from './analyticsFilters'
 
@@ -27,9 +29,9 @@ export const getResumoAnual = async (user_id: string, ano: number): Promise<Resu
             GROUP BY mes ORDER BY mes
         `),
         db.execute(sql`
-            SELECT EXTRACT(MONTH FROM e.data) AS mes, SUM(e.quantidade) AS total_despesas
+            SELECT ${expensePeriodMonth} AS mes, SUM(e.quantidade) AS total_despesas
             FROM expenses e
-            WHERE e.user_id = ${user_id} AND EXTRACT(YEAR FROM e.data) = ${ano}
+            WHERE e.user_id = ${user_id} AND ${expensePeriodYear} = ${ano}
               AND ${expenseCountsForAnalytics}
             GROUP BY mes ORDER BY mes
         `),

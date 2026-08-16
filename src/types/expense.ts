@@ -6,6 +6,8 @@ export interface Expense {
     data: string;
     fixo?: boolean;
     parcelas?: number;
+    competencia_mes?: number | null;
+    competencia_ano?: number | null;
     frequencia?: string;
     card_id?: number | null;
     category_id?: number | null;

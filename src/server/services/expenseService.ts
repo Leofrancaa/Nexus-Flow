@@ -14,6 +14,7 @@ import {
 } from '@/server/utils/helper'
 import {
     expenseCountsForAnalytics,
+    expenseInPeriod,
     expenseIsRealized,
 } from '@/server/utils/finance/analyticsFilters'
 
@@ -373,8 +374,7 @@ export class ExpenseService {
             LEFT JOIN pluggy_items pi
               ON pi.item_id = pa.item_id AND pi.user_id = e.user_id
             WHERE e.user_id = ${userId}
-              AND EXTRACT(MONTH FROM e.data) = ${month}
-              AND EXTRACT(YEAR FROM e.data) = ${year}
+              AND ${expenseInPeriod(month, year)}
               AND ${expenseIsRealized}
             ORDER BY e.data DESC
         `)
@@ -424,8 +424,7 @@ export class ExpenseService {
             SELECT COALESCE(SUM(e.quantidade), 0) as total
             FROM expenses e
             WHERE e.user_id = ${userId}
-              AND EXTRACT(MONTH FROM e.data) = ${month}
-              AND EXTRACT(YEAR FROM e.data) = ${year}
+              AND ${expenseInPeriod(month, year)}
               AND ${expenseCountsForAnalytics}
         `)
 
@@ -443,8 +442,7 @@ export class ExpenseService {
             FROM expenses e
             WHERE e.user_id = ${userId}
               AND e.category_id = ${categoryId}
-              AND EXTRACT(MONTH FROM e.data) = ${month}
-              AND EXTRACT(YEAR FROM e.data) = ${year}
+              AND ${expenseInPeriod(month, year)}
               AND ${expenseCountsForAnalytics}
         `)
 
@@ -467,8 +465,7 @@ export class ExpenseService {
                 CASE WHEN COUNT(*) > 0 THEN COALESCE(AVG(e.quantidade), 0) ELSE 0 END as media
             FROM expenses e
             WHERE e.user_id = ${userId}
-              AND EXTRACT(MONTH FROM e.data) = ${month}
-              AND EXTRACT(YEAR FROM e.data) = ${year}
+              AND ${expenseInPeriod(month, year)}
               AND ${expenseCountsForAnalytics}
               ${categoryFilter}
         `)
@@ -503,8 +500,7 @@ export class ExpenseService {
             JOIN categories c ON c.id = e.category_id
             LEFT JOIN categories parent ON parent.id = c.parent_id
             WHERE e.user_id = ${userId}
-              AND EXTRACT(MONTH FROM e.data) = ${month}
-              AND EXTRACT(YEAR FROM e.data) = ${year}
+              AND ${expenseInPeriod(month, year)}
               AND ${expenseCountsForAnalytics}
             GROUP BY COALESCE(parent.id, c.id), COALESCE(parent.nome, c.nome), COALESCE(parent.cor, c.cor)
             ORDER BY total DESC

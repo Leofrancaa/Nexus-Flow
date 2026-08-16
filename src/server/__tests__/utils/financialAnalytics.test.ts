@@ -85,6 +85,17 @@ describe("financial analytics", () => {
       },
       {
         metodo_pagamento: "Cartão de crédito",
+        tipo: "Senai mensalidade 2/2",
+        quantidade: "475.38",
+        data: new Date("2026-06-24T12:00:00"),
+        competencia_mes: 8,
+        competencia_ano: 2026,
+        category_id: shoppingCategory.id,
+        observacoes: "Sincronizado via Open Finance",
+        user_id: USER_ID,
+      },
+      {
+        metodo_pagamento: "Cartão de crédito",
         tipo: "Parcela futura com data original da compra",
         quantidade: "777",
         data: new Date("2026-07-27T12:00:00"),
@@ -117,9 +128,9 @@ describe("financial analytics", () => {
     );
 
     expect(comparison.receitas.atual).toBe(3000);
-    expect(comparison.despesas.atual).toBe(200);
-    expect(comparison.saldo).toBe(2800);
-    expect(categories).toEqual([{ id: shoppingCategory.id, nome: "Compras", total: 200 }]);
-    expect(futureBalance).toBe(2911);
+    expect(comparison.despesas.atual).toBe(675.38);
+    expect(comparison.saldo).toBe(2324.62);
+    expect(categories).toEqual([{ id: shoppingCategory.id, nome: "Compras", total: 675.38 }]);
+    expect(futureBalance).toBe(2435.62);
   });
 });

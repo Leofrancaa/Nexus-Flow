@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
 import {
     expenseCountsForAnalytics,
+    expenseInPeriod,
     incomeCountsForAnalytics,
 } from '@/server/utils/finance/analyticsFilters'
 import { profiles } from '@/server/db/schema'
@@ -161,7 +162,7 @@ export class CurrencyService {
                 COALESCE((SELECT SUM(i.quantidade) FROM incomes i WHERE i.user_id = ${userId} AND ${incomeCountsForAnalytics}), 0) as total_income,
                 COALESCE((SELECT SUM(e.quantidade) FROM expenses e WHERE e.user_id = ${userId} AND ${expenseCountsForAnalytics}), 0) as total_expenses,
                 COALESCE((SELECT SUM(i.quantidade) FROM incomes i WHERE i.user_id = ${userId} AND EXTRACT(MONTH FROM i.data) = ${currentMonth} AND EXTRACT(YEAR FROM i.data) = ${currentYear} AND ${incomeCountsForAnalytics}), 0) as month_income,
-                COALESCE((SELECT SUM(e.quantidade) FROM expenses e WHERE e.user_id = ${userId} AND EXTRACT(MONTH FROM e.data) = ${currentMonth} AND EXTRACT(YEAR FROM e.data) = ${currentYear} AND ${expenseCountsForAnalytics}), 0) as month_expenses
+                COALESCE((SELECT SUM(e.quantidade) FROM expenses e WHERE e.user_id = ${userId} AND ${expenseInPeriod(currentMonth, currentYear)} AND ${expenseCountsForAnalytics}), 0) as month_expenses
         `)
 
         const data = queryResult.rows[0] as {

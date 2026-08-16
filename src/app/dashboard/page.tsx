@@ -231,7 +231,10 @@ function Dashboard() {
           ? ((await resReceitas.json()).data ?? [])
           : [];
 
-        if (!cancelado) setItens(toActivities(despesas, receitas));
+        if (!cancelado) setItens(toActivities(despesas, receitas, {
+          month: agora.getMonth() + 1,
+          year: agora.getFullYear(),
+        }));
       } catch {
         if (!cancelado) {
           setItens([]);

@@ -52,6 +52,16 @@ describe('ExpenseService — atividades realizadas', () => {
         observacoes: 'Lançamento previsto de cartão · Sincronizado via Open Finance',
         user_id: USER_ID,
       },
+      {
+        metodo_pagamento: 'Cartão de crédito',
+        tipo: 'Parcela da fatura de janeiro',
+        quantidade: '80',
+        data: new Date('1999-12-15T12:00:00'),
+        competencia_mes: 1,
+        competencia_ano: 2000,
+        observacoes: 'Sincronizado via Open Finance',
+        user_id: USER_ID,
+      },
     ])
 
     const [monthly, range] = await Promise.all([
@@ -63,7 +73,10 @@ describe('ExpenseService — atividades realizadas', () => {
       ),
     ])
 
-    expect(monthly.map((expense) => expense.tipo)).toEqual(['Compra efetivada'])
+    expect(monthly.map((expense) => expense.tipo)).toEqual([
+      'Compra efetivada',
+      'Parcela da fatura de janeiro',
+    ])
     expect(range.map((expense) => expense.tipo)).toEqual(['Compra efetivada'])
   })
 })

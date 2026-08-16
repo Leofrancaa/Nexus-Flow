@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
 import {
     expenseCountsForAnalytics,
+    expenseInPeriod,
     incomeCountsForAnalytics,
 } from './analyticsFilters'
 
@@ -36,12 +37,12 @@ export const getComparativoMensal = async (
         `),
         db.execute(sql`
             SELECT COALESCE(SUM(e.quantidade), 0) as total FROM expenses e
-            WHERE e.user_id = ${user_id} AND EXTRACT(MONTH FROM e.data) = ${mesAtual} AND EXTRACT(YEAR FROM e.data) = ${anoAtual}
+            WHERE e.user_id = ${user_id} AND ${expenseInPeriod(mesAtual, anoAtual)}
               AND ${expenseCountsForAnalytics}
         `),
         db.execute(sql`
             SELECT COALESCE(SUM(e.quantidade), 0) as total FROM expenses e
-            WHERE e.user_id = ${user_id} AND EXTRACT(MONTH FROM e.data) = ${mesAnterior} AND EXTRACT(YEAR FROM e.data) = ${anoAnterior}
+            WHERE e.user_id = ${user_id} AND ${expenseInPeriod(mesAnterior, anoAnterior)}
               AND ${expenseCountsForAnalytics}
         `),
     ])

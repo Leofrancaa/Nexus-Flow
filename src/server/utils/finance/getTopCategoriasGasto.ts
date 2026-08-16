@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
-import { expenseCountsForAnalytics } from './analyticsFilters'
+import { expenseCountsForAnalytics, expenseInPeriod } from './analyticsFilters'
 
 export interface TopCategoriasResult {
     nome: string
@@ -22,8 +22,7 @@ export const getTopCategoriasGasto = async (
         FROM expenses e
         JOIN categories c ON e.category_id = c.id
         WHERE e.user_id = ${user_id}
-        AND EXTRACT(MONTH FROM e.data) = ${mes}
-        AND EXTRACT(YEAR FROM e.data) = ${ano}
+        AND ${expenseInPeriod(mes, ano)}
         AND ${expenseCountsForAnalytics}
         GROUP BY c.nome
         ORDER BY total DESC

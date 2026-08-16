@@ -20,6 +20,10 @@ export interface Activity {
   valor: number;
   /** Sempre YYYY-MM-DD, já sem a parte de hora. */
   data: string;
+  /** Data usada no período selecionado para ordenação e gráficos. */
+  dataPeriodo?: string;
+  /** Agrupamento sem dia artificial para compras da fatura. */
+  grupo?: string;
   categoriaId?: number | null;
   categoria?: string;
   cor?: string;
@@ -66,6 +70,30 @@ export function activityMatchesFilters(
 
 export const soData = (d: string) => d.split("T")[0].split(" ")[0];
 
+const MONTH_NAMES = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+function isCreditCardExpense(expense: Expense): boolean {
+  const method = expense.metodo_pagamento
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return expense.card_id != null || method.includes("credito") || method.includes("credit card");
+}
+
+function dateInsidePeriod(date: string, month: number, year: number): string {
+  const originalDay = Number(soData(date).slice(8, 10)) || 1;
+  const lastDay = new Date(year, month, 0).getDate();
+  const now = new Date();
+  const limit = now.getFullYear() === year && now.getMonth() + 1 === month
+    ? now.getDate()
+    : lastDay;
+  const day = Math.min(originalDay, lastDay, limit);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 /**
  * Data local a partir de YYYY-MM-DD.
  *
@@ -97,16 +125,28 @@ export function tituloDoDia(iso: string): string {
 /** Junta os dois lados e ordena do mais recente para o mais antigo. */
 export function toActivities(
   despesas: Expense[],
-  receitas: Income[]
+  receitas: Income[],
+  period?: { month: number; year: number }
 ): Activity[] {
   const lista: Array<Omit<Activity, "natureza">> = [
-    ...despesas.map((e) => ({
+    ...despesas.map((e) => {
+      const invoicePeriod = period != null &&
+        isCreditCardExpense(e) &&
+        e.competencia_mes === period.month &&
+        e.competencia_ano === period.year;
+      const periodDate = invoicePeriod
+        ? dateInsidePeriod(e.data, period.month, period.year)
+        : soData(e.data);
+
+      return ({
       key: `expense-${e.id}`,
       kind: "expense" as const,
       id: e.id,
       descricao: e.tipo,
       valor: Number(e.quantidade),
       data: soData(e.data),
+      dataPeriodo: periodDate,
+      grupo: invoicePeriod ? `Fatura de ${MONTH_NAMES[period.month - 1]}` : undefined,
       categoriaId: e.category_id,
       categoria: e.categoria_nome,
       cor: e.cor_categoria,
@@ -117,7 +157,8 @@ export function toActivities(
       origem: e.origem,
       financeNeutral: e.observacoes?.includes("Movimento neutro de cartão"),
       expense: e,
-    })),
+      });
+    }),
     ...receitas.map((r) => ({
       key: `income-${r.id}`,
       kind: "income" as const,
@@ -125,6 +166,7 @@ export function toActivities(
       descricao: r.tipo,
       valor: Number(r.quantidade),
       data: soData(r.data),
+      dataPeriodo: soData(r.data),
       categoriaId: r.category_id,
       categoria: r.categoria_nome,
       cor: r.cor_categoria,
@@ -138,7 +180,9 @@ export function toActivities(
     })),
   ];
 
-  return classifyFinancialMovements(lista).sort((a, b) => b.data.localeCompare(a.data));
+  return classifyFinancialMovements(lista).sort((a, b) =>
+    (b.dataPeriodo ?? b.data).localeCompare(a.dataPeriodo ?? a.data)
+  );
 }
 
 /** Iniciais do avatar da linha, no espírito do logo redondo do extrato. */

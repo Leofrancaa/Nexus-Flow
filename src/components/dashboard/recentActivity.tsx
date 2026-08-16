@@ -86,7 +86,7 @@ export function RecentActivity({ itens, limite = 4 }: RecentActivityProps) {
                   {item.descricao}
                 </span>
                 <span className="block truncate text-xs text-subtle">
-                  {tituloDoDia(item.data)}
+                  {item.grupo ?? tituloDoDia(item.data)}
                   {item.categoria ? ` · ${item.categoria}` : ""}
                 </span>
               </span>

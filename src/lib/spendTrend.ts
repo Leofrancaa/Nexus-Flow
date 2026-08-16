@@ -23,7 +23,7 @@ export function gastoAcumuladoPorDia(
   for (const item of itens) {
     if (item.natureza !== "expense") continue;
 
-    const data = dataLocal(item.data);
+    const data = dataLocal(item.dataPeriodo ?? item.data);
     if (data.getMonth() !== mes || data.getFullYear() !== ano) continue;
 
     const dia = data.getDate();

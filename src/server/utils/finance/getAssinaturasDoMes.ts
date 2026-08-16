@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
+import { expenseCountsForAnalytics, expenseInPeriod } from './analyticsFilters'
 
 export interface AssinaturasDoMesResult {
   total: number
@@ -18,8 +19,8 @@ export async function getAssinaturasDoMes(
     FROM expenses e
     JOIN categories c ON c.id = e.category_id AND c.user_id = e.user_id
     WHERE e.user_id = ${userId}
-      AND EXTRACT(MONTH FROM e.data) = ${mes}
-      AND EXTRACT(YEAR FROM e.data) = ${ano}
+      AND ${expenseInPeriod(mes, ano)}
+      AND ${expenseCountsForAnalytics}
       AND LOWER(TRANSLATE(c.nome, 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUC')) LIKE '%assinatura%'
   `)
   const row = result.rows[0] as { total: string | number; quantidade: string | number }

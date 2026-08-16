@@ -8,7 +8,13 @@ import { getSaldoAtual } from '@/server/utils/finance/getSaldoAtual'
 import { getSaldoConectado } from '@/server/utils/finance/getSaldoConectado'
 import { getGastosPorCategoria } from '@/server/utils/finance/getGastosPorCategoria'
 import { getComparativoMensal } from '@/server/utils/finance/getComparativoMensal'
-import { expenseCountsForAnalytics, incomeCountsForAnalytics } from '@/server/utils/finance/analyticsFilters'
+import {
+  expenseCountsForAnalytics,
+  expenseInPeriod,
+  expensePeriodMonth,
+  expensePeriodYear,
+  incomeCountsForAnalytics,
+} from '@/server/utils/finance/analyticsFilters'
 import { getCartoesAVencer } from '@/server/utils/finance/getCartoesAVencer'
 import { ThresholdService } from '@/server/services/thresholdService'
 
@@ -92,8 +98,7 @@ export class ChatService {
         SELECT e.tipo, e.quantidade, e.data
         FROM expenses e
         WHERE e.user_id = ${userId}
-          AND EXTRACT(MONTH FROM e.data) = ${mes}
-          AND EXTRACT(YEAR FROM e.data) = ${ano}
+          AND ${expenseInPeriod(mes, ano)}
           AND ${expenseCountsForAnalytics}
         ORDER BY e.quantidade DESC
         LIMIT 1
@@ -113,11 +118,14 @@ export class ChatService {
               AND i.data < date_trunc('month', CURRENT_DATE) + interval '1 month'
               AND ${incomeCountsForAnalytics}
           UNION ALL
-          SELECT EXTRACT(YEAR FROM e.data)::int AS y, EXTRACT(MONTH FROM e.data)::int AS m,
+          SELECT ${expensePeriodYear} AS y, ${expensePeriodMonth} AS m,
                  0 AS income, e.quantidade AS expense
             FROM expenses e
             WHERE e.user_id = ${userId}
-              AND e.data < date_trunc('month', CURRENT_DATE) + interval '1 month'
+              AND (
+                ${expensePeriodYear} < ${ano}
+                OR (${expensePeriodYear} = ${ano} AND ${expensePeriodMonth} <= ${mes})
+              )
               AND ${expenseCountsForAnalytics}
         ) t
         GROUP BY y, m
@@ -131,8 +139,7 @@ export class ChatService {
           (SELECT COUNT(*) FROM expenses e
             WHERE e.user_id = ${userId}
               AND e.category_id IS NULL
-              AND EXTRACT(MONTH FROM e.data) = ${mes}
-              AND EXTRACT(YEAR FROM e.data) = ${ano}
+              AND ${expenseInPeriod(mes, ano)}
               AND ${expenseCountsForAnalytics}) AS expenses,
           (SELECT COUNT(*) FROM incomes i
             WHERE i.user_id = ${userId}
