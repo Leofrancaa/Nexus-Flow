@@ -15,6 +15,7 @@ import {
 import {
     expenseCountsForAnalytics,
     expenseInPeriod,
+    expenseInTrackingWindow,
     expenseIsRealized,
 } from '@/server/utils/finance/analyticsFilters'
 
@@ -375,6 +376,7 @@ export class ExpenseService {
               ON pi.item_id = pa.item_id AND pi.user_id = e.user_id
             WHERE e.user_id = ${userId}
               AND ${expenseInPeriod(month, year)}
+              AND ${expenseInTrackingWindow}
               AND ${expenseIsRealized}
             ORDER BY e.data DESC
         `)
@@ -408,6 +410,7 @@ export class ExpenseService {
             WHERE e.user_id = ${userId}
               AND e.data >= ${startDate}::date
               AND e.data <= ${endDate}::date
+              AND ${expenseInTrackingWindow}
               AND ${expenseIsRealized}
             ORDER BY e.data DESC
         `)

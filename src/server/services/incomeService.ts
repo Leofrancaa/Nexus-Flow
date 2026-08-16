@@ -12,6 +12,7 @@ import {
 } from '@/server/utils/helper'
 import {
     incomeCountsForAnalytics,
+    incomeInTrackingWindow,
     incomeIsRealized,
 } from '@/server/utils/finance/analyticsFilters'
 
@@ -134,6 +135,7 @@ export class IncomeService {
             WHERE i.user_id = ${userId}
               AND i.data >= ${startDate}::date
               AND i.data <= ${endDate}::date
+              AND ${incomeInTrackingWindow}
               AND ${incomeIsRealized}
             ORDER BY i.data DESC
         `)
@@ -167,6 +169,7 @@ export class IncomeService {
             WHERE i.user_id = ${userId}
               AND EXTRACT(MONTH FROM i.data) = ${month}
               AND EXTRACT(YEAR FROM i.data) = ${year}
+              AND ${incomeInTrackingWindow}
               AND ${incomeIsRealized}
             ORDER BY i.data DESC
         `)

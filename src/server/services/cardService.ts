@@ -9,6 +9,7 @@ import {
     createErrorResponse,
     isPositiveNumber
 } from '@/server/utils/helper'
+import { expenseInTrackingWindow } from '@/server/utils/finance/analyticsFilters'
 
 interface CardWithStats extends Card {
     gasto_total: number
@@ -259,6 +260,7 @@ export class CardService {
                 AND p.competencia_ano = e.competencia_ano
             WHERE e.user_id = ${userId}
               AND e.card_id = ${cardId}
+              AND ${expenseInTrackingWindow}
               AND p.id IS NULL
         `)
 

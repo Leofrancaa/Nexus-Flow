@@ -4,6 +4,7 @@ import { cards, expenses, cardInvoicesPayments } from '@/server/db/schema'
 import {
     createErrorResponse
 } from '@/server/utils/helper'
+import { expenseInTrackingWindow } from '@/server/utils/finance/analyticsFilters'
 
 interface PayInvoiceParams {
     user_id: string
@@ -159,6 +160,7 @@ export class CardInvoiceService {
                 AND p.competencia_mes = e.competencia_mes
                 AND p.competencia_ano = e.competencia_ano
             WHERE e.user_id = ${user_id} AND e.card_id = ${card_id} AND p.id IS NULL
+              AND ${expenseInTrackingWindow}
               AND e.competencia_mes IS NOT NULL
               AND e.competencia_ano IS NOT NULL
             GROUP BY e.competencia_mes, e.competencia_ano

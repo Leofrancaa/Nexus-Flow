@@ -8,6 +8,7 @@ import { thresholds as thresholdsTable, plans } from '@/server/db/schema'
 import {
   expenseCountsForAnalytics,
   expenseInPeriod,
+  expenseInTrackingWindow,
 } from '@/server/utils/finance/analyticsFilters'
 
 export async function GET(request: NextRequest) {
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
           AND e.card_id IS NOT NULL
           AND e.competencia_mes IS NOT NULL
           AND e.competencia_ano IS NOT NULL
+          AND ${expenseInTrackingWindow}
           AND (e.competencia_ano < ${ano} OR (e.competencia_ano = ${ano} AND e.competencia_mes < ${mes}))
           AND p.id IS NULL
       `)
