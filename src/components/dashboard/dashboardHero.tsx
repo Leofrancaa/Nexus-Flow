@@ -148,7 +148,7 @@ export function DashboardHero({
         </div>
 
         <div className="mt-10 rise [animation-delay:110ms]">
-          <p className="text-sm text-fg/70">Resultado do mês · entradas − saídas</p>
+          <p className="text-sm text-fg/70">Desde o início do acompanhamento</p>
           {carregando ? (
             <div className="mt-2 h-12 w-56 animate-pulse rounded-xl bg-white/10" />
           ) : (

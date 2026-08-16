@@ -279,14 +279,15 @@ function Dashboard() {
 
   const despesasMes = Number(dados?.comparativo?.despesas?.atual ?? 0);
   const despesasAnterior = Number(dados?.comparativo?.despesas?.anterior ?? 0);
-  const receitasMes = Number(dados?.comparativo?.receitas?.atual ?? 0);
+  const entradasAcompanhamento = Number(dados?.acompanhamento?.entradas ?? 0);
+  const saidasAcompanhamento = Number(dados?.acompanhamento?.saidas ?? 0);
 
   return (
     <PageWrapper className="overflow-hidden">
       <DashboardHero
         saldo={Number(dados?.saldo ?? 0)}
-        entradas={receitasMes}
-        saidas={despesasMes}
+        entradas={entradasAcompanhamento}
+        saidas={saidasAcompanhamento}
         carregando={carregando}
         sincronizando={sincronizando}
         progressoSincronizacao={progressoSincronizacao}

@@ -59,19 +59,31 @@ export async function GET(request: NextRequest) {
     ])
 
     const temSaldoConectado = saldoConectado.produtos > 0
-    // O número principal explica exatamente os dois valores mostrados logo
-    // abaixo dele: entradas menos saídas do mês corrente. Saldo bancário é uma
-    // fotografia patrimonial diferente e não deve substituir o fluxo mensal.
-    const saldo = comparativo.saldo
+    const entradasAcompanhamento = resumoAnual.reduce(
+      (total, item) => total + Number(item.total_receitas),
+      0
+    )
+    const saidasAcompanhamento = resumoAnual.reduce(
+      (total, item) => total + Number(item.total_despesas),
+      0
+    )
+    // O saldo principal acompanha o fluxo a partir dos marcos definidos por
+    // instituição. O saldo bancário conectado continua sendo uma fotografia
+    // patrimonial separada, usada apenas como base da projeção futura.
+    const saldo = saldoLancamentos
     const saldoBaseFuturo = temSaldoConectado ? saldoConectado.total : saldoLancamentos
     const saldoFuturo = await getSaldoFuturo(user.id, saldoBaseFuturo)
 
     const dashboardData: DashboardData = {
       saldo,
       saldoFuturo,
-      saldoOrigem: 'mensal',
+      saldoOrigem: 'acompanhamento',
       saldoFuturoOrigem: temSaldoConectado ? 'contas' : 'lancamentos',
       saldoInvestimentos: saldoConectado.investimentos,
+      acompanhamento: {
+        entradas: entradasAcompanhamento,
+        saidas: saidasAcompanhamento,
+      },
       totaisMensais: totaisMensais.receitas.map((receita, index) => ({
         mes: receita.mes,
         receitas: receita.total,
