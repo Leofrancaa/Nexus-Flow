@@ -47,6 +47,21 @@ describe("classifyFinancialMovements", () => {
     expect(income.natureza).toBe("income");
   });
 
+  it("trata resgate do cofrinho como movimento do próprio patrimônio", () => {
+    const [reserveWithdrawal] = classifyFinancialMovements([
+      {
+        key: "income-reserve",
+        kind: "income" as const,
+        descricao: "Dinheiro retirado Bolão copa",
+        valor: 1033.86,
+        data: "2026-08-16",
+      },
+    ]);
+
+    expect(reserveWithdrawal.natureza).toBe("internal_transfer");
+    expect(countsInCashFlow(reserveWithdrawal.natureza)).toBe(false);
+  });
+
   it("identifica pagamento de fatura como movimento neutro", () => {
     expect(isCardPayment("Pagamento Cartão de crédito Nubank")).toBe(true);
     const [payment] = classifyFinancialMovements([

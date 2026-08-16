@@ -49,6 +49,18 @@ function isTransferCandidate(item: MovementLike): boolean {
   );
 }
 
+function isOwnReserveMovement(item: MovementLike): boolean {
+  const description = normalizeText(item.descricao);
+  const reserve = /(bolao|cofrinho|reserva)/;
+  return (
+    reserve.test(description) &&
+    (
+      /(dinheiro retirado|resgate)/.test(description) ||
+      /(dinheiro (guardado|reservado)|aplicacao)/.test(description)
+    )
+  );
+}
+
 function dayNumber(date: string): number {
   const [year, month, day] = date.split("T")[0].split("-").map(Number);
   return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
@@ -70,7 +82,9 @@ export function classifyFinancialMovements<T extends MovementLike>(
   }));
 
   for (const item of classified) {
-    if (item.financeNeutral || (item.kind === "expense" && isCardPayment(item.descricao))) {
+    if (isOwnReserveMovement(item)) {
+      item.natureza = "internal_transfer";
+    } else if (item.financeNeutral || (item.kind === "expense" && isCardPayment(item.descricao))) {
       item.natureza = "card_payment";
     }
   }
@@ -83,7 +97,7 @@ export function classifyFinancialMovements<T extends MovementLike>(
   for (const expense of classified) {
     if (
       expense.kind !== "expense" ||
-      expense.natureza === "card_payment" ||
+      expense.natureza !== "expense" ||
       !isTransferCandidate(expense)
     ) {
       continue;
