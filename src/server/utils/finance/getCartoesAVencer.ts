@@ -1,6 +1,10 @@
 import { sql } from 'drizzle-orm'
 import db from '@/server/db/drizzle'
-import { reconcileOpenInvoice } from './statementReconciliation'
+import {
+    brazilDateKey,
+    getInvoiceReconciliationWindow,
+    reconcileOpenInvoice,
+} from './statementReconciliation'
 
 export interface CartoesAVencerResult {
     id: number
@@ -34,7 +38,10 @@ interface RawRow {
     sincronizado: boolean
 }
 
-export const getCartoesAVencer = async (user_id: string): Promise<CartoesAVencerResult[]> => {
+export const getCartoesAVencer = async (
+    user_id: string,
+    referenceDate = new Date()
+): Promise<CartoesAVencerResult[]> => {
     const result = await db.execute(sql`
         SELECT
             id, nome, limite, limite_disponivel,
@@ -52,12 +59,54 @@ export const getCartoesAVencer = async (user_id: string): Promise<CartoesAVencer
     `)
     const rows = result.rows as unknown as RawRow[]
 
-    return rows.map((row: RawRow) => {
+    const today = brazilDateKey(referenceDate)
+    return Promise.all(rows.map(async (row: RawRow) => {
+        const reconciliationWindow = getInvoiceReconciliationWindow(
+          { instituicao: row.instituicao, numero: row.numero },
+          referenceDate
+        )
+        let expensesAfterStatement = 0
+        let creditsAfterStatement = 0
+
+        if (reconciliationWindow) {
+          const movements = await db.execute(sql`
+            SELECT
+              COALESCE((
+                SELECT SUM(e.quantidade)
+                FROM expenses e
+                WHERE e.user_id = ${user_id}
+                  AND e.card_id = ${row.id}
+                  AND e.data > ${reconciliationWindow.statementThrough}::date
+                  AND e.data <= ${today}::date
+                  AND e.competencia_mes = ${reconciliationWindow.invoiceMonth}
+                  AND e.competencia_ano = ${reconciliationWindow.invoiceYear}
+              ), 0) AS expenses,
+              COALESCE((
+                SELECT SUM(i.quantidade)
+                FROM incomes i
+                JOIN pluggy_accounts account
+                  ON account.account_id = i.pluggy_account_id
+                 AND account.user_id = i.user_id
+                WHERE i.user_id = ${user_id}
+                  AND account.card_id = ${row.id}
+                  AND i.data > ${reconciliationWindow.statementThrough}::date
+                  AND i.data <= ${today}::date
+              ), 0) AS credits
+          `)
+          const movement = movements.rows[0] as
+            | { expenses?: string | number; credits?: string | number }
+            | undefined
+          expensesAfterStatement = Number(movement?.expenses ?? 0)
+          creditsAfterStatement = Number(movement?.credits ?? 0)
+        }
+
         const invoice = reconcileOpenInvoice({
           instituicao: row.instituicao,
           numero: row.numero,
           total_gasto: Number(row.total_gasto),
-        })
+          expensesAfterStatement,
+          creditsAfterStatement,
+        }, referenceDate)
 
         return {
           id: row.id,
@@ -79,5 +128,5 @@ export const getCartoesAVencer = async (user_id: string): Promise<CartoesAVencer
           fatura_conciliada: invoice.reconciled,
           referencia_fatura: invoice.reference,
         }
-    })
+    }))
 }

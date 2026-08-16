@@ -31,4 +31,19 @@ describe('conciliação dos extratos de setembro/2026', () => {
       )
     ).toEqual({ amount: 411.13, reconciled: false, reference: null })
   })
+
+  it('soma compras novas e desconta créditos sem alterar a base conferida', () => {
+    expect(
+      reconcileOpenInvoice(
+        {
+          instituicao: 'Nubank',
+          numero: '6365',
+          total_gasto: 2207.25,
+          expensesAfterStatement: 100,
+          creditsAfterStatement: 30,
+        },
+        referenceDate
+      ).amount
+    ).toBe(2440.05)
+  })
 })
